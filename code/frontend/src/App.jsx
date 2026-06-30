@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router";
 import Navbar from "./components/Navbar.jsx";
 import Account from "./pages/Account.jsx";
 import Catalogue from "./pages/Catalogue.jsx";

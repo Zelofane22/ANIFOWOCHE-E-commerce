@@ -25,3 +25,5 @@ frontend/.env
 
 # Logs
 *.log
+
+CLAUDE.md

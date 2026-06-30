@@ -6,15 +6,20 @@
 
 | Couche | Technologie | Version cible | Rôle |
 |--------|-------------|----------------|------|
-| Frontend | React + React Router + Axios | React 18+ | Interface utilisateur (SPA) |
-| UI / Style | Tailwind CSS | v3 | Design system responsive |
-| Backend | Django + Django REST Framework | Django 5+ | API REST, logique métier |
-| Base de données | PostgreSQL | v16+ | Stockage persistant |
+| Frontend | React + React Router + Axios | React 19+ / React Router 8+ | Interface utilisateur (SPA) |
+| UI / Style | Tailwind CSS | v4 | Design system responsive |
+| Build / dev server | Vite | v8 | Bundler frontend (Rolldown) |
+| Backend | Django + Django REST Framework | Django 6+ | API REST, logique métier |
+| Base de données | PostgreSQL | v18+ | Stockage persistant |
 | Authentification | JWT (djangorestframework-simplejwt) | — | Sessions client sécurisées |
 | Paiement | FedaPay API / KkiaPay API | — | MTN Money, Moov, Visa/MC |
+| Runtime backend | Python | 3.13+ | Exécution Django |
+| Runtime frontend | Node.js | 24+ (LTS) | Build/CI frontend |
 | Hébergement backend | Railway | Free/Hobby tier | API Django + PostgreSQL |
 | Hébergement frontend | Render (Static Site) | Free tier | Build React/Vite |
 | Hébergement prod. | Hostinger (phase 2) | ~3,99 €/mois | Migration après validation |
+
+> Versions vérifiées sur PyPI/npm début juillet 2026. Python 3.12 et Node 20 sont en fin de support (EOL) — 3.13/24 LTS évitent une migration de rattrapage en urgence.
 
 ## Architecture applicative
 

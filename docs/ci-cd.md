@@ -36,13 +36,13 @@ Railway           Render
 Fichier à créer : `.github/workflows/ci.yml`. Déclenché sur `push` et `pull_request`, deux jobs indépendants :
 
 **Job `backend`**
-- Service `postgres:16` (conteneur éphémère pour les tests)
-- Setup Python 3.12
+- Service `postgres:18` (conteneur éphémère pour les tests)
+- Setup Python 3.13
 - `pip install -r backend/requirements.txt`
 - `python backend/manage.py test`
 
 **Job `frontend`**
-- Setup Node 20
+- Setup Node 24
 - `npm ci` dans `frontend/`
 - `npm run lint`
 - `npm run build`
