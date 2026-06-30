@@ -1,4 +1,4 @@
-# 🔄 Rétrospective — Sprint 1
+# 🔄 Rétrospective — Sprint ?
 
 **Date :** ___________  
 **Participants :** Chef de projet + [Père]  
@@ -41,8 +41,8 @@
 
 | Métrique | Valeur |
 |----------|--------|
-| Stories complétées | ? / 5 |
-| Heures consommées | ? / 21h |
+| Stories complétées | ? / ? |
+| Heures consommées | ? / ? |
 | Issues reportées au Sprint 2 | ? |
 
 ---
