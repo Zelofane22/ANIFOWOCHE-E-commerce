@@ -28,7 +28,7 @@
 | Authentification JWT (inscription, connexion, tokens) | 3h |
 | Intégration FedaPay API (sandbox MTN/Moov + webhook) | 5h |
 | Page Checkout React + confirmation de commande | 3h |
-| Déploiement initial sur Render (backend + frontend + BDD) | 1h |
+| Déploiement initial sur Railway (backend + BDD) et Render (frontend) | 1h |
 | Marge / imprévus | 3h |
 | **TOTAL** | **21h** |
 

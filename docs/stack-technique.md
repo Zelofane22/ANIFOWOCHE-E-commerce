@@ -12,7 +12,8 @@
 | Base de données | PostgreSQL | v16+ | Stockage persistant |
 | Authentification | JWT (djangorestframework-simplejwt) | — | Sessions client sécurisées |
 | Paiement | FedaPay API / KkiaPay API | — | MTN Money, Moov, Visa/MC |
-| Hébergement MVP | Render (gratuit) | Free tier | Backend + BDD + Frontend |
+| Hébergement backend | Railway | Free/Hobby tier | API Django + PostgreSQL |
+| Hébergement frontend | Render (Static Site) | Free tier | Build React/Vite |
 | Hébergement prod. | Hostinger (phase 2) | ~3,99 €/mois | Migration après validation |
 
 ## Architecture applicative
@@ -21,17 +22,18 @@ L'application suit une architecture découplée : le frontend React communique e
 
 - **Frontend (React)** : Pages Accueil, Catalogue, Produit, Panier, Commande, Compte · State management (Context API ou Zustand) · Axios pour les appels API
 - **Backend (Django)** : API `/products/` `/orders/` `/payments/` `/users/` `/delivery/` · ORM Django → PostgreSQL · Authentification JWT
-- **Externe** : FedaPay / KkiaPay (paiement) · Render (hébergement gratuit) · WhatsApp Business (notifications)
+- **Externe** : FedaPay / KkiaPay (paiement) · Railway (backend) · Render (frontend) · WhatsApp Business (notifications)
 
-## Déploiement Render (MVP gratuit)
+## Déploiement Railway + Render (MVP)
 
-| Service Render | Ce qu'il héberge | Limites free tier |
+| Plateforme | Ce qu'elle héberge | Déclenchement |
 |-----------------|-------------------|---------------------|
-| Web Service | Backend Django (API REST) | Mise en veille après 15 min d'inactivité |
-| Static Site | Frontend React (build) | Aucune — illimité |
-| PostgreSQL | Base de données | 1 Go stockage, 90 jours gratuits |
+| Railway | Backend Django (API REST) + PostgreSQL | Déploiement auto sur push `main` (intégration GitHub native) |
+| Render — Static Site | Frontend React (build Vite) | Déploiement auto sur push `main` (intégration GitHub native) |
 
-> La mise en veille du backend Render en free tier ralentit la première requête après inactivité (~30 s). C'est acceptable pour un prototype — la migration vers Hostinger ou un VPS interviendra avant l'ouverture au public.
+Détails complets du pipeline CI/CD et des variables d'environnement : [docs/ci-cd.md](ci-cd.md).
+
+> Le comportement de mise en veille dépend du tier choisi sur chaque plateforme — à vérifier avant le lancement public. La migration vers Hostinger ou un VPS reste prévue en phase 2 si le trafic le justifie.
 
 ## Outils de développement & communication
 

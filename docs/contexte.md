@@ -19,7 +19,7 @@ ANIFOWOCHE digitalise un commerce physique de tissus et vêtements pour hommes a
 - Base de données PostgreSQL — stockage structuré et fiable
 - Paiement via MTN Money, Moov Money et carte bancaire (FedaPay / KkiaPay)
 - Livraison à domicile sur Cotonou
-- Déploiement initial gratuit sur Render, migration Hostinger en phase 2
+- Déploiement initial gratuit sur Railway (backend + BDD) et Render (frontend), migration Hostinger en phase 2
 
 ## Contraintes
 

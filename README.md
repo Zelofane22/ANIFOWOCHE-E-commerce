@@ -17,6 +17,8 @@
 | [docs/contexte.md](docs/contexte.md) | Contexte, produits vendus, objectifs MVP, contraintes |
 | [docs/stack-technique.md](docs/stack-technique.md) | Stack, architecture applicative, déploiement Render, outils |
 | [docs/backlog.md](docs/backlog.md) | Backlog Agile — épics & user stories |
+| [docs/maquettes.md](docs/maquettes.md) | Wireframes texte des écrans MVP (catalogue, fiche produit, panier, commande) |
+| [docs/ci-cd.md](docs/ci-cd.md) | Structure CI/CD — GitHub Actions, déploiement Railway (backend) & Render (frontend) |
 | [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints |
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
 | [docs/docker.md](docs/docker.md) | Lancer le projet en local avec Docker |
