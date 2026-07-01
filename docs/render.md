@@ -21,8 +21,8 @@ Render génère ou injecte automatiquement `DATABASE_URL`, `SECRET_KEY`, `RENDER
 
 À renseigner manuellement :
 
-- `CORS_ALLOWED_ORIGINS` : URL du frontend, par exemple `https://anifowoche.vercel.app`
-- `CSRF_TRUSTED_ORIGINS` : même origine en HTTPS si besoin, par exemple `https://anifowoche.vercel.app`
+- `CORS_ALLOWED_ORIGINS` : origine du frontend sans slash final, par exemple `https://anifowoche.vercel.app`
+- `CSRF_TRUSTED_ORIGINS` : même origine en HTTPS sans slash final, par exemple `https://anifowoche.vercel.app`
 - `FRONTEND_BASE_URL` : URL publique du frontend
 - `FEDAPAY_SECRET_KEY`
 - `FEDAPAY_WEBHOOK_SECRET`
