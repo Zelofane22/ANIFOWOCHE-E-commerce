@@ -1,12 +1,31 @@
 from datetime import timedelta
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import dj_database_url
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ON_RENDER = bool(os.environ.get("RENDER"))
+
+
+def _normalize_origins(origins):
+    normalized = []
+    for origin in origins:
+        origin = origin.strip()
+        if not origin:
+            continue
+
+        parsed = urlsplit(origin)
+        if parsed.scheme and parsed.netloc:
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+        else:
+            origin = origin.rstrip("/")
+
+        if origin not in normalized:
+            normalized.append(origin)
+    return normalized
 
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=not ON_RENDER, cast=bool)
@@ -80,7 +99,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=ON_RENDER, cast=bool)
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
-CSRF_TRUSTED_ORIGINS = list(config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv()))
+CSRF_TRUSTED_ORIGINS = _normalize_origins(config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv()))
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 SESSION_COOKIE_SECURE = not DEBUG
@@ -155,8 +174,8 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
-CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv()
+CORS_ALLOWED_ORIGINS = _normalize_origins(
+    config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())
 )
 
 # Intégration FedaPay (sandbox). Valeurs placeholder tant que les vraies clés
