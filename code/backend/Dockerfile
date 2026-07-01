@@ -9,7 +9,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# En local, docker-compose.yml surcharge cette commande par
+# "python manage.py runserver" (voir CLAUDE.md). En production (Railway),
+# cet entrypoint applique les migrations, collecte les statiques puis
+# lance gunicorn.
+CMD ["./entrypoint.sh"]

@@ -83,8 +83,10 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 
 - Projet Railway connecté au repo GitHub, **répertoire racine** configuré sur `code/backend/`
 - Build via le `Dockerfile` existant ([code/backend/Dockerfile](../code/backend/Dockerfile)) — Railway le détecte et l'utilise automatiquement, pas de configuration supplémentaire requise
+- Au démarrage du conteneur, [entrypoint.sh](../code/backend/entrypoint.sh) applique les migrations, exécute `collectstatic` (servi ensuite via WhiteNoise) puis lance `gunicorn` sur `$PORT` (fourni par Railway). En local, `docker-compose.yml` surcharge cette commande par `manage.py runserver` — l'entrypoint de prod ne s'exécute jamais en dev.
+- `config/settings.py` lit `DATABASE_URL` via `dj-database-url` si la variable est présente (cas Railway), sinon retombe sur les variables `DB_*` discrètes (cas docker compose local) — aucune bascule manuelle nécessaire.
 - Déploiement automatique à chaque push sur `main`
-- Variables d'environnement à définir dans Railway : `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`, `DATABASE_URL`, `CORS_ALLOWED_ORIGINS` (URL du frontend Render), clés API FedaPay/KkiaPay
+- Variables d'environnement à définir dans Railway : `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` (URL du frontend Render), clés API FedaPay/KkiaPay (`FEDAPAY_SECRET_KEY`, `FEDAPAY_WEBHOOK_SECRET`), `FRONTEND_BASE_URL`. `DATABASE_URL` et `PORT` sont injectées automatiquement par Railway, pas besoin de les définir.
 - **Base de données** : ⚠️ à confirmer — ce document suppose un add-on PostgreSQL Railway dans le même projet que le backend (Railway injecte alors `DATABASE_URL` automatiquement). Si la BDD doit être hébergée ailleurs, mettre à jour cette section.
 
 ## CD — Frontend → Render
@@ -123,7 +125,8 @@ Aucun secret ne doit être committé dans `.env` — `code/backend/.env` et `cod
 
 - [x] Créer `.github/workflows/ci.yml` avec les jobs `backend`, `frontend` et `security` (gitleaks + audits de dépendances — Priorité 1 de la roadmap sécurité)
 - [x] Créer `.github/dependabot.yml` (SCA pip/npm/github-actions)
+- [x] Rendre l'image Docker backend prête pour la prod : `entrypoint.sh` (migrate + collectstatic + gunicorn), WhiteNoise pour les statiques, support `DATABASE_URL` via `dj-database-url` (repli sur les variables `DB_*` locales) — testé via un conteneur jetable dans docker compose
 - ⚠️ Générer et committer `frontend/package-lock.json` (`npm install` en local), puis repasser le step `frontend` de `npm install` à `npm ci` dans le workflow pour des builds reproductibles
-- Créer les projets Railway (backend + PostgreSQL) et Render (frontend), connecter le repo GitHub, configurer les répertoires racine et variables d'environnement
+- Créer les projets Railway (backend + PostgreSQL) et Render (frontend), connecter le repo GitHub, configurer les répertoires racine et variables d'environnement — action manuelle sur les consoles Railway/Render, hors du scope de ce dépôt
 - Écrire les premiers tests Django (`apps/products`, `apps/orders`) pour que le job `backend` ait une valeur réelle
 - (Optionnel, une fois la base de tests démarrée) ajouter Vitest côté frontend et l'intégrer comme step CI

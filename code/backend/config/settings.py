@@ -1,6 +1,7 @@
 from datetime import timedelta
 from pathlib import Path
 
+import dj_database_url
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -58,15 +60,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Railway injecte DATABASE_URL (add-on PostgreSQL) : on l'utilise si présente,
+# sinon on retombe sur les variables DB_* discrètes (docker compose local).
+_local_db_url = "postgresql://{user}:{password}@{host}:{port}/{name}".format(
+    user=config("DB_USER", default="anifowoche"),
+    password=config("DB_PASSWORD", default=""),
+    host=config("DB_HOST", default="localhost"),
+    port=config("DB_PORT", default="5432"),
+    name=config("DB_NAME", default="anifowoche"),
+)
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME", default="anifowoche"),
-        "USER": config("DB_USER", default="anifowoche"),
-        "PASSWORD": config("DB_PASSWORD", default=""),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
-    }
+    "default": dj_database_url.config(default=_local_db_url, conn_max_age=600)
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -83,6 +87,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
