@@ -69,8 +69,12 @@ export default function Footer() {
 
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 md:flex-row md:items-start md:justify-between">
         <div>
-          <Link to="/" className="text-lg font-bold tracking-tight text-white">
-            ANIFOWOCHE
+          <Link to="/" className="block w-fit overflow-hidden rounded-md">
+            <img
+              src="/anifowoche-logo.png"
+              alt="ANIFOWOCHE"
+              className="h-16 w-48 object-cover object-center"
+            />
           </Link>
           <p className="mt-2 max-w-sm text-sm leading-6 text-white/60">
             Tissus, vêtements et accessoires homme sélectionnés à Cotonou, avec commande en ligne et livraison à domicile.

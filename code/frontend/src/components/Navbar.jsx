@@ -38,8 +38,12 @@ export default function Navbar() {
               <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link to="/" className="text-lg font-bold tracking-tight text-white transition hover:text-brand">
-            ANIFOWOCHE
+          <Link to="/" className="block overflow-hidden rounded-md transition hover:ring-2 hover:ring-brand/70">
+            <img
+              src="/anifowoche-logo.png"
+              alt="ANIFOWOCHE"
+              className="h-11 w-36 object-cover object-center sm:w-40"
+            />
           </Link>
         </div>
 
