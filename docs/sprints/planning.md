@@ -28,11 +28,11 @@
 | Authentification JWT (inscription, connexion, tokens) | 3h |
 | Intégration FedaPay API (sandbox MTN/Moov + webhook) | 5h |
 | Page Checkout React + confirmation de commande | 3h |
-| Déploiement initial sur Railway (backend + BDD) et Vercel (frontend) | 1h |
+| Déploiement initial sur Render (backend + BDD) et Vercel (frontend) | 1h |
 | Marge / imprévus | 3h |
 | **TOTAL** | **21h** |
 
-**Livrable Sprint 2** : première commande test payée via FedaPay sandbox, déployée sur Railway + Vercel.
+**Livrable Sprint 2** : première commande test payée via FedaPay sandbox, déployée sur Render + Vercel.
 
 ## Sprint 3 — Livraison & Dashboard admin (Sem. 7–9 · 21h)
 
@@ -60,4 +60,4 @@
 | Marge / imprévus | 5h |
 | **TOTAL** | **21h** |
 
-**Livrable Sprint 4** : MVP en production sur Railway + Vercel — ouverture aux premiers clients béninois.
+**Livrable Sprint 4** : MVP en production sur Render + Vercel — ouverture aux premiers clients béninois.

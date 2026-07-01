@@ -19,11 +19,11 @@ ANIFOWOCHE digitalise un commerce physique de tissus et vêtements pour hommes a
 - Base de données PostgreSQL — stockage structuré et fiable
 - Paiement via MTN Money, Moov Money et carte bancaire (FedaPay / KkiaPay)
 - Livraison à domicile sur Cotonou
-- Déploiement initial sur Railway (backend + BDD) et Vercel (frontend), migration Hostinger en phase 2 si nécessaire
+- Déploiement initial sur Render (backend + BDD) et Vercel (frontend), migration Hostinger en phase 2 si nécessaire
 
 ## Contraintes
 
 - Développeur solo en alternance ingénierie de production
 - Capacité : 7 heures/semaine (principalement le weekend)
-- Budget hébergement MVP : viser 0 € côté frontend (Vercel Hobby) et limiter le coût Railway au strict nécessaire pour backend + PostgreSQL
+- Budget hébergement MVP : viser 0 € côté frontend (Vercel Hobby) et limiter le coût Render au strict nécessaire pour backend + PostgreSQL
 - Phase 1 : web uniquement — application mobile React Native en phase 3

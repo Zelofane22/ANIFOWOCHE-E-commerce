@@ -18,7 +18,7 @@
 | [docs/stack-technique.md](docs/stack-technique.md) | Stack, architecture applicative, déploiement Render, outils |
 | [docs/backlog.md](docs/backlog.md) | Backlog Agile — épics & user stories |
 | [docs/maquettes.md](docs/maquettes.md) | Wireframes texte des écrans MVP (catalogue, fiche produit, panier, commande) |
-| [docs/ci-cd.md](docs/ci-cd.md) | Structure CI/CD — GitHub Actions, déploiement Railway (backend) & Render (frontend) |
+| [docs/ci-cd.md](docs/ci-cd.md) | Structure CI/CD — GitHub Actions, déploiement Render (backend) & Vercel (frontend) |
 | [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints |
 | [docs/sprints/sprint2-progress.md](docs/sprints/sprint2-progress.md) | Suivi des tâches Sprint 2 (terminé) |
 | [docs/sprints/sprint3-progress.md](docs/sprints/sprint3-progress.md) | Suivi des tâches Sprint 3 (terminé) |

@@ -14,7 +14,7 @@ RUN chmod +x entrypoint.sh
 EXPOSE 8000
 
 # En local, docker-compose.yml surcharge cette commande par
-# "python manage.py runserver" (voir CLAUDE.md). En production (Railway),
+# "python manage.py runserver" (voir CLAUDE.md). En production (Render),
 # cet entrypoint applique les migrations, collecte les statiques puis
 # lance gunicorn.
 CMD ["./entrypoint.sh"]
