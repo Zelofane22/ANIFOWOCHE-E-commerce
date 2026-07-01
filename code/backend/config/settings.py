@@ -107,3 +107,10 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv()
 )
+
+# Intégration FedaPay (sandbox). Valeurs placeholder tant que les vraies clés
+# ne sont pas fournies via les variables d'environnement — voir docs/stack-technique.md.
+FEDAPAY_BASE_URL = config("FEDAPAY_BASE_URL", default="https://sandbox-api.fedapay.com")
+FEDAPAY_SECRET_KEY = config("FEDAPAY_SECRET_KEY", default="sk_sandbox_placeholder")
+FEDAPAY_WEBHOOK_SECRET = config("FEDAPAY_WEBHOOK_SECRET", default="whsec_placeholder")
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
