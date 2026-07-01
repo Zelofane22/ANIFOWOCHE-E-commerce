@@ -17,7 +17,9 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "cloudinary_storage",
     "django.contrib.staticfiles",
+    "cloudinary",
     "django.contrib.humanize",
     "rest_framework",
     "rest_framework_simplejwt",
@@ -102,6 +104,22 @@ STORAGES = {
 }
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Cloudinary (stockage des images produits/bannières). Laisser les variables
+# vides en local pour garder le stockage disque (FileSystemStorage) ; les
+# renseigner sur Railway pour bénéficier du CDN et de la persistance entre
+# déploiements — voir docs/stack-technique.md.
+CLOUDINARY_CLOUD_NAME = config("CLOUDINARY_CLOUD_NAME", default="")
+CLOUDINARY_API_KEY = config("CLOUDINARY_API_KEY", default="")
+CLOUDINARY_API_SECRET = config("CLOUDINARY_API_SECRET", default="")
+
+if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
+    CLOUDINARY_STORAGE = {
+        "CLOUD_NAME": CLOUDINARY_CLOUD_NAME,
+        "API_KEY": CLOUDINARY_API_KEY,
+        "API_SECRET": CLOUDINARY_API_SECRET,
+    }
+    STORAGES["default"] = {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

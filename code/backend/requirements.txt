@@ -11,3 +11,4 @@ dj-database-url>=3.0
 whitenoise>=6.11
 gunicorn>=23.0
 django-unfold>=0.66
+django-cloudinary-storage>=0.3
