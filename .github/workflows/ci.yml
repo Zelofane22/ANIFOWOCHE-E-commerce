@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_DB: anifowoche
           POSTGRES_USER: anifowoche
@@ -32,25 +32,25 @@ jobs:
       SECRET_KEY: ci-test-secret-key
       DEBUG: "False"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: "pip"
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: code/backend/requirements.txt
 
       - name: Install dependencies
-        working-directory: backend
+        working-directory: code/backend
         run: pip install -r requirements.txt
 
       - name: Run tests
-        working-directory: backend
+        working-directory: code/backend
         run: python manage.py test
 
       - name: Audit Python dependencies (pip-audit)
-        working-directory: backend
+        working-directory: code/backend
         run: |
           pip install pip-audit
           pip-audit -r requirements.txt
@@ -58,33 +58,35 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: code/frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend
-        run: npm install
+        working-directory: code/frontend
+        run: npm ci
 
       - name: Lint
-        working-directory: frontend
+        working-directory: code/frontend
         run: npm run lint
 
       - name: Build
-        working-directory: frontend
+        working-directory: code/frontend
         run: npm run build
 
       - name: Audit npm dependencies
-        working-directory: frontend
+        working-directory: code/frontend
         run: npm audit --audit-level=high
 
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

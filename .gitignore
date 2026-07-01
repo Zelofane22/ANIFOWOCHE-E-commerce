@@ -2,21 +2,19 @@
 __pycache__/
 *.py[cod]
 *.sqlite3
-backend/venv/
-backend/.venv/
-backend/staticfiles/
-backend/media/
+venv/
+.venv/
+staticfiles/
+media/
 *.egg-info/
 
 # Node / React
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+node_modules/
+dist/
+.vite/
 
 # Env
 .env
-backend/.env
-frontend/.env
 
 # Editor / OS
 .vscode/
@@ -25,3 +23,9 @@ frontend/.env
 
 # Logs
 *.log
+
+CLAUDE.md
+.claude/
+.codex
+
+*Mockup*

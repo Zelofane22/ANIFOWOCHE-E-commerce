@@ -6,6 +6,11 @@ Wireframes texte des écrans prioritaires du Sprint 1–2 (catalogue, panier, co
 
 Composants référencés : `Navbar`, `ProductCard`, `Cart` (voir [structure frontend](../README.md#-structure-du-projet-mono-repo)).
 
+
+## Mockup global frontend
+Toujours utiliser ou s'inpirer de la maque figma pour les interfaces frontend.
+/home/zelofane/projets/ANIFOWOCHE-E-commerce/docs/ANIFIWOSHE Mockup Figma
+
 ---
 
 ## 1. Accueil / Catalogue — `pages/Home`, `pages/Catalogue`
