@@ -6,5 +6,5 @@ Coché automatiquement par la boucle planifiée (toutes les 2h). Voir [planning.
 - [x] Panier côté React (Context API ou Zustand)
 - [x] Authentification JWT (inscription, connexion, tokens)
 - [x] Intégration FedaPay API (sandbox MTN/Moov + webhook)
-- [ ] Page Checkout React + confirmation de commande
+- [x] Page Checkout React + confirmation de commande
 - [ ] Déploiement initial sur Railway (backend + BDD) et Render (frontend)

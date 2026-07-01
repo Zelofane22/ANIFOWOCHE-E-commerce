@@ -32,6 +32,7 @@ export function CartProvider({ children }) {
       return [
         ...current,
         {
+          id: product.id,
           slug: product.slug,
           name: product.name,
           price_xof: product.price_xof,

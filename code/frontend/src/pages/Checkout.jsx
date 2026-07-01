@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { initiatePayment } from "../api/payments.js";
+import { createOrder } from "../api/orders.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
+import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 
 const DELIVERY_SLOTS = [
@@ -14,19 +18,19 @@ const PAYMENT_METHODS = [
   { value: "card", label: "Carte Visa / Mastercard" },
 ];
 
-function generateOrderNumber() {
-  return `ANW-${Date.now().toString().slice(-6)}`;
-}
-
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [fullName, setFullName] = useState(user?.username ?? "");
   const [neighborhood, setNeighborhood] = useState("");
   const [notes, setNotes] = useState("");
   const [slot, setSlot] = useState("matin");
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("mtn");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   if (items.length === 0) {
     return (
@@ -42,14 +46,45 @@ export default function Checkout() {
     );
   }
 
-  const canPay = neighborhood.trim() !== "" && phone.trim() !== "";
+  const canPay = fullName.trim() !== "" && neighborhood.trim() !== "" && phone.trim() !== "" && !submitting;
 
-  const handlePay = (event) => {
+  const handlePay = async (event) => {
     event.preventDefault();
     if (!canPay) return;
-    const orderNumber = generateOrderNumber();
-    clearCart();
-    navigate("/commande/confirmation", { state: { orderNumber } });
+    setError(null);
+    setSubmitting(true);
+
+    const slotLabel = DELIVERY_SLOTS.find((option) => option.value === slot)?.label ?? slot;
+    const address = `${neighborhood.trim()} — créneau : ${slotLabel}${notes.trim() ? ` — ${notes.trim()}` : ""}`;
+
+    try {
+      const order = await createOrder({
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        email: user?.email ?? "",
+        address,
+        city: "Cotonou",
+        items: items.map((item) => ({ product_id: item.id, quantity: item.quantity })),
+      });
+
+      let paymentStatus = "failed";
+      try {
+        const payment = await initiatePayment({ order_id: order.id, method: paymentMethod });
+        paymentStatus = payment.status;
+      } catch {
+        // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
+        paymentStatus = "failed";
+      }
+
+      clearCart();
+      navigate("/commande/confirmation", {
+        state: { orderId: order.id, total: order.total_xof, paymentStatus },
+      });
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -69,6 +104,22 @@ export default function Checkout() {
       <p className="mt-3 text-right text-base font-semibold text-ink">
         Total : {formatXof(subtotal)}
       </p>
+
+      {error && <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+
+      <section className="mt-6">
+        <h2 className="text-sm font-semibold text-ink">Vos coordonnées</h2>
+        <label className="mt-3 block text-sm text-ink">
+          Nom complet
+          <input
+            type="text"
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+            required
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+          />
+        </label>
+      </section>
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-ink">Adresse de livraison</h2>
@@ -151,7 +202,7 @@ export default function Checkout() {
           disabled={!canPay}
           className="w-full rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark disabled:bg-gray-200 disabled:text-gray-400"
         >
-          Payer {formatXof(subtotal)}
+          {submitting ? "Traitement…" : `Payer ${formatXof(subtotal)}`}
         </button>
       </div>
 
@@ -161,7 +212,7 @@ export default function Checkout() {
           disabled={!canPay}
           className="w-full rounded-lg bg-brand px-6 py-3 font-semibold text-ink disabled:bg-gray-200 disabled:text-gray-400"
         >
-          Payer {formatXof(subtotal)}
+          {submitting ? "Traitement…" : `Payer ${formatXof(subtotal)}`}
         </button>
       </div>
     </form>

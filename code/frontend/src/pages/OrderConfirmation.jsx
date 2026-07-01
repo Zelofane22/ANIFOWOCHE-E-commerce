@@ -1,16 +1,23 @@
-import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { formatXof } from "../utils/format.js";
+
+const PAYMENT_MESSAGES = {
+  approved: "Paiement confirmé.",
+  pending: "Paiement en attente de confirmation.",
+  failed: "Le paiement n'a pas pu être initié automatiquement — vous serez contacté pour finaliser le règlement.",
+};
 
 export default function OrderConfirmation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const orderNumber = location.state?.orderNumber;
+  const { orderId, total, paymentStatus } = location.state ?? {};
 
   useEffect(() => {
-    if (!orderNumber) navigate("/", { replace: true });
-  }, [orderNumber, navigate]);
+    if (!orderId) navigate("/", { replace: true });
+  }, [orderId, navigate]);
 
-  if (!orderNumber) return null;
+  if (!orderId) return null;
 
   return (
     <div className="flex flex-col items-center py-16 text-center">
@@ -21,8 +28,14 @@ export default function OrderConfirmation() {
       </div>
       <h1 className="mt-6 text-xl font-bold text-ink">Commande confirmée</h1>
       <p className="mt-2 text-sm text-muted">Numéro de commande</p>
-      <p className="text-lg font-semibold text-ink">{orderNumber}</p>
+      <p className="text-lg font-semibold text-ink">ANW-{orderId}</p>
+      {typeof total === "number" && (
+        <p className="mt-1 text-sm text-muted">Total : {formatXof(total)}</p>
+      )}
       <p className="mt-4 max-w-xs text-sm text-muted">
+        {PAYMENT_MESSAGES[paymentStatus] ?? PAYMENT_MESSAGES.pending}
+      </p>
+      <p className="mt-2 max-w-xs text-sm text-muted">
         Un récapitulatif de votre commande vous sera envoyé par SMS ou WhatsApp.
       </p>
       <Link
