@@ -35,6 +35,12 @@ RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
+# Identifiants du superadmin créé automatiquement au déploiement (voir entrypoint.sh).
+# Changement de mot de passe forcé tant que ce mot de passe par défaut est actif
+# (voir apps.core.middleware.ForceDefaultPasswordChangeMiddleware).
+DEFAULT_SUPERUSER_USERNAME = config("DEFAULT_SUPERUSER_USERNAME", default="anifowoshe")
+DEFAULT_SUPERUSER_PASSWORD = config("DEFAULT_SUPERUSER_PASSWORD", default="anifowoshe")
+
 INSTALLED_APPS = [
     "unfold",
     "django.contrib.admin",
@@ -72,6 +78,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.ForceDefaultPasswordChangeMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -98,7 +105,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=ON_RENDER, cast=bool)
-SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000 if ON_RENDER else 0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = ON_RENDER
+SECURE_HSTS_PRELOAD = ON_RENDER
 CSRF_TRUSTED_ORIGINS = _normalize_origins(config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv()))
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
@@ -167,6 +176,15 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/minute",
+        "user": "300/minute",
+        "auth": "10/minute",
+    },
 }
 
 SIMPLE_JWT = {

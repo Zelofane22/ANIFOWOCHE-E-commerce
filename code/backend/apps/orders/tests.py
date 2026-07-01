@@ -55,10 +55,34 @@ class OrderApiTests(APITestCase):
         self.assertEqual(response.status_code, 401)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
-    def test_non_staff_cannot_list_orders(self, mock_post):
+    def test_non_staff_can_list_own_orders_only(self, mock_post):
+        create_response = self.client.post(
+            "/api/orders/",
+            {
+                "full_name": "Jean",
+                "phone": "+22990000000",
+                "address": "Fidjrossè",
+                "items": [{"product_id": self.product.id, "quantity": 1}],
+            },
+            format="json",
+        )
+        order_id = create_response.data["id"]
+        owner = User.objects.create_user(username="owner", password="pass1234")
+        Order.objects.filter(id=order_id).update(customer=owner)
+
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/orders/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        detail_response = self.client.get(f"/api/orders/{order_id}/")
+        self.assertEqual(detail_response.status_code, 404)
+
+        self.client.force_authenticate(user=owner)
+        own_response = self.client.get("/api/orders/")
+        self.assertEqual(own_response.status_code, 200)
+        self.assertEqual(own_response.data["count"], 1)
+        self.assertEqual(own_response.data["results"][0]["id"], order_id)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_staff_can_list_and_update_order_status(self, mock_post):
