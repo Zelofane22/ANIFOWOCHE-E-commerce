@@ -1,16 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { initiatePayment } from "../api/payments.js";
+import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
+import { initiatePayment } from "../api/payments.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
-
-const DELIVERY_SLOTS = [
-  { value: "matin", label: "Matin" },
-  { value: "soir", label: "Soir" },
-];
 
 const PAYMENT_METHODS = [
   { value: "mtn", label: "MTN Mobile Money" },
@@ -23,14 +19,32 @@ export default function Checkout() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [zones, setZones] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [zoneId, setZoneId] = useState(null);
+  const [slotId, setSlotId] = useState(null);
+  const [loadingDeliveryOptions, setLoadingDeliveryOptions] = useState(true);
+
   const [fullName, setFullName] = useState(user?.username ?? "");
-  const [neighborhood, setNeighborhood] = useState("");
   const [notes, setNotes] = useState("");
-  const [slot, setSlot] = useState("matin");
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("mtn");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    Promise.all([fetchDeliveryZones(), fetchDeliverySlots()])
+      .then(([zonesData, slotsData]) => {
+        const zoneResults = zonesData.results ?? zonesData;
+        const slotResults = slotsData.results ?? slotsData;
+        setZones(zoneResults);
+        setSlots(slotResults);
+        setZoneId(zoneResults[0]?.id ?? null);
+        setSlotId(slotResults[0]?.id ?? null);
+      })
+      .catch((err) => setError(extractErrorMessage(err)))
+      .finally(() => setLoadingDeliveryOptions(false));
+  }, []);
 
   if (items.length === 0) {
     return (
@@ -46,7 +60,13 @@ export default function Checkout() {
     );
   }
 
-  const canPay = fullName.trim() !== "" && neighborhood.trim() !== "" && phone.trim() !== "" && !submitting;
+  const canPay =
+    fullName.trim() !== "" &&
+    phone.trim() !== "" &&
+    zoneId != null &&
+    slotId != null &&
+    !submitting &&
+    !loadingDeliveryOptions;
 
   const handlePay = async (event) => {
     event.preventDefault();
@@ -54,8 +74,9 @@ export default function Checkout() {
     setError(null);
     setSubmitting(true);
 
-    const slotLabel = DELIVERY_SLOTS.find((option) => option.value === slot)?.label ?? slot;
-    const address = `${neighborhood.trim()} — créneau : ${slotLabel}${notes.trim() ? ` — ${notes.trim()}` : ""}`;
+    const zone = zones.find((option) => option.id === zoneId);
+    const slot = slots.find((option) => option.id === slotId);
+    const address = `${zone.name} — créneau : ${slot.label}${notes.trim() ? ` — ${notes.trim()}` : ""}`;
 
     try {
       const order = await createOrder({
@@ -66,6 +87,13 @@ export default function Checkout() {
         city: "Cotonou",
         items: items.map((item) => ({ product_id: item.id, quantity: item.quantity })),
       });
+
+      try {
+        await createDelivery({ order_id: order.id, zone_id: zoneId, slot_id: slotId });
+      } catch {
+        // La commande reste valide même si l'enregistrement de la livraison échoue ;
+        // elle pourra être rattachée manuellement depuis l'admin.
+      }
 
       let paymentStatus = "failed";
       try {
@@ -123,16 +151,48 @@ export default function Checkout() {
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-ink">Adresse de livraison</h2>
-        <label className="mt-3 block text-sm text-ink">
-          Quartier (Cotonou)
-          <input
-            type="text"
-            value={neighborhood}
-            onChange={(event) => setNeighborhood(event.target.value)}
-            required
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
-          />
-        </label>
+
+        {loadingDeliveryOptions ? (
+          <p className="mt-3 text-sm text-muted">Chargement des zones de livraison…</p>
+        ) : (
+          <>
+            <label className="mt-3 block text-sm text-ink">
+              Quartier (Cotonou)
+              <select
+                value={zoneId ?? ""}
+                onChange={(event) => setZoneId(Number(event.target.value))}
+                required
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              >
+                {zones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name}
+                    {zone.fee_xof > 0 ? ` (+${formatXof(zone.fee_xof)})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="mt-3">
+              <p className="text-sm text-ink">Créneau de livraison</p>
+              <div className="mt-2 flex gap-2">
+                {slots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    onClick={() => setSlotId(slot.id)}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+                      slotId === slot.id ? "bg-brand text-ink" : "border border-gray-300 text-ink"
+                    }`}
+                  >
+                    {slot.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
         <label className="mt-3 block text-sm text-ink">
           Indications complémentaires
           <input
@@ -142,24 +202,6 @@ export default function Checkout() {
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
           />
         </label>
-
-        <div className="mt-3">
-          <p className="text-sm text-ink">Créneau de livraison</p>
-          <div className="mt-2 flex gap-2">
-            {DELIVERY_SLOTS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setSlot(option.value)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-                  slot === option.value ? "bg-brand text-ink" : "border border-gray-300 text-ink"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </section>
 
       <section className="mt-6">
