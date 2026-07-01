@@ -6,6 +6,7 @@ import Account from "./pages/Account.jsx";
 import Cart from "./pages/Cart.jsx";
 import Catalogue from "./pages/Catalogue.jsx";
 import Checkout from "./pages/Checkout.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import Home from "./pages/Home.jsx";
 import OrderConfirmation from "./pages/OrderConfirmation.jsx";
 import Product from "./pages/Product.jsx";
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/commande" element={<Checkout />} />
               <Route path="/commande/confirmation" element={<OrderConfirmation />} />
               <Route path="/compte" element={<Account />} />
+              <Route path="/admin" element={<Dashboard />} />
             </Routes>
           </main>
         </div>

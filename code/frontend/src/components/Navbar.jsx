@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { to: "/catalogue", label: "Catalogue" },
   { to: "/compte", label: "Compte" },
 ];
@@ -10,6 +11,10 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const { user } = useAuth();
+  const NAV_LINKS = user?.is_staff
+    ? [...BASE_NAV_LINKS, { to: "/admin", label: "Admin" }]
+    : BASE_NAV_LINKS;
 
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">

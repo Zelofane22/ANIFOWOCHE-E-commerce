@@ -44,7 +44,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["status", "total_xof", "created_at", "updated_at"]
+        read_only_fields = ["total_xof", "created_at", "updated_at"]
 
     def validate_items(self, items):
         if not items:

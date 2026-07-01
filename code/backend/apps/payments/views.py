@@ -2,7 +2,7 @@ import json
 import logging
 
 from django.conf import settings
-from rest_framework import permissions, status
+from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,6 +13,14 @@ from .serializers import InitiatePaymentSerializer, PaymentSerializer
 from .services import FedaPayClient, FedaPayError, verify_webhook_signature
 
 logger = logging.getLogger(__name__)
+
+
+class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
+    """Consultation des paiements — réservée au staff (dashboard admin)."""
+
+    queryset = Payment.objects.all().select_related("order")
+    serializer_class = PaymentSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 
 class InitiatePaymentView(APIView):
