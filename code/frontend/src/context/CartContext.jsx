@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-
-const CartContext = createContext(null);
+import { useEffect, useMemo, useState } from "react";
+import { CartContextValue } from "./cartContextValue.js";
 const STORAGE_KEY = "anifowoche_cart";
 
 function readInitialCart() {
@@ -77,11 +76,5 @@ export function CartProvider({ children }) {
     subtotal,
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-}
-
-export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) throw new Error("useCart doit être utilisé dans un CartProvider");
-  return context;
+  return <CartContextValue.Provider value={value}>{children}</CartContextValue.Provider>;
 }

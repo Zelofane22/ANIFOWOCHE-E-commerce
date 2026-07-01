@@ -7,10 +7,10 @@ export default function Catalogue() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCategory = searchParams.get("category");
   const urlSearch = searchParams.get("search") ?? "";
+  const activeCategory = urlCategory;
+  const search = urlSearch;
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [activeCategory, setActiveCategory] = useState(urlCategory);
-  const [search, setSearch] = useState(urlSearch);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,11 +23,6 @@ export default function Catalogue() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    setActiveCategory(urlCategory);
-    setSearch(urlSearch);
-  }, [urlCategory, urlSearch]);
 
   const updateUrlParams = (category, term) => {
     const nextParams = {};
@@ -90,7 +85,6 @@ export default function Catalogue() {
               value={search}
               onChange={(event) => {
                 const value = event.target.value;
-                setSearch(value);
                 updateUrlParams(activeCategory, value);
               }}
               placeholder="Rechercher un tissu, vêtement, accessoire..."
@@ -109,7 +103,6 @@ export default function Catalogue() {
           <button
             type="button"
             onClick={() => {
-              setActiveCategory(null);
               updateUrlParams(null, search);
             }}
             className={`shrink-0 whitespace-nowrap rounded-full border px-5 py-2 text-sm font-semibold transition ${
@@ -125,7 +118,6 @@ export default function Catalogue() {
               key={category.slug}
               type="button"
               onClick={() => {
-                setActiveCategory(category.slug);
                 updateUrlParams(category.slug, search);
               }}
               className={`shrink-0 whitespace-nowrap rounded-full border px-5 py-2 text-sm font-semibold transition ${

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { fetchProductBySlug } from "../api/products.js";
 import QuantityStepper from "../components/QuantityStepper.jsx";
-import { useCart } from "../context/CartContext.jsx";
+import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
 
 export default function Product() {

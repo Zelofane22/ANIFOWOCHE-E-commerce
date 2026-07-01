@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchMe, loginUser, registerUser } from "../api/auth.js";
 import { clearTokens, getAccessToken, setTokens } from "../utils/tokenStorage.js";
-
-const AuthContext = createContext(null);
+import { AuthContextValue } from "./authContextValue.js";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -38,11 +37,5 @@ export function AuthProvider({ children }) {
 
   const value = { user, loading, isAuthenticated: Boolean(user), login, register, logout };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth doit être utilisé dans un AuthProvider");
-  return context;
+  return <AuthContextValue.Provider value={value}>{children}</AuthContextValue.Provider>;
 }

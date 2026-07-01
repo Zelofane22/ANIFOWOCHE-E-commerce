@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { useAuth } from "../context/AuthContext.jsx";
-import { useCart } from "../context/CartContext.jsx";
+import { useAuth } from "../context/useAuth.js";
+import { useCart } from "../context/useCart.js";
 import { ADMIN_URL } from "../utils/adminUrl.js";
 
 const NAV_LINKS = [

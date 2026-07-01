@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import QuantityStepper from "../components/QuantityStepper.jsx";
-import { useCart } from "../context/CartContext.jsx";
+import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
 
 export default function Cart() {

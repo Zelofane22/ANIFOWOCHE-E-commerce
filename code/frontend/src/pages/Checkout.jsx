@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
 import { initiatePayment } from "../api/payments.js";
-import { useAuth } from "../context/AuthContext.jsx";
-import { useCart } from "../context/CartContext.jsx";
+import { useAuth } from "../context/useAuth.js";
+import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 
