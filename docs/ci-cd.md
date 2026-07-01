@@ -93,10 +93,11 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 
 - Projet Vercel connecté au repo GitHub, **Root Directory** configuré sur `code/frontend/`
 - Framework preset : **Vite**
-- Build command : `npm install && npm run build`
+- Build command : `npm run build` (Vercel installe les dépendances avant le build)
 - Output directory : `dist` (sortie Vite, relative à `code/frontend/`)
 - Déploiement automatique à chaque push sur `main`
-- Variable d'environnement : `VITE_API_URL` → URL publique du backend Railway
+- Variable d'environnement : `VITE_API_BASE_URL` → URL publique de l'API backend Railway, avec le suffixe `/api`
+- Le fichier [code/frontend/vercel.json](../code/frontend/vercel.json) force les rewrites SPA vers `index.html`, pour que les routes React (`/catalogue`, `/panier`, `/compte`, etc.) fonctionnent aussi après un rafraîchissement direct.
 
 ## Stratégie de branches
 
@@ -111,7 +112,7 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 | `DATABASE_URL` | Railway (injecté par l'add-on PostgreSQL) | Connexion BDD |
 | `CORS_ALLOWED_ORIGINS` | Railway | Autoriser les requêtes depuis le domaine Vercel |
 | Clés FedaPay / KkiaPay | Railway | Paiement mobile money / carte |
-| `VITE_API_URL` | Vercel (Environment Variables) | URL de l'API consommée par le frontend |
+| `VITE_API_BASE_URL` | Vercel (Environment Variables) | URL de l'API consommée par le frontend, ex. `https://<backend-railway>/api` |
 | Secrets GitHub Actions (si ajoutés plus tard) | GitHub repo → Settings → Secrets | Ex. tokens pour notifications CI |
 
 Aucun secret ne doit être committé dans `.env` — `code/backend/.env` et `code/frontend/.env` restent locaux (déjà ignorés via `.dockerignore`/git, à vérifier que `.gitignore` les exclut bien).
