@@ -24,13 +24,13 @@ Directives pour Codex sur ce projet ANIFOWOCHE E-commerce.
 - Backend : Django + Django REST Framework + PostgreSQL
 - Auth : JWT avec `djangorestframework-simplejwt`
 - Paiement : FedaPay / KkiaPay
-- Hébergement MVP : backend + PostgreSQL sur Railway, frontend sur Vercel
+- Hébergement MVP : backend + PostgreSQL sur Render, frontend sur Vercel
 - Documentation de référence : [docs/stack-technique.md](docs/stack-technique.md), [docs/ci-cd.md](docs/ci-cd.md)
 
 ## Déploiement
 
 - Le déploiement se fait automatiquement sur push vers `main`.
-- Railway héberge le backend Django et PostgreSQL.
+- Render héberge le backend Django et PostgreSQL.
 - Vercel héberge le frontend React/Vite.
 - Ne pas tenter de déployer manuellement ou de simuler un déploiement en local sans demande explicite.
 

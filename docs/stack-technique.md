@@ -15,7 +15,7 @@
 | Paiement | FedaPay API / KkiaPay API | — | MTN Money, Moov, Visa/MC |
 | Runtime backend | Python | 3.13+ | Exécution Django |
 | Runtime frontend | Node.js | 24+ (LTS) | Build/CI frontend |
-| Hébergement backend | Railway | Free/Hobby tier | API Django + PostgreSQL |
+| Hébergement backend | Render | Blueprint + PostgreSQL | API Django + PostgreSQL |
 | Hébergement frontend | Vercel | Hobby tier | Build React/Vite |
 | Hébergement prod. | Hostinger (phase 2) | ~3,99 €/mois | Migration après validation |
 
@@ -27,18 +27,18 @@ L'application suit une architecture découplée : le frontend React communique e
 
 - **Frontend (React)** : Pages Accueil, Catalogue, Produit, Panier, Commande, Compte · State management (Context API ou Zustand) · Axios pour les appels API
 - **Backend (Django)** : API `/products/` `/orders/` `/payments/` `/users/` `/delivery/` · ORM Django → PostgreSQL · Authentification JWT
-- **Externe** : FedaPay / KkiaPay (paiement) · Railway (backend + PostgreSQL) · Vercel (frontend) · WhatsApp Business (notifications)
+- **Externe** : FedaPay / KkiaPay (paiement) · Render (backend + PostgreSQL) · Vercel (frontend) · WhatsApp Business (notifications)
 
-## Déploiement Railway + Vercel (MVP)
+## Déploiement Render + Vercel (MVP)
 
 | Plateforme | Ce qu'elle héberge | Déclenchement |
 |-----------------|-------------------|---------------------|
-| Railway | Backend Django (API REST) + PostgreSQL | Déploiement auto sur push `main` (intégration GitHub native) |
+| Render | Backend Django (API REST) + PostgreSQL | Déploiement via Blueprint `render.yaml` connecté au repo GitHub |
 | Vercel | Frontend React (build Vite) | Déploiement auto sur push `main` (intégration GitHub native) |
 
 Détails complets du pipeline CI/CD et des variables d'environnement : [docs/ci-cd.md](ci-cd.md).
 
-> Le comportement de mise en veille concerne surtout le backend Railway selon le tier choisi — à vérifier avant le lancement public. Vercel sert le frontend statique. La migration vers Hostinger ou un VPS reste prévue en phase 2 si le trafic ou le coût le justifie.
+> Le comportement de mise en veille concerne surtout le backend Render selon le tier choisi — à vérifier avant le lancement public. Vercel sert le frontend statique. La migration vers Hostinger ou un VPS reste prévue en phase 2 si le trafic ou le coût le justifie.
 
 ## Outils de développement & communication
 

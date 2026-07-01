@@ -48,8 +48,8 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "cloudinary_storage",
     "django.contrib.staticfiles",
+    "cloudinary_storage",
     "cloudinary",
     "django.contrib.humanize",
     "rest_framework",
@@ -114,7 +114,7 @@ if RENDER_EXTERNAL_HOSTNAME:
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
-# Render/Railway injectent DATABASE_URL (PostgreSQL) : on l'utilise si présente,
+# Render injecte DATABASE_URL (PostgreSQL) : on l'utilise si présente,
 # sinon on retombe sur les variables DB_* discrètes (docker compose local).
 _local_db_url = "postgresql://{user}:{password}@{host}:{port}/{name}".format(
     user=config("DB_USER", default="anifowoche"),
@@ -151,7 +151,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # Cloudinary (stockage des images produits/bannières). Laisser les variables
 # vides en local pour garder le stockage disque (FileSystemStorage) ; les
-# renseigner sur Railway pour bénéficier du CDN et de la persistance entre
+# renseigner sur Render pour bénéficier du CDN et de la persistance entre
 # déploiements — voir docs/stack-technique.md.
 CLOUDINARY_CLOUD_NAME = config("CLOUDINARY_CLOUD_NAME", default="")
 CLOUDINARY_API_KEY = config("CLOUDINARY_API_KEY", default="")
