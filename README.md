@@ -29,23 +29,25 @@
 
 ## 📁 Structure du projet (mono-repo)
 
-Le projet est organisé en mono-repo GitHub avec deux dossiers principaux : `frontend/` (React) et `backend/` (Django). Cette organisation simplifie la gestion pour un développeur solo.
+Le projet est organisé en mono-repo GitHub avec deux dossiers principaux sous `code/` : `code/frontend/` (React) et `code/backend/` (Django). Cette organisation simplifie la gestion pour un développeur solo.
 
 ```
 anifowoche/
-├── frontend/                # Application React (src/, public/, package.json)
-│   └── src/
-│       ├── components/      # Composants réutilisables (Navbar, ProductCard, Cart...)
-│       ├── pages/           # Pages : Home, Catalogue, Product, Checkout, Account
-│       └── api/              # Fonctions Axios pour appeler le backend
-├── backend/                 # Projet Django (manage.py, requirements.txt)
-│   └── apps/
-│       ├── products/        # Modèles, serializers, vues API — Produits
-│       ├── orders/          # Modèles, serializers, vues API — Commandes
-│       ├── payments/        # Intégration FedaPay / KkiaPay + webhooks
-│       ├── users/           # Authentification JWT, profil client
-│       └── delivery/        # Gestion livraisons Cotonou (zones, statuts)
-├── .github/                 # Templates issues, workflows CI/CD (futur)
+├── code/
+│   ├── frontend/             # Application React (src/, public/, package.json)
+│   │   └── src/
+│   │       ├── components/   # Composants réutilisables (Navbar, ProductCard, Cart...)
+│   │       ├── pages/        # Pages : Home, Catalogue, Product, Checkout, Account
+│   │       └── api/           # Fonctions Axios pour appeler le backend
+│   ├── backend/              # Projet Django (manage.py, requirements.txt)
+│   │   └── apps/
+│   │       ├── products/     # Modèles, serializers, vues API — Produits
+│   │       ├── orders/       # Modèles, serializers, vues API — Commandes
+│   │       ├── payments/     # Intégration FedaPay / KkiaPay + webhooks
+│   │       ├── users/        # Authentification JWT, profil client
+│   │       └── delivery/     # Gestion livraisons Cotonou (zones, statuts)
+│   └── docker-compose.yml
+├── .github/                 # Templates issues, workflows CI/CD
 ├── docs/                    # Sprints, rétrospectives, ADR (décisions d'architecture)
 └── README.md
 ```
