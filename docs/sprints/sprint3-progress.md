@@ -6,4 +6,4 @@ Coché automatiquement par la boucle planifiée. Voir [planning.md](planning.md)
 - [x] Formulaire adresse livraison + créneau (React)
 - [x] Notifications SMS/WhatsApp client (API ou plugin)
 - [x] Dashboard admin React : commandes + paiements + livraisons
-- [ ] Tests de bout en bout + rétrospective
+- [x] Tests de bout en bout + rétrospective
