@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
 import { initiatePayment } from "../api/payments.js";
@@ -16,7 +17,7 @@ const PAYMENT_METHODS = [
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [zones, setZones] = useState([]);
@@ -24,6 +25,7 @@ export default function Checkout() {
   const [zoneId, setZoneId] = useState(null);
   const [slotId, setSlotId] = useState(null);
   const [loadingDeliveryOptions, setLoadingDeliveryOptions] = useState(true);
+  const [savedAddresses, setSavedAddresses] = useState([]);
 
   const [fullName, setFullName] = useState(user?.username ?? "");
   const [notes, setNotes] = useState("");
@@ -45,6 +47,22 @@ export default function Checkout() {
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoadingDeliveryOptions(false));
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    getAddresses()
+      .then((data) => setSavedAddresses(data.results ?? data))
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  const applySavedAddress = (addressId) => {
+    const address = savedAddresses.find((item) => String(item.id) === addressId);
+    if (!address) return;
+    setZoneId(address.zone);
+    setPhone(address.phone);
+    setFullName(address.full_name);
+    setNotes(address.notes);
+  };
 
   if (items.length === 0) {
     return (
@@ -151,6 +169,24 @@ export default function Checkout() {
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-ink">Adresse de livraison</h2>
+
+        {savedAddresses.length > 0 && (
+          <label className="mt-3 block text-sm text-ink">
+            Utiliser une adresse enregistrée
+            <select
+              defaultValue=""
+              onChange={(event) => applySavedAddress(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+            >
+              <option value="">— Sélectionner —</option>
+              {savedAddresses.map((address) => (
+                <option key={address.id} value={address.id}>
+                  {address.label || address.zone_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {loadingDeliveryOptions ? (
           <p className="mt-3 text-sm text-muted">Chargement des zones de livraison…</p>

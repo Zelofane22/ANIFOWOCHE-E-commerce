@@ -2,6 +2,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
+from apps.delivery.models import DeliveryZone
+
+from .models import Address
+
 User = get_user_model()
 
 
@@ -32,3 +36,23 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    zone = serializers.PrimaryKeyRelatedField(queryset=DeliveryZone.objects.all())
+    zone_name = serializers.CharField(source="zone.name", read_only=True)
+
+    class Meta:
+        model = Address
+        fields = [
+            "id",
+            "label",
+            "full_name",
+            "phone",
+            "zone",
+            "zone_name",
+            "notes",
+            "is_default",
+            "created_at",
+        ]
+        read_only_fields = ["created_at"]
