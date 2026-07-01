@@ -11,22 +11,30 @@ DEBUG = config("DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 INSTALLED_APPS = [
+    "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
     "django_filters",
+    "apps.core",
     "apps.products",
     "apps.orders",
     "apps.payments",
     "apps.users",
     "apps.delivery",
     "apps.notifications",
+    "apps.analytics",
+    "apps.promotions",
+    "apps.content",
+    "apps.returns",
+    "apps.reviews",
 ]
 
 MIDDLEWARE = [
@@ -46,7 +54,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -130,3 +138,129 @@ FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
 WHATSAPP_API_BASE_URL = config("WHATSAPP_API_BASE_URL", default="https://graph.facebook.com/v20.0")
 WHATSAPP_PHONE_NUMBER_ID = config("WHATSAPP_PHONE_NUMBER_ID", default="000000000000000")
 WHATSAPP_ACCESS_TOKEN = config("WHATSAPP_ACCESS_TOKEN", default="whatsapp_token_placeholder")
+
+# Thème de l'admin Django (django-unfold) — couleurs alignées sur la charte
+# frontend (voir code/frontend/src/index.css : --color-brand et dérivés).
+from django.urls import reverse_lazy  # noqa: E402
+
+
+def _pending_orders_badge(request):
+    from apps.orders.models import Order
+
+    count = Order.objects.filter(status=Order.Status.RECEIVED).count()
+    return count or None
+
+
+UNFOLD = {
+    "SITE_TITLE": "ANIFOWOCHE Admin",
+    "SITE_HEADER": "ANIFOWOCHE",
+    "SITE_SUBHEADER": "Administration",
+    "SITE_SYMBOL": "storefront",
+    "SHOW_HISTORY": True,
+    "COLORS": {
+        "primary": {
+            "50": "253 251 232",
+            "100": "250 246 201",
+            "200": "245 238 150",
+            "300": "240 230 100",
+            "400": "235 220 60",
+            "500": "230 211 21",
+            "600": "212 195 18",
+            "700": "184 166 15",
+            "800": "140 126 12",
+            "900": "100 90 9",
+            "950": "70 63 6",
+        },
+    },
+    "DASHBOARD_CALLBACK": "apps.core.dashboard.dashboard_callback",
+    "SIDEBAR": {
+        "show_search": True,
+        "navigation": [
+            {
+                "items": [
+                    {
+                        "title": "Tableau de bord",
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                    {
+                        "title": "Commandes",
+                        "icon": "shopping_bag",
+                        "link": reverse_lazy("admin:orders_order_changelist"),
+                        "badge": _pending_orders_badge,
+                    },
+                    {
+                        "title": "Produits",
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:products_product_changelist"),
+                    },
+                    {
+                        "title": "Catégories",
+                        "icon": "category",
+                        "link": reverse_lazy("admin:products_category_changelist"),
+                    },
+                    {
+                        "title": "Clients",
+                        "icon": "group",
+                        "link": "/admin/auth/user/?is_staff__exact=0",
+                    },
+                    {
+                        "title": "Promotions",
+                        "icon": "sell",
+                        "link": reverse_lazy("admin:promotions_promotion_changelist"),
+                    },
+                    {
+                        "title": "Coupons",
+                        "icon": "confirmation_number",
+                        "link": reverse_lazy("admin:promotions_coupon_changelist"),
+                    },
+                    {
+                        "title": "Contenu",
+                        "icon": "article",
+                        "link": reverse_lazy("admin:content_banner_changelist"),
+                    },
+                    {
+                        "title": "Inventaire",
+                        "icon": "warehouse",
+                        "link": "/admin/products/product/?o=6",
+                    },
+                    {
+                        "title": "Livraisons",
+                        "icon": "local_shipping",
+                        "link": reverse_lazy("admin:delivery_delivery_changelist"),
+                    },
+                    {
+                        "title": "Paiements",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                    },
+                    {
+                        "title": "Retours & Remboursements",
+                        "icon": "assignment_return",
+                        "link": reverse_lazy("admin:returns_returnrequest_changelist"),
+                    },
+                    {
+                        "title": "Avis",
+                        "icon": "reviews",
+                        "link": reverse_lazy("admin:reviews_review_changelist"),
+                    },
+                    {
+                        "title": "Rapports",
+                        "icon": "bar_chart",
+                        "link": "/admin/rapports/",
+                    },
+                    {
+                        "title": "Utilisateurs",
+                        "icon": "manage_accounts",
+                        "link": "/admin/auth/user/?is_staff__exact=1",
+                    },
+                    {
+                        "title": "Activité système",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:admin_logentry_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}

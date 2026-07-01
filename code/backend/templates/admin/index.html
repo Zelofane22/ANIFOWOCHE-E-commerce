@@ -1,0 +1,224 @@
+{% extends 'admin/base.html' %}
+{% load i18n humanize %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block extrastyle %}
+    <style>
+        .anw-grid { display: grid; gap: 1rem; }
+        .anw-kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .anw-main-grid { grid-template-columns: 2fr 1fr 1fr; margin-top: 1rem; }
+        .anw-bottom-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 1rem; }
+        @media (max-width: 1200px) {
+            .anw-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .anw-main-grid, .anw-bottom-grid { grid-template-columns: 1fr; }
+        }
+        .anw-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            border: 1px solid #f1efe0;
+        }
+        .anw-kpi-label { color: #6b6b6b; font-size: 0.8rem; font-weight: 500; }
+        .anw-kpi-value { color: #1a1a1a; font-size: 1.5rem; font-weight: 700; margin-top: 0.35rem; }
+        .anw-kpi-change { font-size: 0.75rem; font-weight: 600; margin-top: 0.35rem; }
+        .anw-kpi-change.up { color: #16793d; }
+        .anw-kpi-change.down { color: #c92a2a; }
+        .anw-kpi-change.flat { color: #6b6b6b; }
+        .anw-card-title { color: #1a1a1a; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .anw-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .anw-table th { text-align: left; color: #6b6b6b; font-weight: 500; padding: 0.4rem 0.5rem; border-bottom: 1px solid #f1efe0; }
+        .anw-table td { padding: 0.5rem; border-bottom: 1px solid #f6f4e6; color: #1a1a1a; }
+        .anw-badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .anw-badge.received { background: #faf6c9; color: #7a6d0c; }
+        .anw-badge.prepared { background: #dbeafe; color: #1e40af; }
+        .anw-badge.delivered { background: #dcfce7; color: #166534; }
+        .anw-badge.cancelled { background: #fee2e2; color: #991b1b; }
+        .anw-badge.approved { background: #dcfce7; color: #166534; }
+        .anw-badge.pending { background: #faf6c9; color: #7a6d0c; }
+        .anw-badge.failed, .anw-badge.declined { background: #fee2e2; color: #991b1b; }
+        .anw-badge.canceled { background: #ececec; color: #444; }
+        .anw-stock-badge { background: #fee2e2; color: #991b1b; padding: 0.1rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
+        .anw-greeting { font-size: 1.35rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.25rem; }
+        .anw-subgreeting { color: #6b6b6b; font-size: 0.85rem; margin-bottom: 1.25rem; }
+    </style>
+{% endblock %}
+
+{% block extrahead %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <p class="anw-greeting">Bonjour, Admin 👋</p>
+    <p class="anw-subgreeting">Voici un aperçu de votre boutique sur les {{ period_days }} derniers jours.</p>
+
+    <div class="anw-grid anw-kpi-grid">
+        <div class="anw-card">
+            <div class="anw-kpi-label">Chiffre d'affaires</div>
+            <div class="anw-kpi-value">{{ kpi_revenue|intcomma }} FCFA</div>
+            {% if kpi_revenue_change is not None %}
+                <div class="anw-kpi-change {% if kpi_revenue_change > 0 %}up{% elif kpi_revenue_change < 0 %}down{% else %}flat{% endif %}">
+                    {% if kpi_revenue_change > 0 %}↗{% elif kpi_revenue_change < 0 %}↘{% endif %} {{ kpi_revenue_change }}% vs période précédente
+                </div>
+            {% endif %}
+        </div>
+        <div class="anw-card">
+            <div class="anw-kpi-label">Commandes</div>
+            <div class="anw-kpi-value">{{ kpi_orders|intcomma }}</div>
+            {% if kpi_orders_change is not None %}
+                <div class="anw-kpi-change {% if kpi_orders_change > 0 %}up{% elif kpi_orders_change < 0 %}down{% else %}flat{% endif %}">
+                    {% if kpi_orders_change > 0 %}↗{% elif kpi_orders_change < 0 %}↘{% endif %} {{ kpi_orders_change }}% vs période précédente
+                </div>
+            {% endif %}
+        </div>
+        <div class="anw-card">
+            <div class="anw-kpi-label">Clients</div>
+            <div class="anw-kpi-value">{{ kpi_clients|intcomma }}</div>
+            {% if kpi_clients_change is not None %}
+                <div class="anw-kpi-change {% if kpi_clients_change > 0 %}up{% elif kpi_clients_change < 0 %}down{% else %}flat{% endif %}">
+                    {% if kpi_clients_change > 0 %}↗{% elif kpi_clients_change < 0 %}↘{% endif %} {{ kpi_clients_change }}% vs période précédente
+                </div>
+            {% endif %}
+        </div>
+        <div class="anw-card">
+            <div class="anw-kpi-label">Produits</div>
+            <div class="anw-kpi-value">{{ kpi_products|intcomma }}</div>
+            {% if kpi_products_change is not None %}
+                <div class="anw-kpi-change {% if kpi_products_change > 0 %}up{% elif kpi_products_change < 0 %}down{% else %}flat{% endif %}">
+                    {% if kpi_products_change > 0 %}↗{% elif kpi_products_change < 0 %}↘{% endif %} {{ kpi_products_change }}% vs période précédente
+                </div>
+            {% endif %}
+        </div>
+        <div class="anw-card">
+            <div class="anw-kpi-label">Visites</div>
+            <div class="anw-kpi-value">{{ kpi_visits|intcomma }}</div>
+            {% if kpi_visits_change is not None %}
+                <div class="anw-kpi-change {% if kpi_visits_change > 0 %}up{% elif kpi_visits_change < 0 %}down{% else %}flat{% endif %}">
+                    {% if kpi_visits_change > 0 %}↗{% elif kpi_visits_change < 0 %}↘{% endif %} {{ kpi_visits_change }}% vs période précédente
+                </div>
+            {% else %}
+                <div class="anw-kpi-change flat">Suivi démarré récemment</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="anw-grid anw-main-grid">
+        <div class="anw-card">
+            <div class="anw-card-title">Évolution des ventes</div>
+            <canvas id="anw-sales-chart" height="90"></canvas>
+        </div>
+        <div class="anw-card">
+            <div class="anw-card-title">Répartition des ventes</div>
+            <canvas id="anw-category-chart" height="140"></canvas>
+        </div>
+        <div class="anw-card">
+            <div class="anw-card-title">Commandes récentes</div>
+            {% for order in recent_orders %}
+                <div style="display:flex; justify-content:space-between; padding: 0.4rem 0; {% if not forloop.last %}border-bottom:1px solid #f6f4e6;{% endif %}">
+                    <div>
+                        <div style="font-weight:600; font-size:0.82rem;">ANW-{{ order.id }}</div>
+                        <div style="color:#6b6b6b; font-size:0.72rem;">{{ order.created_at|date:"d M Y • H:i" }}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <span class="anw-badge {{ order.status }}">{{ order.get_status_display }}</span>
+                        <div style="font-size:0.8rem; font-weight:600; margin-top:0.2rem;">{{ order.total_xof|intcomma }} FCFA</div>
+                    </div>
+                </div>
+            {% empty %}
+                <p style="color:#6b6b6b; font-size:0.82rem;">Aucune commande pour l'instant.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="anw-grid anw-bottom-grid">
+        <div class="anw-card">
+            <div class="anw-card-title">Top produits</div>
+            <table class="anw-table">
+                <tbody>
+                    {% for product in top_products %}
+                        <tr>
+                            <td>{{ product.product__name }}</td>
+                            <td>{{ product.total_quantity }} ventes</td>
+                            <td style="text-align:right; font-weight:600;">{{ product.total_revenue|intcomma }} FCFA</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td style="color:#6b6b6b;">Aucune vente sur la période.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="anw-card">
+            <div class="anw-card-title">Stock faible</div>
+            <table class="anw-table">
+                <tbody>
+                    {% for product in low_stock_products %}
+                        <tr>
+                            <td>{{ product.name }}</td>
+                            <td style="text-align:right;"><span class="anw-stock-badge">Stock : {{ product.stock }}</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td style="color:#6b6b6b;">Aucun produit en stock faible.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="anw-card">
+            <div class="anw-card-title">Paiements récents</div>
+            <table class="anw-table">
+                <tbody>
+                    {% for payment in recent_payments %}
+                        <tr>
+                            <td>{{ payment.get_method_display }}</td>
+                            <td style="text-align:right;">{{ payment.amount_xof|intcomma }} FCFA</td>
+                            <td style="text-align:right;"><span class="anw-badge {{ payment.status }}">{{ payment.get_status_display }}</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td style="color:#6b6b6b;">Aucun paiement pour l'instant.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener("DOMContentLoaded", function () {
+            const salesCtx = document.getElementById("anw-sales-chart");
+            if (salesCtx) {
+                new Chart(salesCtx, {
+                    type: "line",
+                    data: {
+                        labels: {{ sales_chart_labels_json|safe }},
+                        datasets: [{
+                            label: "Ventes (FCFA)",
+                            data: {{ sales_chart_values_json|safe }},
+                            borderColor: "#b8a60f",
+                            backgroundColor: "rgba(230, 211, 21, 0.15)",
+                            tension: 0.35,
+                            fill: true,
+                        }],
+                    },
+                    options: { plugins: { legend: { display: false } } },
+                });
+            }
+            const categoryCtx = document.getElementById("anw-category-chart");
+            if (categoryCtx) {
+                new Chart(categoryCtx, {
+                    type: "doughnut",
+                    data: {
+                        labels: {{ category_breakdown_labels_json|safe }},
+                        datasets: [{
+                            data: {{ category_breakdown_values_json|safe }},
+                            backgroundColor: ["#e6d315", "#b8a60f", "#faf6c9", "#6b6b6b", "#1a1a1a"],
+                        }],
+                    },
+                    options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } } },
+                });
+            }
+        });
+    </script>
+{% endblock %}

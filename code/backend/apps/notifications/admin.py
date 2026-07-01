@@ -1,10 +1,12 @@
+from unfold.admin import ModelAdmin
+
 from django.contrib import admin
 
 from .models import Notification
 
 
 @admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
+class NotificationAdmin(ModelAdmin):
     list_display = ["id", "event", "channel", "recipient_phone", "status", "created_at"]
     list_filter = ["event", "channel", "status"]
     search_fields = ["recipient_phone"]
