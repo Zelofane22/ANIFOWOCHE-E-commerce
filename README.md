@@ -76,6 +76,8 @@ Toutes les routes sont préfixées par `/api/`. Détails complets des variables 
 
 Dashboard admin frontend : route `/admin` (visible et accessible seulement aux comptes `is_staff`).
 
+Cred anifowoche/Anifowoche123!
+
 ## ✅ Tests
 
 Suite de tests Django (29 tests, appels externes FedaPay/WhatsApp mockés) :

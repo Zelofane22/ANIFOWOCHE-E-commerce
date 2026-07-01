@@ -38,8 +38,8 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 # Identifiants du superadmin créé automatiquement au déploiement (voir entrypoint.sh).
 # Changement de mot de passe forcé tant que ce mot de passe par défaut est actif
 # (voir apps.core.middleware.ForceDefaultPasswordChangeMiddleware).
-DEFAULT_SUPERUSER_USERNAME = config("DEFAULT_SUPERUSER_USERNAME", default="anifowoshe")
-DEFAULT_SUPERUSER_PASSWORD = config("DEFAULT_SUPERUSER_PASSWORD", default="anifowoshe")
+DEFAULT_SUPERUSER_USERNAME = config("DEFAULT_SUPERUSER_USERNAME", default="anifowoche")
+DEFAULT_SUPERUSER_PASSWORD = config("DEFAULT_SUPERUSER_PASSWORD", default="Anifowoche123!")
 
 INSTALLED_APPS = [
     "unfold",
