@@ -7,4 +7,4 @@ Coché automatiquement par la boucle planifiée (toutes les 2h). Voir [planning.
 - [x] Authentification JWT (inscription, connexion, tokens)
 - [x] Intégration FedaPay API (sandbox MTN/Moov + webhook)
 - [x] Page Checkout React + confirmation de commande
-- [x] Déploiement initial sur Railway (backend + BDD) et Render (frontend)
+- [x] Déploiement initial sur Railway (backend + BDD) et Vercel (frontend)

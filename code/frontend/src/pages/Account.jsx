@@ -13,11 +13,11 @@ export default function Account() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (loading) return <p className="py-10 text-center text-muted">Chargement…</p>;
+  if (loading) return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
 
   if (isAuthenticated) {
     return (
-      <div className="mx-auto max-w-md py-10">
+      <div className="mx-auto max-w-md px-4 py-10">
         <h1 className="text-xl font-bold text-ink">Mon compte</h1>
         <p className="mt-4 text-sm text-ink">
           Connecté en tant que <strong>{user.username}</strong>
@@ -61,7 +61,7 @@ export default function Account() {
   };
 
   return (
-    <div className="mx-auto max-w-md py-10">
+    <div className="mx-auto max-w-md px-4 py-10">
       <div className="mb-6 flex gap-4 border-b border-gray-200 text-sm font-medium">
         <button
           type="button"

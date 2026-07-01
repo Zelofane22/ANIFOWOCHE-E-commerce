@@ -48,7 +48,7 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="py-16 text-center">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center">
         <p className="text-lg font-medium text-ink">Votre panier est vide</p>
         <Link
           to="/catalogue"
@@ -116,7 +116,7 @@ export default function Checkout() {
   };
 
   return (
-    <form onSubmit={handlePay} className="mx-auto max-w-xl pb-28 md:pb-0">
+    <form onSubmit={handlePay} className="mx-auto max-w-xl px-4 py-6 pb-28 md:pb-6">
       <h1 className="text-xl font-bold text-ink">Récapitulatif de commande</h1>
 
       <ul className="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200">

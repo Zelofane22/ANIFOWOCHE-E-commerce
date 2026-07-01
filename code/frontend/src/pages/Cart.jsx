@@ -9,7 +9,7 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center py-16 text-center">
+      <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-16 text-center">
         <div className="h-24 w-24 rounded-full bg-brand-pale" />
         <p className="mt-6 text-lg font-medium text-ink">Votre panier est vide</p>
         <p className="mt-1 text-sm text-muted">Parcourez le catalogue pour ajouter des articles.</p>
@@ -24,7 +24,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="pb-28 md:pb-0">
+    <div className="mx-auto max-w-4xl px-4 py-6 pb-28 md:pb-6">
       <h1 className="text-xl font-bold text-ink">Mon panier</h1>
 
       <ul className="mt-4 divide-y divide-gray-200">

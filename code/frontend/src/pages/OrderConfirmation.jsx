@@ -20,7 +20,7 @@ export default function OrderConfirmation() {
   if (!orderId) return null;
 
   return (
-    <div className="flex flex-col items-center py-16 text-center">
+    <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-16 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
@@ -40,7 +40,7 @@ export default function OrderConfirmation() {
       </p>
       <Link
         to="/"
-        className="mt-8 rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark"
+        className="mt-8 rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-medium"
       >
         Retour à l'accueil
       </Link>
