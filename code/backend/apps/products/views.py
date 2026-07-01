@@ -13,6 +13,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.filter(is_active=True).select_related("category")
     serializer_class = ProductSerializer
+    lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ["category__slug"]
     search_fields = ["name", "description"]
