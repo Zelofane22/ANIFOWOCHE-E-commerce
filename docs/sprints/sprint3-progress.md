@@ -4,6 +4,6 @@ Coché automatiquement par la boucle planifiée. Voir [planning.md](planning.md)
 
 - [x] Modèle Delivery + API zones/créneaux Cotonou
 - [x] Formulaire adresse livraison + créneau (React)
-- [ ] Notifications SMS/WhatsApp client (API ou plugin)
+- [x] Notifications SMS/WhatsApp client (API ou plugin)
 - [ ] Dashboard admin React : commandes + paiements + livraisons
 - [ ] Tests de bout en bout + rétrospective

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.notifications.services import notify_order_confirmation
 from apps.products.models import Product
 
 from .models import Order, OrderItem
@@ -72,4 +73,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
         order.total_xof = total
         order.save(update_fields=["total_xof"])
+
+        notify_order_confirmation(order)
+
         return order
