@@ -1,0 +1,57 @@
+databases:
+  - name: anifowoche-db
+    plan: free
+    databaseName: anifowoche
+    user: anifowoche
+
+services:
+  - type: web
+    name: anifowoche-backend
+    runtime: python
+    plan: free
+    rootDir: code/backend
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: anifowoche-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: WEB_CONCURRENCY
+        value: "4"
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SECURE_HSTS_SECONDS
+        value: "0"
+      - key: ALLOWED_HOSTS
+        value: localhost,127.0.0.1
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: FRONTEND_BASE_URL
+        sync: false
+      - key: FEDAPAY_BASE_URL
+        value: https://sandbox-api.fedapay.com
+      - key: FEDAPAY_SECRET_KEY
+        sync: false
+      - key: FEDAPAY_WEBHOOK_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: WHATSAPP_API_BASE_URL
+        value: https://graph.facebook.com/v20.0
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
