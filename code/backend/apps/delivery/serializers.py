@@ -52,3 +52,11 @@ class DeliverySerializer(serializers.ModelSerializer):
         if existing.exists():
             raise serializers.ValidationError("Cette commande a déjà une livraison associée.")
         return order
+
+    def create(self, validated_data):
+        delivery = super().create(validated_data)
+        if delivery.zone.fee_xof:
+            order = delivery.order
+            order.total_xof += delivery.zone.fee_xof
+            order.save(update_fields=["total_xof"])
+        return delivery

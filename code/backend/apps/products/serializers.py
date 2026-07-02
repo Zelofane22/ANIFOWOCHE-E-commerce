@@ -23,6 +23,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "price_xof",
+            "unit",
             "size",
             "stock",
             "image",
