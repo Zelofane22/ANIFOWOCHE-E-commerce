@@ -32,5 +32,30 @@ admin.site.unregister(User)
 class UserAdmin(BaseUserAdmin, ModelAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
-    list_display = ["username", "email", "is_staff", "is_active", "date_joined"]
-    list_filter = ["is_staff", "is_active", "date_joined"]
+    list_display = ["username", "email", "is_staff", "is_superuser", "is_active", "date_joined"]
+    list_filter = ["is_staff", "is_superuser", "is_active", "date_joined"]
+
+    def get_readonly_fields(self, request, obj=None):
+        """Seul un superuser peut modifier le statut staff/superuser, les groupes
+        et les permissions — un compte admin non-superuser ne doit pas pouvoir
+        s'auto-promouvoir ni modifier les droits d'un autre compte admin."""
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if not request.user.is_superuser:
+            readonly_fields += ["is_staff", "is_superuser", "groups", "user_permissions"]
+        return readonly_fields
+
+    def has_delete_permission(self, request, obj=None):
+        if not super().has_delete_permission(request, obj):
+            return False
+        # Un admin non-superuser ne peut pas supprimer un autre compte admin/superuser.
+        if obj is not None and not request.user.is_superuser and (obj.is_staff or obj.is_superuser):
+            return False
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        if not super().has_change_permission(request, obj):
+            return False
+        # Un admin non-superuser ne peut pas modifier un compte superuser.
+        if obj is not None and not request.user.is_superuser and obj.is_superuser:
+            return False
+        return True
