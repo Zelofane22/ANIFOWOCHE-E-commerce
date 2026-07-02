@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { fetchProductBySlug } from "../api/products.js";
+import { createReview, fetchProductReviews } from "../api/reviews.js";
 import QuantityStepper from "../components/QuantityStepper.jsx";
 import { useCart } from "../context/useCart.js";
+import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 
 export default function Product() {
@@ -135,11 +137,19 @@ function ProductView({ slug }) {
           <h1 className="text-xl font-bold leading-snug text-ink md:text-3xl lg:text-2xl">{product.name}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-black/10 pb-4">
-            <span className="text-sm tracking-[1px] text-brand" aria-hidden="true">
-              ★★★★★
-            </span>
-            <span className="text-sm font-semibold text-brand-dark">4.7</span>
-            <span className="text-sm text-muted">128 avis</span>
+            {product.review_count > 0 ? (
+              <>
+                <span className="text-sm tracking-[1px] text-brand" aria-hidden="true">
+                  ★
+                </span>
+                <span className="text-sm font-semibold text-brand-dark">
+                  {Number(product.rating_average).toFixed(1)}
+                </span>
+                <span className="text-sm text-muted">{product.review_count} avis</span>
+              </>
+            ) : (
+              <span className="text-sm text-muted">Aucun avis pour le moment</span>
+            )}
           </div>
 
           <div className="mt-5">
@@ -269,6 +279,8 @@ function ProductView({ slug }) {
         </aside>
       </div>
 
+      <ReviewsSection productId={product.id} productSlug={slug} />
+
       <div className="fixed inset-x-0 bottom-0 z-20 flex gap-3 border-t border-black/10 bg-white p-4 lg:hidden">
         <button
           type="button"
@@ -290,5 +302,106 @@ function ProductView({ slug }) {
         </button>
       </div>
     </article>
+  );
+}
+
+const emptyReviewForm = { author_name: "", rating: 5, comment: "" };
+
+function ReviewsSection({ productId, productSlug }) {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(emptyReviewForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    fetchProductReviews(productSlug)
+      .then((data) => setReviews(data.results ?? data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [productSlug]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await createReview({ product_id: productId, ...form });
+      setForm(emptyReviewForm);
+      setSubmitted(true);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="mt-10 border-t border-black/10 pt-8">
+      <h2 className="text-lg font-bold text-ink">Avis clients</h2>
+
+      {!loading && reviews.length === 0 && (
+        <p className="mt-3 text-sm text-muted">Aucun avis pour le moment. Soyez le premier à donner votre avis.</p>
+      )}
+
+      {reviews.length > 0 && (
+        <ul className="mt-4 space-y-4">
+          {reviews.map((review) => (
+            <li key={review.id} className="rounded-lg border border-black/10 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-ink">{review.author_name}</p>
+                <span className="shrink-0 text-sm tracking-[1px] text-brand" aria-hidden="true">
+                  {"★".repeat(review.rating)}
+                  {"☆".repeat(5 - review.rating)}
+                </span>
+              </div>
+              {review.comment && <p className="mt-2 text-sm text-muted">{review.comment}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-[10px] bg-[#fafaf8] p-4">
+        <p className="text-sm font-semibold text-ink">Laisser un avis</p>
+        {submitted && <p className="mt-2 text-sm text-green-700">Merci ! Votre avis sera visible après validation.</p>}
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        <div className="mt-3 flex flex-col gap-3">
+          <input
+            type="text"
+            placeholder="Votre nom"
+            required
+            value={form.author_name}
+            onChange={(e) => setForm({ ...form, author_name: e.target.value })}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
+          <select
+            value={form.rating}
+            onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          >
+            {[5, 4, 3, 2, 1].map((value) => (
+              <option key={value} value={value}>
+                {"★".repeat(value)} ({value}/5)
+              </option>
+            ))}
+          </select>
+          <textarea
+            placeholder="Votre commentaire (optionnel)"
+            rows={3}
+            value={form.comment}
+            onChange={(e) => setForm({ ...form, comment: e.target.value })}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-fit rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {submitting ? "Envoi…" : "Envoyer mon avis"}
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }

@@ -44,11 +44,19 @@ export default function ProductCard({ product }) {
           {product.name}
         </h3>
         <div className="mt-2 flex items-center gap-1.5 text-xs text-muted">
-          <span className="flex text-brand" aria-hidden="true">
-            ★★★★★
-          </span>
-          <span>Livraison Cotonou</span>
+          {product.review_count > 0 ? (
+            <>
+              <span className="text-brand" aria-hidden="true">
+                ★
+              </span>
+              <span className="font-semibold text-ink">{Number(product.rating_average).toFixed(1)}</span>
+              <span>({product.review_count})</span>
+            </>
+          ) : (
+            <span>Pas encore d'avis</span>
+          )}
         </div>
+        <div className="mt-0.5 text-xs text-muted">Livraison Cotonou</div>
         <div className="mt-auto pt-3">
           <p className="text-base font-bold text-ink">{formatXof(product.price_xof)}</p>
           <span className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white transition group-hover:bg-brand-medium">

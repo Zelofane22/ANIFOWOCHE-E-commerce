@@ -7,7 +7,7 @@ voir [retro-sprint.md](retro-sprint.md) pour le précédent Sprint 2/3). Chaque 
 la précédente committée. Aucun push pendant la boucle — commits locaux uniquement.
 
 - [x] 1. US-30 — Stock réel affiché sur la fiche produit (remplace le badge "En stock" codé en dur)
-- [ ] 2. US-21 + US-22 — API avis produits (lecture avis approuvés + soumission) + note réelle sur fiche produit et `ProductCard`
+- [x] 2. US-21 + US-22 — API avis produits (lecture avis approuvés + soumission) + note réelle sur fiche produit et `ProductCard`
 - [ ] 3. US-29 — Bouton "Partager" fonctionnel (Web Share API / copie presse-papiers)
 - [ ] 4. US-23 — API bannières + carrousel accueil
 - [ ] 5. US-24 + US-25 — API promotions actives (prix barré + badge %) + application code coupon au checkout
