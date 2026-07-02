@@ -13,7 +13,7 @@ class CategoryAdmin(ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
-    list_display = ["name", "category", "price_xof", "stock", "is_active"]
-    list_filter = ["category", "is_active", "size"]
+    list_display = ["name", "category", "price_xof", "unit", "stock", "is_active"]
+    list_filter = ["category", "is_active", "unit", "size"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}

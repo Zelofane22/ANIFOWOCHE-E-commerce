@@ -8,9 +8,9 @@ ANIFOWOCHE digitalise un commerce physique de tissus et vêtements pour hommes a
 
 ## Produits vendus
 
-- **Tissus locaux** : bazin, googluck
-- **Vêtements homme casual** : chemises, pantalons, dessous
-- **Accessoires** : montres, ceintures, chaussures ouvertes, mocassins
+- **Tissus locaux** : bazin, googluck — vendus au mètre (pas de taille S/M/L)
+- **Vêtements homme casual** : chemises, pantalons, dessous — vendus à la pièce, avec taille (S/M/L/XL ou taille unique)
+- **Accessoires** : montres, ceintures, chaussures ouvertes, mocassins — vendus à la pièce
 
 ## Objectifs du MVP
 

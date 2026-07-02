@@ -35,6 +35,7 @@ export function CartProvider({ children }) {
           slug: product.slug,
           name: product.name,
           price_xof: product.price_xof,
+          unit: product.unit,
           size: product.size,
           image: product.image,
           quantity,

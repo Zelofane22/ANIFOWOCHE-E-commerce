@@ -16,10 +16,12 @@
 |----------|---------|
 | [docs/contexte.md](docs/contexte.md) | Contexte, produits vendus, objectifs MVP, contraintes |
 | [docs/stack-technique.md](docs/stack-technique.md) | Stack, architecture applicative, déploiement Render, outils |
-| [docs/backlog.md](docs/backlog.md) | Backlog Agile — épics & user stories |
+| [docs/backlog.md](docs/backlog.md) | Backlog Agile MVP (terminé) — épics & user stories E1-E5 |
+| [docs/backlog-v2.md](docs/backlog-v2.md) | Backlog v2 (post-MVP) — épics & user stories E6-E13, toutes vérifiées contre l'état réel du code |
 | [docs/maquettes.md](docs/maquettes.md) | Wireframes texte des écrans MVP (catalogue, fiche produit, panier, commande) |
 | [docs/ci-cd.md](docs/ci-cd.md) | Structure CI/CD — GitHub Actions, déploiement Render (backend) & Vercel (frontend) |
-| [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints |
+| [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints MVP (terminé) |
+| [docs/sprints/planning-v2.md](docs/sprints/planning-v2.md) | Planning v2 (post-MVP) — sprints 5+ par priorité/dépendance, sans capacité horaire fixe |
 | [docs/sprints/sprint2-progress.md](docs/sprints/sprint2-progress.md) | Suivi des tâches Sprint 2 (terminé) |
 | [docs/sprints/sprint3-progress.md](docs/sprints/sprint3-progress.md) | Suivi des tâches Sprint 3 (terminé) |
 | [docs/sprints/retro-sprint.md](docs/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
