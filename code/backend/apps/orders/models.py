@@ -34,6 +34,10 @@ class Order(models.Model):
     def __str__(self):
         return f"Commande #{self.pk} — {self.full_name}"
 
+    @property
+    def reference(self):
+        return f"CMD-{self.pk:06d}" if self.pk else "—"
+
     def recompute_total(self):
         self.total_xof = sum(item.subtotal_xof for item in self.items.all())
         self.save(update_fields=["total_xof"])

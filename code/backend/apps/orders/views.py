@@ -5,8 +5,8 @@ from .serializers import OrderSerializer
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    """La création (checkout invité) est ouverte ; un client authentifié ne
-    consulte que ses propres commandes (US-17) ; la modification/suppression
+    """Les commandes nécessitent un compte client ; un client authentifié ne
+    consulte que ses propres commandes ; la modification/suppression
     (dashboard admin) reste réservée au staff, qui voit toutes les commandes."""
 
     queryset = Order.objects.all().prefetch_related("items__product")
@@ -15,7 +15,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == "create":
-            return [permissions.AllowAny()]
+            return [permissions.IsAuthenticated()]
         if self.action in ("update", "partial_update", "destroy"):
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]

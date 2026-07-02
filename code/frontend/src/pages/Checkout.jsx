@@ -17,7 +17,7 @@ const PAYMENT_METHODS = [
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [zones, setZones] = useState([]);
@@ -35,6 +35,18 @@ export default function Checkout() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (authLoading || isAuthenticated) return;
+    navigate("/compte", {
+      replace: true,
+      state: {
+        from: "/commande",
+        authMessage: "Créez un compte ou connectez-vous pour finaliser votre commande.",
+      },
+    });
+  }, [authLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     Promise.all([fetchDeliveryZones(), fetchDeliverySlots()])
       .then(([zonesData, slotsData]) => {
         const zoneResults = zonesData.results ?? zonesData;
@@ -46,7 +58,7 @@ export default function Checkout() {
       })
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoadingDeliveryOptions(false));
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -63,6 +75,10 @@ export default function Checkout() {
     setFullName(address.full_name);
     setNotes(address.notes);
   };
+
+  if (authLoading || !isAuthenticated) {
+    return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
+  }
 
   if (items.length === 0) {
     return (
