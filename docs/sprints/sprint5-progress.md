@@ -9,7 +9,7 @@ la précédente committée. Aucun push pendant la boucle — commits locaux uniq
 - [x] 1. US-30 — Stock réel affiché sur la fiche produit (remplace le badge "En stock" codé en dur)
 - [x] 2. US-21 + US-22 — API avis produits (lecture avis approuvés + soumission) + note réelle sur fiche produit et `ProductCard`
 - [x] 3. US-29 — Bouton "Partager" fonctionnel (Web Share API / copie presse-papiers)
-- [ ] 4. US-23 — API bannières + carrousel accueil
+- [x] 4. US-23 — API bannières + carrousel accueil
 - [ ] 5. US-24 + US-25 — API promotions actives (prix barré + badge %) + application code coupon au checkout
 - [ ] 6. US-26 — Formulaire de demande de retour depuis l'historique de commande (traitement admin déjà existant)
 - [ ] 7. US-28 — Wishlist persistée (modèle backend + bouton cœur fonctionnel + section compte)
