@@ -1,6 +1,20 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { fetchProducts } from "../api/products.js";
+import ProductCard from "../components/ProductCard.jsx";
 
 export default function Home() {
+  const [topProducts, setTopProducts] = useState([]);
+
+  useEffect(() => {
+    fetchProducts()
+      .then((data) => {
+        const products = data.results ?? data;
+        setTopProducts(products.slice(0, 8));
+      })
+      .catch(() => setTopProducts([]));
+  }, []);
+
   return (
     <div>
       <section className="relative min-h-[430px] overflow-hidden bg-charcoal">
@@ -104,6 +118,26 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {topProducts.length > 0 && (
+          <section className="py-10">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-ink">Top produits</h2>
+                <div className="mt-1 h-0.5 w-12 rounded-full bg-brand" />
+              </div>
+              <Link to="/catalogue" className="text-sm font-semibold text-brand-dark hover:underline">
+                Tout voir
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {topProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
