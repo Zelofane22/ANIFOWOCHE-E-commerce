@@ -77,7 +77,7 @@ export default function Footer() {
             />
           </Link>
           <p className="mt-2 max-w-sm text-sm leading-6 text-white/60">
-            Tissus, vêtements et accessoires homme sélectionnés à Cotonou, avec commande en ligne et livraison à domicile.
+            Tissus, vêtements et accessoires sélectionnés à Cotonou, avec commande en ligne et livraison à domicile.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-10 text-sm">

@@ -82,6 +82,21 @@ créer des avis/promotions/bannières/retours, mais rien n'est visible ni action
 | US-48 | Application mobile React Native | P3 | Déjà noté "Phase 3" dans `docs/contexte.md` |
 | US-49 | Multi-langue (français + anglais) pour la diaspora | P3 | Site actuellement 100% français (`LANGUAGE_CODE = "fr-fr"`) |
 
+## E14 — CMS d'apparence front client/admin
+
+Objectif : permettre au propriétaire de modifier l'identité visuelle et les contenus commerciaux courants
+sans intervention développeur, tout en gardant des garde-fous forts. Ce n'est pas un éditeur libre type
+Webflow : l'admin choisit parmi des options et sections prévues, afin de préserver la cohérence du site et
+la logique métier existante.
+
+| ID | User Story | Priorité | Constat |
+|----|-------------|----------|---------|
+| US-50 | En tant qu'admin, je modifie le logo, les couleurs principales, les textes courts et les images clés du site depuis l'admin | P2 | Aujourd'hui, l'apparence est codée dans le frontend/Tailwind et les assets statiques |
+| US-51 | En tant qu'admin, j'active, désactive et ordonne des sections prédéfinies de la page d'accueil (hero, bannières, catégories, produits mis en avant, arguments de confiance) | P2 | `apps/content.Banner` existe, mais il n'y a pas de configuration globale de page ni de sections pilotables |
+| US-52 | En tant qu'admin, je gère les liens de navigation, le footer et les blocs éditoriaux simples sans modifier le code | P3 | `Navbar.jsx` et `Footer.jsx` sont actuellement statiques côté frontend |
+| US-53 | En tant que client, l'interface applique automatiquement la configuration active via une API publique de configuration visuelle | P2 | Aucun endpoint `/api/site-config/` ou équivalent n'existe aujourd'hui |
+| US-54 | En tant que super admin, je peux prévisualiser ou revenir à une configuration précédente avant publication | P3 | Aucun versioning/aperçu des réglages d'apparence n'existe |
+
 ---
 
 Regroupement en sprints (par priorité/dépendance, sans découpage horaire fixe) : [docs/sprints/planning-v2.md](sprints/planning-v2.md).

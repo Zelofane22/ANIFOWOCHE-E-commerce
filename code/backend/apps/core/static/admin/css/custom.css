@@ -1,0 +1,25 @@
+:root {
+    --anw-admin-active-nav-bg: #a98111;
+    --anw-admin-active-nav-text: #ffffff;
+}
+
+aside a[class~="bg-primary-600"],
+aside a[class~="text-primary-600"],
+nav a[class~="bg-primary-600"][href^="/admin/"],
+nav a[class~="text-primary-600"][href^="/admin/"] {
+    background-color: var(--anw-admin-active-nav-bg) !important;
+    color: var(--anw-admin-active-nav-text) !important;
+}
+
+aside a[class~="bg-primary-600"] span,
+aside a[class~="text-primary-600"] span,
+aside a[class~="bg-primary-600"] svg,
+aside a[class~="text-primary-600"] svg,
+nav a[class~="bg-primary-600"][href^="/admin/"] span,
+nav a[class~="text-primary-600"][href^="/admin/"] span,
+nav a[class~="bg-primary-600"][href^="/admin/"] svg,
+nav a[class~="text-primary-600"][href^="/admin/"] svg {
+    color: inherit !important;
+}
+
+
