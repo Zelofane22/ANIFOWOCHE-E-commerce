@@ -6,7 +6,7 @@ Exécuté via une boucle automatisée (une tâche toutes les ~30 min, un commit 
 voir [retro-sprint.md](retro-sprint.md) pour le précédent Sprint 2/3). Chaque tâche ne démarre qu'une fois
 la précédente committée. Aucun push pendant la boucle — commits locaux uniquement.
 
-- [ ] 1. US-30 — Stock réel affiché sur la fiche produit (remplace le badge "En stock" codé en dur)
+- [x] 1. US-30 — Stock réel affiché sur la fiche produit (remplace le badge "En stock" codé en dur)
 - [ ] 2. US-21 + US-22 — API avis produits (lecture avis approuvés + soumission) + note réelle sur fiche produit et `ProductCard`
 - [ ] 3. US-29 — Bouton "Partager" fonctionnel (Web Share API / copie presse-papiers)
 - [ ] 4. US-23 — API bannières + carrousel accueil

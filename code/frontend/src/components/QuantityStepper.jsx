@@ -1,4 +1,4 @@
-export default function QuantityStepper({ quantity, onChange, min = 1, className = "" }) {
+export default function QuantityStepper({ quantity, onChange, min = 1, max = Infinity, className = "" }) {
   return (
     <div className={`inline-flex items-center overflow-hidden rounded-lg border border-black/20 ${className}`}>
       <button
@@ -15,8 +15,9 @@ export default function QuantityStepper({ quantity, onChange, min = 1, className
       </span>
       <button
         type="button"
-        onClick={() => onChange(quantity + 1)}
-        className="flex h-10 w-10 items-center justify-center text-lg text-ink transition hover:bg-gray-50"
+        onClick={() => onChange(Math.min(max, quantity + 1))}
+        disabled={quantity >= max}
+        className="flex h-10 w-10 items-center justify-center text-lg text-ink transition hover:bg-gray-50 disabled:text-gray-300"
         aria-label="Augmenter la quantité"
       >
         +

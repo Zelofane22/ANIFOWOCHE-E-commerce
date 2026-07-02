@@ -29,6 +29,7 @@ function ProductView({ slug }) {
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
   const handleAddToCart = () => {
+    if (product.stock <= 0) return;
     addItem(product, quantity);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
@@ -38,6 +39,12 @@ function ProductView({ slug }) {
   const unit = isFabric ? "mètre" : null;
   const badge = isFabric ? "Meilleure vente" : product.category?.name;
   const hasGallery = false;
+
+  const stock = product.stock ?? 0;
+  const outOfStock = stock <= 0;
+  const lowStock = !outOfStock && stock <= 5;
+  const stockLabel = outOfStock ? "Rupture de stock" : lowStock ? `Plus que ${stock} en stock` : "En stock";
+  const stockColorClass = outOfStock ? "text-red-700" : lowStock ? "text-amber-700" : "text-green-700";
 
   return (
     <article className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
@@ -153,6 +160,7 @@ function ProductView({ slug }) {
               <QuantityStepper
                 quantity={quantity}
                 onChange={setQuantity}
+                max={stock}
                 className="w-full justify-between sm:w-auto sm:justify-start"
               />
             </div>
@@ -168,7 +176,7 @@ function ProductView({ slug }) {
           {!unit && (
             <div className="mt-5">
               <p className="mb-2 text-sm font-semibold text-ink">Quantité</p>
-              <QuantityStepper quantity={quantity} onChange={setQuantity} />
+              <QuantityStepper quantity={quantity} onChange={setQuantity} max={stock} />
             </div>
           )}
 
@@ -176,9 +184,10 @@ function ProductView({ slug }) {
             <button
               type="button"
               onClick={handleAddToCart}
-              className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-medium active:bg-brand-dark"
+              disabled={outOfStock}
+              className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-medium active:bg-brand-dark disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
             >
-              {added ? "✓ Ajouté au panier !" : "Ajouter au panier"}
+              {outOfStock ? "Rupture de stock" : added ? "✓ Ajouté au panier !" : "Ajouter au panier"}
             </button>
             <button
               type="button"
@@ -210,11 +219,15 @@ function ProductView({ slug }) {
             <p className="text-2xl font-bold text-ink">{formatXof(product.price_xof)}</p>
             {unit && <p className="mt-1 text-sm text-muted">par {unit}</p>}
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center gap-2 font-medium text-green-700">
+              <div className={`flex items-center gap-2 font-medium ${stockColorClass}`}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                  {outOfStock ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6 6 18" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                  )}
                 </svg>
-                En stock
+                {stockLabel}
               </div>
               <div className="flex items-center gap-2 text-muted">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -227,14 +240,15 @@ function ProductView({ slug }) {
             </div>
             <div className="mt-5">
               <p className="mb-2 text-sm font-semibold">Quantité</p>
-              <QuantityStepper quantity={quantity} onChange={setQuantity} className="w-full justify-between" />
+              <QuantityStepper quantity={quantity} onChange={setQuantity} max={stock} className="w-full justify-between" />
             </div>
             <button
               type="button"
               onClick={handleAddToCart}
-              className="mt-5 w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium active:bg-brand-dark"
+              disabled={outOfStock}
+              className="mt-5 w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium active:bg-brand-dark disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
             >
-              {added ? "✓ Ajouté !" : "Ajouter au panier"}
+              {outOfStock ? "Rupture de stock" : added ? "✓ Ajouté !" : "Ajouter au panier"}
             </button>
             <div className="mt-4 space-y-2 border-t border-black/10 pt-4 text-xs text-muted">
               <div className="flex items-center gap-2">
@@ -259,9 +273,10 @@ function ProductView({ slug }) {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white"
+          disabled={outOfStock}
+          className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
         >
-          {added ? "✓ Ajouté !" : "Ajouter au panier"}
+          {outOfStock ? "Rupture de stock" : added ? "✓ Ajouté !" : "Ajouter au panier"}
         </button>
         <button
           type="button"

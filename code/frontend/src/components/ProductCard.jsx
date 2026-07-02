@@ -2,6 +2,10 @@ import { Link } from "react-router";
 import { formatXof } from "../utils/format.js";
 
 export default function ProductCard({ product }) {
+  const stock = product.stock ?? 0;
+  const outOfStock = stock <= 0;
+  const lowStock = !outOfStock && stock <= 5;
+
   return (
     <Link
       to={`/produits/${product.slug}`}
@@ -25,9 +29,15 @@ export default function ProductCard({ product }) {
             {product.category.name}
           </span>
         )}
-        <span className="absolute right-2 top-2 rounded-full bg-brand px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-          Stock
-        </span>
+        {(outOfStock || lowStock) && (
+          <span
+            className={`absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm ${
+              outOfStock ? "bg-red-600" : "bg-amber-600"
+            }`}
+          >
+            {outOfStock ? "Rupture" : `Plus que ${stock}`}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-3">
         <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-ink transition group-hover:text-brand-dark">
