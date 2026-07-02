@@ -212,6 +212,7 @@ WHATSAPP_ACCESS_TOKEN = config("WHATSAPP_ACCESS_TOKEN", default="whatsapp_token_
 
 # Thème de l'admin Django (django-unfold) — couleurs alignées sur la charte
 # frontend (voir code/frontend/src/index.css : --color-brand et dérivés).
+from django.templatetags.static import static  # noqa: E402
 from django.urls import reverse_lazy  # noqa: E402
 
 
@@ -228,6 +229,9 @@ UNFOLD = {
     "SITE_SUBHEADER": "Administration",
     "SITE_SYMBOL": "storefront",
     "SHOW_HISTORY": True,
+    "STYLES": [
+        lambda request: static("admin/css/custom.css"),
+    ],
     "COLORS": {
         "primary": {
             "50": "253 251 232",
@@ -236,7 +240,7 @@ UNFOLD = {
             "300": "240 230 100",
             "400": "235 220 60",
             "500": "230 211 21",
-            "600": "212 195 18",
+            "600": "#a98111",
             "700": "184 166 15",
             "800": "140 126 12",
             "900": "100 90 9",

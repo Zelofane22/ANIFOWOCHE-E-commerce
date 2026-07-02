@@ -52,16 +52,18 @@ avant d'accumuler encore plus de code non couvert.
 
 - SEO : meta tags dynamiques produit, sitemap.xml, Open Graph (US-43)
 - Images optimisées (WebP/Cloudinary transforms, lazy loading) (US-42)
+- Socle CMS d'apparence : modèles Django `SiteTheme` / sections accueil, endpoint public de configuration visuelle, application frontend via variables CSS et composants prédéfinis (US-50, US-51, US-53)
 - Alerting sur actions admin sensibles (US-36)
 - Cache Redis catalogue — seulement si le trafic réel post-lancement le justifie (US-44)
 
-**Livrable Sprint 8** : le site est trouvable (SEO) et rapide à charger, l'admin est mieux outillé.
+**Livrable Sprint 8** : le site est trouvable (SEO), rapide à charger, et l'admin peut ajuster les principaux éléments visuels sans modifier le code.
 
 ## Sprint 9+ — Extensions (E12, E13)
 
 Bas de priorité, à ne traiter qu'une fois Sprints 5-8 livrés et le retour des premiers clients recueilli :
 
 - Modèle Livreur dédié + suivi de livraison temps réel (US-45, US-46)
+- CMS d'apparence avancé : navigation/footer éditables, aperçu avant publication, historique ou rollback de configuration (US-52, US-54)
 - PWA installable (US-47)
 - Multi-langue FR/EN (US-49)
 - Application mobile React Native — Phase 3 (US-48)
@@ -76,5 +78,7 @@ Bas de priorité, à ne traiter qu'une fois Sprints 5-8 livrés et le retour des
 2. **Sprint 6 est un prérequis dur au lancement public** — tout le reste peut théoriquement attendre.
 3. **Sprint 7 (tests) le plus tôt possible après le lancement** — chaque sprint suivant sans tests augmente
    le coût de régression.
-4. **Sprints 8-9** : reclassables selon les retours clients réels du Sprint 6 — ne pas figer leur contenu
+4. **Sprint 8** : bon moment pour le socle CMS d'apparence, car les contenus dynamiques et l'ouverture publique
+   auront déjà validé les besoins réels ; garder des options prédéfinies plutôt qu'un éditeur CSS libre.
+5. **Sprints 8-9** : reclassables selon les retours clients réels du Sprint 6 — ne pas figer leur contenu
    avant d'avoir des données d'usage.

@@ -28,7 +28,7 @@ export default function Home() {
           <div className="max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">Collection Cotonou</p>
             <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">
-              Tissus, vêtements & accessoires homme
+              Tissus, vêtements & accessoires
             </h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
               Des pièces sélectionnées pour le quotidien, les cérémonies et les sorties, avec paiement mobile money et livraison à domicile sur Cotonou.
