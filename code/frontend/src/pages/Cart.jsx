@@ -1,11 +1,27 @@
 import { Link, useNavigate } from "react-router";
 import QuantityStepper from "../components/QuantityStepper.jsx";
+import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, subtotal } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  const goToCheckout = () => {
+    if (isAuthenticated) {
+      navigate("/commande");
+      return;
+    }
+
+    navigate("/compte", {
+      state: {
+        from: "/commande",
+        authMessage: "Créez un compte ou connectez-vous pour finaliser votre commande.",
+      },
+    });
+  };
 
   if (items.length === 0) {
     return (
@@ -72,7 +88,7 @@ export default function Cart() {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/commande")}
+          onClick={goToCheckout}
           className="rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark"
         >
           Valider la commande
@@ -86,7 +102,7 @@ export default function Cart() {
         </div>
         <button
           type="button"
-          onClick={() => navigate("/commande")}
+          onClick={goToCheckout}
           className="w-full rounded-lg bg-brand px-6 py-3 font-semibold text-ink"
         >
           Valider la commande

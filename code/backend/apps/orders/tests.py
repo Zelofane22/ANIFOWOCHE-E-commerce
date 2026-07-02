@@ -22,6 +22,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_computes_total_and_snapshots_price(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
             "phone": "+22990000000",
@@ -33,29 +34,33 @@ class OrderApiTests(APITestCase):
         self.assertEqual(response.data["total_xof"], 6000)
         self.assertEqual(response.data["items"][0]["unit_price_xof"], 2000)
         self.assertEqual(Order.objects.count(), 1)
+        self.assertEqual(Order.objects.get().customer, self.regular_user)
+
+    def test_anonymous_cannot_create_order(self):
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": self.product.id, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(Order.objects.count(), 0)
 
     def test_create_order_requires_at_least_one_item(self):
+        self.client.force_authenticate(user=self.regular_user)
         payload = {"full_name": "Jean", "phone": "+22990000000", "address": "Fidjrossè", "items": []}
         response = self.client.post("/api/orders/", payload, format="json")
         self.assertEqual(response.status_code, 400)
 
-    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
-    def test_anonymous_cannot_list_orders(self, mock_post):
-        self.client.post(
-            "/api/orders/",
-            {
-                "full_name": "Jean",
-                "phone": "+22990000000",
-                "address": "Fidjrossè",
-                "items": [{"product_id": self.product.id, "quantity": 1}],
-            },
-            format="json",
-        )
+    def test_anonymous_cannot_list_orders(self):
         response = self.client.get("/api/orders/")
         self.assertEqual(response.status_code, 401)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_non_staff_can_list_own_orders_only(self, mock_post):
+        owner = User.objects.create_user(username="owner", password="pass1234")
+        self.client.force_authenticate(user=owner)
         create_response = self.client.post(
             "/api/orders/",
             {
@@ -67,8 +72,6 @@ class OrderApiTests(APITestCase):
             format="json",
         )
         order_id = create_response.data["id"]
-        owner = User.objects.create_user(username="owner", password="pass1234")
-        Order.objects.filter(id=order_id).update(customer=owner)
 
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/orders/")
@@ -86,6 +89,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_staff_can_list_and_update_order_status(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         create_response = self.client.post(
             "/api/orders/",
             {

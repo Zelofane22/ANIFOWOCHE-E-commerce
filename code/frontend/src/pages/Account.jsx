@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { createAddress, deleteAddress, getAddresses } from "../api/addresses.js";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { getOrders } from "../api/orders.js";
@@ -178,7 +179,11 @@ function AddressBook() {
 
 export default function Account() {
   const { user, loading, isAuthenticated, login, register, logout } = useAuth();
-  const [mode, setMode] = useState("login");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const redirectTo = typeof location.state?.from === "string" ? location.state.from : null;
+  const authMessage = typeof location.state?.authMessage === "string" ? location.state.authMessage : null;
+  const [mode, setMode] = useState(redirectTo ? "register" : "login");
   const [loginForm, setLoginForm] = useState(emptyLoginForm);
   const [registerForm, setRegisterForm] = useState(emptyRegisterForm);
   const [error, setError] = useState(null);
@@ -214,6 +219,7 @@ export default function Account() {
     setSubmitting(true);
     try {
       await login(loginForm);
+      if (redirectTo) navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -227,6 +233,7 @@ export default function Account() {
     setSubmitting(true);
     try {
       await register(registerForm);
+      if (redirectTo) navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -256,6 +263,12 @@ export default function Account() {
           Inscription
         </button>
       </div>
+
+      {authMessage && (
+        <p className="mb-4 rounded-md bg-brand-pale px-3 py-2 text-sm font-medium text-ink">
+          {authMessage}
+        </p>
+      )}
 
       {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 

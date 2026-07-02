@@ -13,7 +13,8 @@ class OrderItemInline(TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
-    list_display = ["id", "full_name", "phone", "city", "status", "total_xof", "created_at"]
+    list_display = ["reference", "full_name", "phone", "city", "status", "total_xof", "created_at"]
     list_filter = ["status", "city"]
     search_fields = ["full_name", "phone", "email"]
+    readonly_fields = ["reference"]
     inlines = [OrderItemInline]
