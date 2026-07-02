@@ -20,6 +20,7 @@ function ProductView({ slug }) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [wishlist, setWishlist] = useState(false);
+  const [shared, setShared] = useState(false);
 
   useEffect(() => {
     fetchProductBySlug(slug)
@@ -35,6 +36,33 @@ function ProductView({ slug }) {
     addItem(product, quantity);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
+  };
+
+  const copyLinkToClipboard = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      window.setTimeout(() => setShared(false), 2000);
+    } catch {
+      // API presse-papiers indisponible (navigateur ancien / contexte non sécurisé)
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: `Découvrez ${product.name} sur ANIFOWOCHE`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err?.name !== "AbortError") await copyLinkToClipboard(shareData.url);
+      }
+      return;
+    }
+    await copyLinkToClipboard(shareData.url);
   };
 
   const isFabric = product.unit === "metre";
@@ -211,15 +239,22 @@ function ProductView({ slug }) {
             </button>
             <button
               type="button"
+              onClick={handleShare}
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-black/20 text-muted transition hover:border-brand hover:text-brand-dark"
-              aria-label="Partager le produit"
+              aria-label={shared ? "Lien copié" : "Partager le produit"}
             >
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <path strokeLinecap="round" d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
-              </svg>
+              {shared ? (
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                </svg>
+              ) : (
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <path strokeLinecap="round" d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
