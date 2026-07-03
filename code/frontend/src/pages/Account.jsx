@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { createAddress, deleteAddress, getAddresses } from "../api/addresses.js";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { getOrders } from "../api/orders.js";
 import { createReturnRequest, fetchReturnRequests } from "../api/returns.js";
+import { fetchWishlist, removeFromWishlist } from "../api/wishlist.js";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
@@ -129,6 +130,64 @@ function OrderHistory() {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function WishlistSection() {
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchWishlist()
+      .then((data) => setItems(data.results ?? data))
+      .catch((err) => setError(extractErrorMessage(err)));
+  }, []);
+
+  const handleRemove = async (productId) => {
+    try {
+      await removeFromWishlist(productId);
+      setItems((current) => current.filter((item) => item.product.id !== productId));
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    }
+  };
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-sm font-semibold text-ink">Ma liste de souhaits</h2>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {!error && items.length === 0 && (
+        <p className="mt-2 text-sm text-muted">Aucun produit enregistré pour le moment.</p>
+      )}
+      {items.length > 0 && (
+        <ul className="mt-3 divide-y divide-gray-200 rounded-lg border border-gray-200">
+          {items.map((item) => (
+            <li key={item.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-brand-pale">
+                {item.product.image && (
+                  <img
+                    src={item.product.image}
+                    alt={item.product.name}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <Link to={`/produits/${item.product.slug}`} className="min-w-0 flex-1">
+                <p className="truncate font-medium text-ink">{item.product.name}</p>
+                <p className="text-muted">{formatXof(item.product.price_xof)}</p>
+              </Link>
+              <button
+                type="button"
+                onClick={() => handleRemove(item.product.id)}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Retirer
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -288,6 +347,7 @@ export default function Account() {
         </button>
 
         <OrderHistory />
+        <WishlistSection />
         <AddressBook />
       </div>
     );

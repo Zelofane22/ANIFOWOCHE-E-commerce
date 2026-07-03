@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { fetchProductBySlug } from "../api/products.js";
 import { createReview, fetchProductReviews } from "../api/reviews.js";
+import { addToWishlist, fetchWishlistStatus, removeFromWishlist } from "../api/wishlist.js";
 import QuantityStepper from "../components/QuantityStepper.jsx";
+import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
@@ -15,11 +17,12 @@ export default function Product() {
 function ProductView({ slug }) {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
   const [product, setProduct] = useState(null);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
-  const [wishlist, setWishlist] = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
   const [shared, setShared] = useState(false);
 
   useEffect(() => {
@@ -27,6 +30,13 @@ function ProductView({ slug }) {
       .then(setProduct)
       .catch((err) => setError(err.message));
   }, [slug]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !product) return;
+    fetchWishlistStatus(product.id)
+      .then(() => setWishlisted(true))
+      .catch(() => setWishlisted(false));
+  }, [isAuthenticated, product]);
 
   if (error) return <p className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
@@ -36,6 +46,24 @@ function ProductView({ slug }) {
     addItem(product, quantity);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!isAuthenticated) {
+      navigate("/compte");
+      return;
+    }
+    const next = !wishlisted;
+    setWishlisted(next);
+    try {
+      if (next) {
+        await addToWishlist(product.id);
+      } else {
+        await removeFromWishlist(product.id);
+      }
+    } catch {
+      setWishlisted(!next);
+    }
   };
 
   const copyLinkToClipboard = async (url) => {
@@ -239,11 +267,11 @@ function ProductView({ slug }) {
             </button>
             <button
               type="button"
-              onClick={() => setWishlist((selected) => !selected)}
+              onClick={handleToggleWishlist}
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-black/20 text-muted transition hover:border-brand hover:text-brand-dark"
-              aria-label="Ajouter aux favoris"
+              aria-label={wishlisted ? "Retirer des favoris" : "Ajouter aux favoris"}
             >
-              <svg width="19" height="19" viewBox="0 0 24 24" fill={wishlist ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill={wishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
               </svg>
             </button>
@@ -347,11 +375,11 @@ function ProductView({ slug }) {
         </button>
         <button
           type="button"
-          onClick={() => setWishlist((selected) => !selected)}
+          onClick={handleToggleWishlist}
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-black/20 text-muted"
-          aria-label="Ajouter aux favoris"
+          aria-label={wishlisted ? "Retirer des favoris" : "Ajouter aux favoris"}
         >
-          <svg width="19" height="19" viewBox="0 0 24 24" fill={wishlist ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill={wishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
           </svg>
         </button>

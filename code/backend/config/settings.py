@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "apps.content",
     "apps.returns",
     "apps.reviews",
+    "apps.wishlist",
 ]
 
 MIDDLEWARE = [
