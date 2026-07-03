@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { createAddress, deleteAddress, getAddresses } from "../api/addresses.js";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { getOrders } from "../api/orders.js";
+import { createReturnRequest, fetchReturnRequests } from "../api/returns.js";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
@@ -21,12 +22,38 @@ const STATUS_LABELS = {
 function OrderHistory() {
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
+  const [returnRequests, setReturnRequests] = useState([]);
+  const [openReturnOrderId, setOpenReturnOrderId] = useState(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState(null);
 
   useEffect(() => {
     getOrders()
       .then((data) => setOrders(data.results ?? data))
       .catch((err) => setError(extractErrorMessage(err)));
+    fetchReturnRequests()
+      .then((data) => setReturnRequests(data.results ?? data))
+      .catch(() => {});
   }, []);
+
+  const returnedOrderIds = new Set(returnRequests.map((request) => request.order));
+
+  const handleRequestReturn = async (event, orderId) => {
+    event.preventDefault();
+    setReturnError(null);
+    setSubmittingReturn(true);
+    try {
+      const created = await createReturnRequest({ order_id: orderId, reason: returnReason.trim() });
+      setReturnRequests((current) => [...current, created]);
+      setOpenReturnOrderId(null);
+      setReturnReason("");
+    } catch (err) {
+      setReturnError(extractErrorMessage(err));
+    } finally {
+      setSubmittingReturn(false);
+    }
+  };
 
   return (
     <section className="mt-8">
@@ -37,15 +64,68 @@ function OrderHistory() {
       )}
       <ul className="mt-3 divide-y divide-gray-200 rounded-lg border border-gray-200">
         {orders.map((order) => (
-          <li key={order.id} className="flex items-center justify-between px-4 py-3 text-sm">
-            <div>
-              <p className="font-medium text-ink">ANW-{order.id}</p>
-              <p className="text-muted">
-                {new Date(order.created_at).toLocaleDateString("fr-FR")} ·{" "}
-                {STATUS_LABELS[order.status] ?? order.status}
-              </p>
+          <li key={order.id} className="px-4 py-3 text-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-ink">ANW-{order.id}</p>
+                <p className="text-muted">
+                  {new Date(order.created_at).toLocaleDateString("fr-FR")} ·{" "}
+                  {STATUS_LABELS[order.status] ?? order.status}
+                </p>
+              </div>
+              <span className="font-medium text-ink">{formatXof(order.total_xof)}</span>
             </div>
-            <span className="font-medium text-ink">{formatXof(order.total_xof)}</span>
+
+            {order.status === "delivered" && (
+              <div className="mt-2">
+                {returnedOrderIds.has(order.id) ? (
+                  <p className="text-xs font-medium text-muted">Retour déjà demandé pour cette commande.</p>
+                ) : openReturnOrderId === order.id ? (
+                  <form
+                    onSubmit={(event) => handleRequestReturn(event, order.id)}
+                    className="mt-2 flex flex-col gap-2"
+                  >
+                    <textarea
+                      value={returnReason}
+                      onChange={(event) => setReturnReason(event.target.value)}
+                      placeholder="Motif du retour"
+                      required
+                      rows={2}
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-xs"
+                    />
+                    {returnError && <p className="text-xs text-red-600">{returnError}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={submittingReturn}
+                        className="rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+                      >
+                        {submittingReturn ? "Envoi…" : "Envoyer la demande"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenReturnOrderId(null);
+                          setReturnReason("");
+                          setReturnError(null);
+                        }}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-ink"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOpenReturnOrderId(order.id)}
+                    className="text-xs font-medium text-brand-dark hover:underline"
+                  >
+                    Demander un retour
+                  </button>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>

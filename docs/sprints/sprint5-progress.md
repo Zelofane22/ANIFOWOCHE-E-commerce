@@ -11,7 +11,7 @@ la précédente committée. Aucun push pendant la boucle — commits locaux uniq
 - [x] 3. US-29 — Bouton "Partager" fonctionnel (Web Share API / copie presse-papiers)
 - [x] 4. US-23 — API bannières + carrousel accueil
 - [x] 5. US-24 + US-25 — API promotions actives (prix barré + badge %) + application code coupon au checkout
-- [ ] 6. US-26 — Formulaire de demande de retour depuis l'historique de commande (traitement admin déjà existant)
+- [x] 6. US-26 — Formulaire de demande de retour depuis l'historique de commande (traitement admin déjà existant)
 - [ ] 7. US-28 — Wishlist persistée (modèle backend + bouton cœur fonctionnel + section compte)
 - [ ] 8. US-31 — Filtres/tri catalogue (prix, catégorie, unité, disponibilité)
 - [ ] 9. US-27 — Galerie multi-images (changement de modèle `Product.image` → plusieurs images)
