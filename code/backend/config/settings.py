@@ -219,6 +219,12 @@ RESEND_API_BASE_URL = config("RESEND_API_BASE_URL", default="https://api.resend.
 RESEND_API_KEY = config("RESEND_API_KEY", default="re_placeholder")
 RESEND_FROM_EMAIL = config("RESEND_FROM_EMAIL", default="ANIFOWOCHE <onboarding@resend.dev>")
 
+# Tunnel ngrok (dev uniquement) pour tester en local les webhooks externes
+# (FedaPay...) qui ne peuvent pas atteindre localhost. Vide par défaut : la
+# commande `manage.py start_ngrok` refuse de démarrer sans token — voir
+# https://dashboard.ngrok.com/get-started/your-authtoken.
+NGROK_AUTHTOKEN = config("NGROK_AUTHTOKEN", default="")
+
 # Thème de l'admin Django (django-unfold) — couleurs alignées sur la charte
 # frontend (voir code/frontend/src/index.css : --color-brand et dérivés).
 from django.templatetags.static import static  # noqa: E402
