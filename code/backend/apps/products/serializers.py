@@ -16,6 +16,8 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     rating_average = serializers.SerializerMethodField()
     review_count = serializers.IntegerField(read_only=True, default=0)
+    discount_percent = serializers.IntegerField(read_only=True, allow_null=True, default=None)
+    discounted_price_xof = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -34,6 +36,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "category_id",
             "rating_average",
             "review_count",
+            "discount_percent",
+            "discounted_price_xof",
             "created_at",
             "updated_at",
         ]
@@ -42,3 +46,9 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_rating_average(self, product):
         average = getattr(product, "rating_average", None)
         return round(average, 1) if average is not None else None
+
+    def get_discounted_price_xof(self, product):
+        percent = getattr(product, "discount_percent", None)
+        if not percent:
+            return None
+        return round(product.price_xof * (100 - percent) / 100)

@@ -181,8 +181,18 @@ function ProductView({ slug }) {
           </div>
 
           <div className="mt-5">
-            <div className="flex items-baseline gap-3">
-              <p className="text-3xl font-bold text-ink">{formatXof(product.price_xof)}</p>
+            <div className="flex flex-wrap items-baseline gap-3">
+              {product.discount_percent > 0 ? (
+                <>
+                  <p className="text-3xl font-bold text-red-600">{formatXof(product.discounted_price_xof)}</p>
+                  <p className="text-lg text-muted line-through">{formatXof(product.price_xof)}</p>
+                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                    -{product.discount_percent}%
+                  </span>
+                </>
+              ) : (
+                <p className="text-3xl font-bold text-ink">{formatXof(product.price_xof)}</p>
+              )}
               {unit && <span className="text-sm text-muted">/ {unit}</span>}
             </div>
             {product.size && product.size !== "UNIQUE" && (
@@ -261,7 +271,17 @@ function ProductView({ slug }) {
 
         <aside className="hidden lg:block">
           <div className="sticky top-28 rounded-xl border border-black/10 bg-white p-5 shadow-sm">
-            <p className="text-2xl font-bold text-ink">{formatXof(product.price_xof)}</p>
+            {product.discount_percent > 0 ? (
+              <div className="flex flex-wrap items-baseline gap-2">
+                <p className="text-2xl font-bold text-red-600">{formatXof(product.discounted_price_xof)}</p>
+                <p className="text-sm text-muted line-through">{formatXof(product.price_xof)}</p>
+                <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  -{product.discount_percent}%
+                </span>
+              </div>
+            ) : (
+              <p className="text-2xl font-bold text-ink">{formatXof(product.price_xof)}</p>
+            )}
             {unit && <p className="mt-1 text-sm text-muted">par {unit}</p>}
             <div className="mt-4 space-y-2 text-sm">
               <div className={`flex items-center gap-2 font-medium ${stockColorClass}`}>

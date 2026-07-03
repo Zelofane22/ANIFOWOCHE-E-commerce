@@ -4,6 +4,7 @@ import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
 import { initiatePayment } from "../api/payments.js";
+import { validateCoupon } from "../api/promotions.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -34,6 +35,11 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("mtn");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     if (authLoading || isAuthenticated) return;
@@ -98,7 +104,8 @@ export default function Checkout() {
   const selectedZone = zones.find((option) => option.id === zoneId);
   const selectedSlot = slots.find((option) => option.id === slotId);
   const deliveryFee = selectedZone?.fee_xof ?? 0;
-  const total = subtotal + deliveryFee;
+  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.discount_percent) / 100) : 0;
+  const total = subtotal - discountAmount + deliveryFee;
   const canPay =
     fullName.trim() !== "" &&
     phone.trim() !== "" &&
@@ -113,6 +120,28 @@ export default function Checkout() {
     zoneId != null &&
     slotId != null &&
     !loadingDeliveryOptions;
+
+  const handleApplyCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
+    setCouponError(null);
+    setValidatingCoupon(true);
+    try {
+      const result = await validateCoupon(code);
+      setAppliedCoupon(result);
+    } catch (err) {
+      setAppliedCoupon(null);
+      setCouponError(extractErrorMessage(err));
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+  };
 
   const handlePay = async (event) => {
     event.preventDefault();
@@ -131,6 +160,7 @@ export default function Checkout() {
         email: user?.email ?? "",
         address,
         city: "Cotonou",
+        coupon_code: appliedCoupon?.code ?? "",
         items: items.map((item) => ({ product_id: item.id, quantity: item.quantity })),
       });
 
@@ -388,11 +418,55 @@ export default function Checkout() {
               ))}
             </div>
 
+            <div className="mt-4 border-t border-black/10 pt-4">
+              <label className="block text-xs font-semibold text-ink">Code promo</label>
+              <div className="mt-1.5 flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value)}
+                  placeholder="Code coupon"
+                  disabled={!!appliedCoupon}
+                  className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand focus:outline-none disabled:bg-gray-50"
+                />
+                {appliedCoupon ? (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="shrink-0 rounded-lg border border-black/15 px-3 py-2 text-sm font-semibold text-ink transition hover:border-red-300 hover:text-red-600"
+                  >
+                    Retirer
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={!couponCode.trim() || validatingCoupon}
+                    className="shrink-0 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+                  >
+                    {validatingCoupon ? "…" : "Appliquer"}
+                  </button>
+                )}
+              </div>
+              {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
+              {appliedCoupon && (
+                <p className="mt-1.5 text-xs font-medium text-green-700">
+                  Code « {appliedCoupon.code} » appliqué (-{appliedCoupon.discount_percent}%)
+                </p>
+              )}
+            </div>
+
             <div className="mt-4 space-y-2 border-t border-black/10 pt-4 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Sous-total</span>
                 <span className="text-ink">{formatXof(subtotal)}</span>
               </div>
+              {appliedCoupon && (
+                <div className="flex justify-between text-green-700">
+                  <span>Réduction ({appliedCoupon.discount_percent}%)</span>
+                  <span>-{formatXof(discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-muted">
                 <span>Livraison</span>
                 {deliveryFee > 0 ? (

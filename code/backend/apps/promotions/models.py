@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from apps.products.models import Category, Product
 
@@ -34,3 +35,12 @@ class Coupon(models.Model):
 
     def __str__(self):
         return self.code
+
+    def is_valid(self):
+        if not self.is_active:
+            return False
+        if self.expires_at and self.expires_at < timezone.now():
+            return False
+        if self.used_count >= self.max_uses:
+            return False
+        return True

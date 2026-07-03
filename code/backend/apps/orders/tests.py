@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from apps.products.models import Category, Product
+from apps.promotions.models import Coupon
 
 from .models import Order
 
@@ -109,3 +110,49 @@ class OrderApiTests(APITestCase):
         patch_response = self.client.patch(f"/api/orders/{order_id}/", {"status": "prepared"}, format="json")
         self.assertEqual(patch_response.status_code, 200)
         self.assertEqual(patch_response.data["status"], "prepared")
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_valid_coupon_discounts_total_and_increments_usage(self, mock_post):
+        coupon = Coupon.objects.create(code="PROMO10", discount_percent=10, max_uses=5, used_count=0)
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "coupon_code": "promo10",
+            "items": [{"product_id": self.product.id, "quantity": 5}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["discount_xof"], 1000)
+        self.assertEqual(response.data["total_xof"], 9000)
+        self.assertEqual(response.data["coupon_code"], "PROMO10")
+        coupon.refresh_from_db()
+        self.assertEqual(coupon.used_count, 1)
+
+    def test_invalid_coupon_rejects_order_creation(self):
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "coupon_code": "DOESNOTEXIST",
+            "items": [{"product_id": self.product.id, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Order.objects.count(), 0)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_order_without_coupon_has_zero_discount(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": self.product.id, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["discount_xof"], 0)
+        self.assertEqual(response.data["coupon_code"], "")
