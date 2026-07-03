@@ -9,7 +9,14 @@ import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 
-const emptyRegisterForm = { username: "", email: "", password: "", password2: "" };
+const emptyRegisterForm = {
+  username: "",
+  email: "",
+  password: "",
+  password2: "",
+  phone: "",
+  notification_channel: "whatsapp",
+};
 const emptyLoginForm = { username: "", password: "" };
 const emptyAddressForm = { label: "", full_name: "", phone: "", zone: "", notes: "" };
 
@@ -455,6 +462,24 @@ export default function Account() {
             onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
+          <input
+            type="tel"
+            placeholder="Téléphone (pour WhatsApp)"
+            value={registerForm.phone}
+            onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
+          <label className="text-sm text-ink">
+            Recevoir mes notifications par
+            <select
+              value={registerForm.notification_channel}
+              onChange={(e) => setRegisterForm({ ...registerForm, notification_channel: e.target.value })}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">Email</option>
+            </select>
+          </label>
           <input
             type="password"
             placeholder="Mot de passe"

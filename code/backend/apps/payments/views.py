@@ -6,6 +6,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.notifications.services import notify_invoice
 from apps.orders.models import Order
 
 from .models import Payment
@@ -107,5 +108,6 @@ class FedaPayWebhookView(APIView):
             order = payment.order
             order.status = Order.Status.PREPARED
             order.save(update_fields=["status", "updated_at"])
+            notify_invoice(payment)
 
         return Response({"detail": "ok"})

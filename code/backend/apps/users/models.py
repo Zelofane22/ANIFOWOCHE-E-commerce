@@ -23,3 +23,20 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.label or self.zone.name} — {self.full_name}"
+
+
+class Profile(models.Model):
+    """Préférences de notification du client, choisies à l'inscription."""
+
+    class NotificationChannel(models.TextChoices):
+        WHATSAPP = "whatsapp", "WhatsApp"
+        EMAIL = "email", "Email"
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    phone = models.CharField(max_length=20, blank=True, help_text="Requis pour recevoir les notifications WhatsApp")
+    notification_channel = models.CharField(
+        max_length=10, choices=NotificationChannel.choices, default=NotificationChannel.WHATSAPP
+    )
+
+    def __str__(self):
+        return f"Profil de {self.user}"

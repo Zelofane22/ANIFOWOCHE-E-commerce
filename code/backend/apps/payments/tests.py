@@ -70,7 +70,8 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.status_code, 401)
 
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
-    def test_webhook_approves_payment_and_updates_order(self):
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_webhook_approves_payment_and_updates_order(self, mock_post):
         payment = Payment.objects.create(
             order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="777"
         )
