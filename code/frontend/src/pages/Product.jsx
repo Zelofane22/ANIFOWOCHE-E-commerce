@@ -24,6 +24,7 @@ function ProductView({ slug }) {
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const [shared, setShared] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     fetchProductBySlug(slug)
@@ -96,7 +97,20 @@ function ProductView({ slug }) {
   const isFabric = product.unit === "metre";
   const unit = isFabric ? "mètre" : null;
   const badge = isFabric ? "Meilleure vente" : product.category?.name;
-  const hasGallery = false;
+
+  const galleryImages = [
+    ...(product.image ? [{ id: "cover", image: product.image }] : []),
+    ...(product.images ?? []),
+  ];
+  const hasGallery = galleryImages.length > 1;
+  const currentImage = galleryImages[activeImageIndex] ?? galleryImages[0];
+
+  const showPreviousImage = () => {
+    setActiveImageIndex((index) => (index - 1 + galleryImages.length) % galleryImages.length);
+  };
+  const showNextImage = () => {
+    setActiveImageIndex((index) => (index + 1) % galleryImages.length);
+  };
 
   const stock = product.stock ?? 0;
   const outOfStock = stock <= 0;
@@ -132,8 +146,8 @@ function ProductView({ slug }) {
               className="h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 border-brand bg-brand-pale"
               aria-label="Image produit sélectionnée"
             >
-              {product.image ? (
-                <img src={product.image} alt="" className="h-full w-full object-cover" />
+              {currentImage ? (
+                <img src={currentImage.image} alt="" className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-brand-dark">
                   ANI
@@ -144,8 +158,8 @@ function ProductView({ slug }) {
 
           <div className="min-w-0 flex-1">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-pale">
-              {product.image ? (
-                <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+              {currentImage ? (
+                <img src={currentImage.image} alt={product.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-lg font-bold text-brand-dark">
                   ANIFOWOCHE
@@ -155,6 +169,7 @@ function ProductView({ slug }) {
                 <>
                   <button
                     type="button"
+                    onClick={showPreviousImage}
                     className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white"
                     aria-label="Image précédente"
                   >
@@ -164,6 +179,7 @@ function ProductView({ slug }) {
                   </button>
                   <button
                     type="button"
+                    onClick={showNextImage}
                     className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white"
                     aria-label="Image suivante"
                   >
@@ -176,9 +192,17 @@ function ProductView({ slug }) {
             </div>
             {hasGallery && (
               <div className="mt-2 flex justify-center gap-1.5 sm:hidden">
-                <span className="h-2 w-4 rounded-full bg-brand" />
-                <span className="h-2 w-2 rounded-full bg-black/20" />
-                <span className="h-2 w-2 rounded-full bg-black/20" />
+                {galleryImages.map((img, index) => (
+                  <button
+                    key={img.id}
+                    type="button"
+                    onClick={() => setActiveImageIndex(index)}
+                    aria-label={`Aller à l'image ${index + 1}`}
+                    className={`h-2 rounded-full transition-all ${
+                      index === activeImageIndex ? "w-4 bg-brand" : "w-2 bg-black/20"
+                    }`}
+                  />
+                ))}
               </div>
             )}
           </div>

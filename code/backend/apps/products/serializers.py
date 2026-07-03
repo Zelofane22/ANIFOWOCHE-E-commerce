@@ -1,12 +1,18 @@
 from rest_framework import serializers
 
-from .models import Category, Product
+from .models import Category, Product, ProductImage
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ["id", "name", "slug"]
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ["id", "image", "order"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -18,6 +24,7 @@ class ProductSerializer(serializers.ModelSerializer):
     review_count = serializers.IntegerField(read_only=True, default=0)
     discount_percent = serializers.IntegerField(read_only=True, allow_null=True, default=None)
     discounted_price_xof = serializers.SerializerMethodField()
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -31,6 +38,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "size",
             "stock",
             "image",
+            "images",
             "is_active",
             "category",
             "category_id",

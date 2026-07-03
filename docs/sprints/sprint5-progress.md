@@ -14,7 +14,7 @@ la précédente committée. Aucun push pendant la boucle — commits locaux uniq
 - [x] 6. US-26 — Formulaire de demande de retour depuis l'historique de commande (traitement admin déjà existant)
 - [x] 7. US-28 — Wishlist persistée (modèle backend + bouton cœur fonctionnel + section compte)
 - [x] 8. US-31 — Filtres/tri catalogue (prix, catégorie, unité, disponibilité)
-- [ ] 9. US-27 — Galerie multi-images (changement de modèle `Product.image` → plusieurs images)
+- [x] 9. US-27 — Galerie multi-images (changement de modèle `Product.image` → plusieurs images)
 
 **Livrable Sprint 5** : le site public reflète réellement ce que l'admin peut déjà configurer (avis,
 promos, bannières, retours), et les boutons déjà visibles sur la fiche produit fonctionnent.

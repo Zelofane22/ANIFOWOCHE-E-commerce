@@ -34,6 +34,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = (
         Product.objects.filter(is_active=True)
         .select_related("category")
+        .prefetch_related("images")
         .annotate(
             rating_average=Avg("reviews__rating", filter=Q(reviews__is_approved=True)),
             review_count=Count("reviews", filter=Q(reviews__is_approved=True)),

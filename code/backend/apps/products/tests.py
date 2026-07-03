@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
-from .models import Category, Product
+from .models import Category, Product, ProductImage
 
 User = get_user_model()
 
@@ -90,3 +90,18 @@ class ProductApiTests(APITestCase):
         response_desc = self.client.get("/api/products/", {"ordering": "-price_xof"})
         slugs_desc = [item["slug"] for item in response_desc.data["results"]]
         self.assertEqual(slugs_desc, ["pagne-wax", "moins-cher"])
+
+    def test_product_exposes_gallery_images_in_order(self):
+        ProductImage.objects.create(product=self.product, image="products/gallery/b.jpg", order=2)
+        ProductImage.objects.create(product=self.product, image="products/gallery/a.jpg", order=1)
+
+        response = self.client.get("/api/products/pagne-wax/")
+        self.assertEqual(response.status_code, 200)
+        images = response.data["images"]
+        self.assertEqual(len(images), 2)
+        self.assertTrue(images[0]["image"].endswith("a.jpg"))
+        self.assertTrue(images[1]["image"].endswith("b.jpg"))
+
+    def test_product_without_gallery_images_has_empty_list(self):
+        response = self.client.get("/api/products/pagne-wax/")
+        self.assertEqual(response.data["images"], [])

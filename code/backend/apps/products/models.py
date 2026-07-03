@@ -54,3 +54,20 @@ class Product(models.Model):
         if self.unit == self.Unit.METRE:
             self.size = self.Size.UNIQUE
         super().save(*args, **kwargs)
+
+
+class ProductImage(models.Model):
+    """Photos additionnelles de la galerie produit, en complément de
+    Product.image (utilisée comme couverture partout ailleurs : cartes,
+    panier, wishlist...)."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="products/gallery/")
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "created_at"]
+
+    def __str__(self):
+        return f"Image #{self.order} — {self.product.name}"
