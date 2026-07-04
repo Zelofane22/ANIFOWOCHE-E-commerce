@@ -51,6 +51,7 @@ class Notification(models.Model):
         DELIVERY_CONFIRMED = "delivery_confirmed", "Livraison confirmée"
         INVOICE = "invoice", "Facture"
         ACCOUNT_CREATED = "account_created", "Création de compte"
+        SETTING_CHANGE_REQUESTED = "setting_change_requested", "Demande de changement de réglage"
 
     class Status(models.TextChoices):
         PENDING = "pending", "En attente"

@@ -249,6 +249,13 @@ def _pending_orders_badge(request):
     return count or None
 
 
+def _pending_setting_requests_badge(request):
+    from apps.core.models import SettingChangeRequest
+
+    count = SettingChangeRequest.objects.filter(status=SettingChangeRequest.Status.PENDING).count()
+    return count or None
+
+
 UNFOLD = {
     "SITE_TITLE": "ANIFOWOCHE Admin",
     "SITE_HEADER": "ANIFOWOCHE",
@@ -336,6 +343,22 @@ UNFOLD = {
                         "link": reverse_lazy("admin:payments_payment_changelist"),
                     },
                     {
+                        "title": "Réglages paiement",
+                        "icon": "toggle_on",
+                        "link": reverse_lazy("admin:payments_paymentsettings_changelist"),
+                    },
+                    {
+                        "title": "Réglages boutique",
+                        "icon": "storefront",
+                        "link": reverse_lazy("admin:core_storesettings_changelist"),
+                    },
+                    {
+                        "title": "Demandes de changement",
+                        "icon": "fact_check",
+                        "link": reverse_lazy("admin:core_settingchangerequest_changelist"),
+                        "badge": _pending_setting_requests_badge,
+                    },
+                    {
                         "title": "Retours & Remboursements",
                         "icon": "assignment_return",
                         "link": reverse_lazy("admin:returns_returnrequest_changelist"),
@@ -375,3 +398,21 @@ UNFOLD = {
         ],
     },
 }
+
+
+# ─── Sentry (monitoring d'erreurs et de performance) ─────────────────────────
+# Actif uniquement si SENTRY_DSN est défini (env vars Render) — inactif en dev.
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment="production" if ON_RENDER else "development",
+        release=os.environ.get("RENDER_GIT_COMMIT", "") or None,
+        # 10 % des requêtes tracées pour le monitoring de performance.
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        # Ne jamais envoyer les données personnelles (noms, téléphones,
+        # adresses des clients) dans les événements.
+        send_default_pii=False,
+    )

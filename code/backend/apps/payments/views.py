@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from apps.notifications.services import notify_invoice
 from apps.orders.models import Order
 
-from .models import Payment
+from .models import Payment, PaymentSettings
 from .serializers import InitiatePaymentSerializer, PaymentSerializer
 from .services import FedaPayClient, FedaPayError, verify_webhook_signature
 
@@ -50,6 +50,21 @@ class InitiatePaymentView(APIView):
         serializer.is_valid(raise_exception=True)
         order = serializer.validated_data["order"]
         method = serializer.validated_data["method"]
+
+        payment_settings = PaymentSettings.get_solo()
+        if not payment_settings.online_payment_enabled:
+            return Response(
+                {
+                    "detail": "Le paiement en ligne est temporairement indisponible. "
+                    "Merci de choisir le paiement à la livraison."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if not payment_settings.is_method_enabled(method):
+            return Response(
+                {"detail": "Ce moyen de paiement est temporairement indisponible."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         payment = Payment.objects.create(
             order=order,

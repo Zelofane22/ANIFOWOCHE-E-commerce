@@ -2,11 +2,13 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from apps.core.views import StoreStatusView
 from apps.users.views import AuthTokenObtainPairView
 
 urlpatterns = [
     path("admin/", include("apps.core.urls")),
     path("admin/", admin.site.urls),
+    path("api/store/status/", StoreStatusView.as_view(), name="store-status"),
     path("api/products/", include("apps.products.urls")),
     path("api/orders/", include("apps.orders.urls")),
     path("api/payments/", include("apps.payments.urls")),

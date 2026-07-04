@@ -17,11 +17,12 @@ Directives pour Claude Code sur ce projet (ANIFOWOCHE E-commerce).
 - Backend : Django + Django REST Framework + PostgreSQL
 - Auth : JWT (djangorestframework-simplejwt)
 - Paiement : FedaPay / KkiaPay
-- Hébergement : backend + DB sur Railway, frontend sur Vercel (détails : [docs/stack-technique.md](docs/stack-technique.md))
+- Monitoring : Sentry (backend + frontend, inactif sans DSN)
+- Hébergement : backend + DB sur Render, frontend sur Vercel (détails : [docs/stack-technique.md](docs/stack-technique.md))
 
 ## Déploiement
 
-- Le déploiement se fait automatiquement sur push vers `main` (Railway pour le backend, Render pour le frontend). Ne jamais essayer de déployer manuellement ou de simuler un déploiement en local.
+- Le déploiement se fait automatiquement sur push vers `main` (Render pour le backend + DB, Vercel pour le frontend). Ne jamais essayer de déployer manuellement ou de simuler un déploiement en local.
 
 ## Design
 Toujours utiliser ou s'inpirer de la maque figma pour les interfaces frontend.

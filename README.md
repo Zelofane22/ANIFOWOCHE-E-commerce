@@ -6,7 +6,7 @@
 
 | Statut | Durée MVP | Budget/mois | Zone cible |
 |--------|-----------|-------------|------------|
-| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E9) partiel — rôles admin + revue sécurité faits, paiement/WhatsApp/monitoring réels en attente de clés externes | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
+| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E9) partiel — rôles admin + revue sécurité faits, monitoring Sentry intégré (DSN à renseigner), paiement/WhatsApp réels en attente de clés externes · Espace client refondu (maquette Figma) | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
 
 ---
 
@@ -41,10 +41,12 @@ anifowoche/
 ├── code/
 │   ├── frontend/             # Application React (src/, public/, package.json)
 │   │   └── src/
-│   │       ├── components/   # Navbar, ProductCard, QuantityStepper...
+│   │       ├── components/   # Navbar, ProductCard, QuantityStepper, icons,
+│   │       │                 # account/ (badges statut, garde d'auth)
 │   │       ├── context/       # CartContext, AuthContext (Context API)
 │   │       ├── pages/        # Home, Catalogue, Product, Cart, Checkout,
-│   │       │                 # OrderConfirmation, Account, Dashboard (admin)
+│   │       │                 # OrderConfirmation · Espace client : Account,
+│   │       │                 # Orders, OrderDetail, Addresses, Wishlist
 │   │       └── api/           # Fonctions Axios par domaine (products, orders,
 │   │                          # payments, delivery, auth, reviews, content,
 │   │                          # promotions, returns, wishlist)
@@ -77,8 +79,8 @@ Toutes les routes sont préfixées par `/api/`. Détails complets des variables 
 | Domaine | Endpoints | Accès |
 |---------|-----------|-------|
 | Produits | `GET /products/` (filtres prix/unité/stock/catégorie + tri + recherche), `GET /products/{slug}/` (note, remise, galerie), `GET /products/categories/` | Public |
-| Commandes | `POST /orders/` (compte requis, `coupon_code` optionnel) · `GET/PATCH /orders/{id}/`, `GET /orders/` | Création authentifiée · lecture/gestion réservées au staff |
-| Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé, liste réservée au staff |
+| Commandes | `POST /orders/` (compte requis, `coupon_code` optionnel) · `GET /orders/`, `GET /orders/{id}/` (items avec nom, slug et image produit) · `PATCH/DELETE` | Création authentifiée · le client consulte ses propres commandes · modification/suppression réservées au staff |
+| Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé · le client consulte les paiements de ses commandes, staff voit tout |
 | Livraison | `GET /delivery/zones/`, `GET /delivery/slots/` · `POST /delivery/` (checkout) · `GET/PATCH /delivery/{id}/` | Lecture zones/créneaux publique, gestion réservée au staff |
 | Authentification | `POST /auth/register/` (téléphone + préférence de notification optionnels), `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
 | Avis | `GET /reviews/?product__slug=...` (avis approuvés) · `POST /reviews/` (soumission, modération admin) | Public |

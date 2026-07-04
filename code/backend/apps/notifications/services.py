@@ -2,6 +2,7 @@ import logging
 
 import requests
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 from apps.users.models import Profile
 
@@ -247,3 +248,30 @@ def notify_account_created(user):
             message=message,
         )
     return None
+
+
+def notify_setting_change_requested(change_request):
+    """Alerte tous les superadmins actifs qu'une demande de changement de
+    réglage sensible (Sprint 6 : paiement en ligne, moyens de paiement,
+    maintenance) attend leur validation — voir apps.core.services."""
+    User = get_user_model()
+    action = "Activer" if change_request.target_value else "Désactiver"
+    message = (
+        f"Nouvelle demande de changement de réglage sensible.\n\n"
+        f"Réglage : {change_request.get_setting_key_display()}\n"
+        f"Action demandée : {action}\n"
+        f"Demandée par : {change_request.requested_by}\n"
+        f"Justification : {change_request.reason}\n\n"
+        f"À valider dans l'admin : /admin/core/settingchangerequest/{change_request.pk}/change/"
+    )
+    sent = []
+    for superuser in User.objects.filter(is_superuser=True, is_active=True).exclude(email=""):
+        notification = _send_email(
+            event=Notification.Event.SETTING_CHANGE_REQUESTED,
+            recipient_email=superuser.email,
+            subject=f"[ANIFOWOCHE] Validation requise — {change_request.get_setting_key_display()}",
+            message=message,
+        )
+        if notification:
+            sent.append(notification)
+    return sent

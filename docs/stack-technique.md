@@ -13,6 +13,7 @@
 | Base de données | PostgreSQL | v18+ | Stockage persistant |
 | Authentification | JWT (djangorestframework-simplejwt) | — | Sessions client sécurisées |
 | Paiement | FedaPay API / KkiaPay API | — | MTN Money, Moov, Visa/MC |
+| Monitoring | Sentry (`sentry-sdk[django]` + `@sentry/react`) | — | Erreurs & performance backend/frontend (actif seulement si DSN fourni) |
 | Runtime backend | Python | 3.13+ | Exécution Django |
 | Runtime frontend | Node.js | 24+ (LTS) | Build/CI frontend |
 | Hébergement backend | Render | Blueprint + PostgreSQL | API Django + PostgreSQL |
@@ -27,7 +28,7 @@ L'application suit une architecture découplée : le frontend React communique e
 
 - **Frontend (React)** : Pages Accueil, Catalogue, Produit, Panier, Commande, Compte · State management (Context API ou Zustand) · Axios pour les appels API
 - **Backend (Django)** : API `/products/` `/orders/` `/payments/` `/users/` `/delivery/` · ORM Django → PostgreSQL · Authentification JWT
-- **Externe** : FedaPay / KkiaPay (paiement) · Render (backend + PostgreSQL) · Vercel (frontend) · WhatsApp Business (notifications)
+- **Externe** : FedaPay / KkiaPay (paiement) · Render (backend + PostgreSQL) · Vercel (frontend) · WhatsApp Business (notifications) · Sentry (monitoring erreurs/performance, un projet Django + un projet React)
 
 ## Déploiement Render + Vercel (MVP)
 

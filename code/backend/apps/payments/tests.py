@@ -13,7 +13,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Category, Product
 
-from .models import Payment
+from .models import Payment, PaymentSettings
 
 User = get_user_model()
 
@@ -96,6 +96,22 @@ class PaymentApiTests(APITestCase):
 
         self.assertEqual(statuses[:2], [201, 201])
         self.assertEqual(statuses[2], 429)
+
+    def test_initiate_payment_rejected_when_online_payment_disabled(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
+        response = self.client.post(
+            "/api/payments/initiate/", {"order_id": self.order.id, "method": "mtn"}, format="json"
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_initiate_payment_rejected_when_method_disabled(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"card_enabled": False})
+        response = self.client.post(
+            "/api/payments/initiate/", {"order_id": self.order.id, "method": "card"}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Payment.objects.count(), 0)
 
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
     def test_webhook_rejects_invalid_signature(self):
