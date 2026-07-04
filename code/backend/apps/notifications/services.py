@@ -396,6 +396,7 @@ def notify_setting_change_requested(change_request):
             recipient_email=superuser.email,
             subject=f"[ANIFOWOCHE] Validation requise — {change_request.get_setting_key_display()}",
             message=message,
+            title="Validation de réglage requise",
         )
         if notification:
             sent.append(notification)
