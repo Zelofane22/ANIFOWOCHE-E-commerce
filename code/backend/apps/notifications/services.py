@@ -6,13 +6,34 @@ from django.contrib.auth import get_user_model
 
 from apps.users.models import Profile
 
-from .models import Notification, NotificationSettings
+from .models import BackofficeNotification, Notification, NotificationSettings
 
 logger = logging.getLogger(__name__)
+MAX_BACKOFFICE_NOTIFICATIONS = 50
 
 
 class NotificationDeliveryError(Exception):
     pass
+
+
+def create_backoffice_notification(*, kind, severity, title, message, action_url="", source="notifications"):
+    notification = BackofficeNotification.objects.create(
+        kind=kind,
+        severity=severity,
+        title=title,
+        message=message,
+        action_url=action_url,
+        source=source,
+    )
+
+    overflow_ids = list(
+        BackofficeNotification.objects.order_by("-created_at").values_list("id", flat=True)[
+            MAX_BACKOFFICE_NOTIFICATIONS:
+        ]
+    )
+    if overflow_ids:
+        BackofficeNotification.objects.filter(id__in=overflow_ids).delete()
+    return notification
 
 
 class WhatsAppClient:
@@ -116,6 +137,13 @@ def _send_whatsapp(*, event, recipient_phone, message):
         logger.warning("Notification %s (whatsapp) échouée pour %s : %s", event, recipient_phone, exc)
         notification.status = Notification.Status.FAILED
         notification.error_detail = str(exc)
+        create_backoffice_notification(
+            kind=BackofficeNotification.Kind.PROVIDER_ERROR,
+            severity=BackofficeNotification.Severity.ERROR,
+            title="Échec d'envoi WhatsApp",
+            message=f"{notification.get_event_display()} vers {recipient_phone} : {exc}",
+            action_url="/admin/notifications/notification/",
+        )
     notification.save(update_fields=["status", "provider_message_id", "error_detail"])
     return notification
 
@@ -137,6 +165,13 @@ def _send_email(*, event, recipient_email, subject, message):
         logger.warning("Notification %s (email) échouée pour %s : %s", event, recipient_email, exc)
         notification.status = Notification.Status.FAILED
         notification.error_detail = str(exc)
+        create_backoffice_notification(
+            kind=BackofficeNotification.Kind.PROVIDER_ERROR,
+            severity=BackofficeNotification.Severity.ERROR,
+            title="Échec d'envoi email",
+            message=f"{notification.get_event_display()} vers {recipient_email} : {exc}",
+            action_url="/admin/notifications/notification/",
+        )
     notification.save(update_fields=["status", "provider_message_id", "error_detail"])
     return notification
 
@@ -159,6 +194,13 @@ def _send_sms(*, event, recipient_phone, message):
     notification.status = Notification.Status.FAILED
     notification.error_detail = error_detail
     notification.save(update_fields=["status", "error_detail"])
+    create_backoffice_notification(
+        kind=BackofficeNotification.Kind.CONFIGURATION,
+        severity=BackofficeNotification.Severity.WARNING,
+        title="Fournisseur SMS manquant",
+        message=f"{notification.get_event_display()} vers {recipient_phone} : {error_detail}",
+        action_url="/admin/reglages/",
+    )
     return notification
 
 
@@ -263,6 +305,16 @@ def notify_setting_change_requested(change_request):
         f"Demandée par : {change_request.requested_by}\n"
         f"Justification : {change_request.reason}\n\n"
         f"À valider dans l'admin : /admin/core/settingchangerequest/{change_request.pk}/change/"
+    )
+    create_backoffice_notification(
+        kind=BackofficeNotification.Kind.APPROVAL_REQUIRED,
+        severity=BackofficeNotification.Severity.WARNING,
+        title="Validation de réglage requise",
+        message=(
+            f"{change_request.get_setting_key_display()} : "
+            f"{action.lower()} demandé par {change_request.requested_by}."
+        ),
+        action_url=f"/admin/core/settingchangerequest/{change_request.pk}/change/",
     )
     sent = []
     for superuser in User.objects.filter(is_superuser=True, is_active=True).exclude(email=""):

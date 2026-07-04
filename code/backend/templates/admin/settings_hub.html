@@ -1,0 +1,171 @@
+{% extends 'admin/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block extrastyle %}
+    <style>
+        .anw-settings-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+        .anw-settings-title { font-size: 1.35rem; font-weight: 750; color: #171717; margin: 0 0 0.25rem; }
+        .anw-settings-subtitle { color: #666; font-size: 0.9rem; margin: 0; max-width: 48rem; }
+        .anw-settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .anw-settings-card { background: #fff; border: 1px solid #f1efe0; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .anw-settings-card-title { align-items: center; color: #181818; display: flex; font-size: 0.98rem; font-weight: 750; gap: 0.45rem; justify-content: space-between; margin-bottom: 0.75rem; }
+        .anw-settings-list { display: grid; gap: 0.55rem; margin-bottom: 1rem; }
+        .anw-settings-row { align-items: center; display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.86rem; }
+        .anw-settings-label { color: #555; }
+        .anw-status { border-radius: 999px; display: inline-flex; font-size: 0.73rem; font-weight: 700; line-height: 1; padding: 0.36rem 0.55rem; white-space: nowrap; }
+        .anw-status-on { background: #e8f7ee; color: #176b3a; }
+        .anw-status-off { background: #f8e9e7; color: #9f2f25; }
+        .anw-status-waiting { background: #fff6d6; color: #7a5800; }
+        .anw-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .anw-btn { align-items: center; background: #a98111; border-radius: 7px; color: #fff !important; display: inline-flex; font-size: 0.82rem; font-weight: 700; min-height: 2.2rem; padding: 0.55rem 0.75rem; text-decoration: none; }
+        .anw-btn-secondary { background: #f6f3df; color: #40340a !important; }
+        .anw-requests { background: #fff; border: 1px solid #f1efe0; border-radius: 8px; overflow: hidden; }
+        .anw-requests-header { align-items: center; display: flex; justify-content: space-between; gap: 0.75rem; padding: 1rem; }
+        .anw-table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
+        .anw-table th { border-top: 1px solid #f1efe0; color: #686868; font-weight: 600; padding: 0.55rem 1rem; text-align: left; }
+        .anw-table td { border-top: 1px solid #f6f4e6; color: #1d1d1d; padding: 0.65rem 1rem; vertical-align: middle; }
+        @media (max-width: 1024px) { .anw-settings-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) {
+            .anw-settings-header, .anw-requests-header { display: grid; }
+            .anw-table th:nth-child(3), .anw-table td:nth-child(3) { display: none; }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="anw-settings-header">
+        <div>
+            <h1 class="anw-settings-title">Réglages boutique</h1>
+            <p class="anw-settings-subtitle">Un seul espace pour contrôler l'état de la boutique, les paiements, les notifications et les demandes de changement.</p>
+        </div>
+        <a class="anw-btn" href="{{ links.setting_request_add }}">Nouvelle demande</a>
+    </div>
+
+    <div class="anw-settings-grid">
+        <section class="anw-settings-card">
+            <div class="anw-settings-card-title">Boutique</div>
+            <div class="anw-settings-list">
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">Mode maintenance</span>
+                    {% if store_settings.maintenance_mode %}
+                        <span class="anw-status anw-status-off">Activé</span>
+                    {% else %}
+                        <span class="anw-status anw-status-on">Désactivé</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="anw-actions">
+                <a class="anw-btn anw-btn-secondary" href="{{ links.store_settings }}">Voir le détail</a>
+                <a class="anw-btn" href="{{ links.setting_request_add }}">Demander un changement</a>
+            </div>
+        </section>
+
+        <section class="anw-settings-card">
+            <div class="anw-settings-card-title">Paiements</div>
+            <div class="anw-settings-list">
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">Paiement en ligne</span>
+                    <span class="anw-status {% if payment_settings.online_payment_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.online_payment_enabled %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">MTN Mobile Money</span>
+                    <span class="anw-status {% if payment_settings.mtn_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.mtn_enabled %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">Moov Money</span>
+                    <span class="anw-status {% if payment_settings.moov_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.moov_enabled %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">Carte bancaire</span>
+                    <span class="anw-status {% if payment_settings.card_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.card_enabled %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="anw-actions">
+                <a class="anw-btn anw-btn-secondary" href="{{ links.payment_settings }}">Voir le détail</a>
+                <a class="anw-btn" href="{{ links.setting_request_add }}">Demander un changement</a>
+            </div>
+        </section>
+
+        <section class="anw-settings-card">
+            <div class="anw-settings-card-title">Notifications</div>
+            <div class="anw-settings-list">
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">WhatsApp</span>
+                    <span class="anw-status {% if notification_settings.whatsapp_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if notification_settings.whatsapp_enabled %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">SMS</span>
+                    <span class="anw-status {% if notification_settings.sms_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if notification_settings.sms_enabled %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="anw-actions">
+                <a class="anw-btn" href="{{ links.notification_settings }}">Modifier</a>
+            </div>
+        </section>
+    </div>
+
+    <section class="anw-requests">
+        <div class="anw-requests-header">
+            <div>
+                <div class="anw-settings-card-title" style="margin-bottom:0.2rem;">Demandes de changement</div>
+                <p class="anw-settings-subtitle">
+                    {% if pending_requests_count %}
+                        {{ pending_requests_count }} demande{{ pending_requests_count|pluralize }} en attente de validation.
+                    {% else %}
+                        Aucune demande en attente.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="anw-actions">
+                <a class="anw-btn anw-btn-secondary" href="{{ links.setting_requests }}">Toutes les demandes</a>
+                <a class="anw-btn" href="{{ links.setting_request_add }}">Créer</a>
+            </div>
+        </div>
+        <table class="anw-table">
+            <thead>
+                <tr>
+                    <th>Réglage</th>
+                    <th>Statut</th>
+                    <th>Demandé par</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request_item in recent_requests %}
+                    <tr>
+                        <td>{{ request_item.get_setting_key_display }}</td>
+                        <td>
+                            <span class="anw-status {% if request_item.status == 'pending' %}anw-status-waiting{% elif request_item.status == 'approved' %}anw-status-on{% else %}anw-status-off{% endif %}">
+                                {{ request_item.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ request_item.requested_by|default:"-" }}</td>
+                        <td>{{ request_item.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" style="color:#666;">Aucune demande enregistrée pour le moment.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endblock %}

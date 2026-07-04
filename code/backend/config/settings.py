@@ -107,6 +107,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.notifications.context_processors.backoffice_notifications",
             ],
         },
     },
@@ -285,6 +286,8 @@ UNFOLD = {
         "show_search": True,
         "navigation": [
             {
+                "title": "Pilotage",
+                "separator": True,
                 "items": [
                     {
                         "title": "Tableau de bord",
@@ -292,11 +295,43 @@ UNFOLD = {
                         "link": reverse_lazy("admin:index"),
                     },
                     {
+                        "title": "Rapports",
+                        "icon": "bar_chart",
+                        "link": "/admin/rapports/",
+                    },
+                ],
+            },
+            {
+                "title": "Ventes",
+                "separator": True,
+                "items": [
+                    {
                         "title": "Commandes",
                         "icon": "shopping_bag",
                         "link": reverse_lazy("admin:orders_order_changelist"),
                         "badge": _pending_orders_badge,
                     },
+                    {
+                        "title": "Paiements",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                    },
+                    {
+                        "title": "Livraisons",
+                        "icon": "local_shipping",
+                        "link": reverse_lazy("admin:delivery_delivery_changelist"),
+                    },
+                    {
+                        "title": "Retours & Remboursements",
+                        "icon": "assignment_return",
+                        "link": reverse_lazy("admin:returns_returnrequest_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Inventaire",
+                "separator": True,
+                "items": [
                     {
                         "title": "Produits",
                         "icon": "inventory_2",
@@ -308,9 +343,9 @@ UNFOLD = {
                         "link": reverse_lazy("admin:products_category_changelist"),
                     },
                     {
-                        "title": "Clients",
-                        "icon": "group",
-                        "link": "/admin/auth/user/?is_staff__exact=0",
+                        "title": "Stock produits",
+                        "icon": "warehouse",
+                        "link": "/admin/products/product/?o=6",
                     },
                     {
                         "title": "Promotions",
@@ -322,46 +357,16 @@ UNFOLD = {
                         "icon": "confirmation_number",
                         "link": reverse_lazy("admin:promotions_coupon_changelist"),
                     },
+                ],
+            },
+            {
+                "title": "Clients",
+                "separator": True,
+                "items": [
                     {
-                        "title": "Contenu",
-                        "icon": "article",
-                        "link": reverse_lazy("admin:content_banner_changelist"),
-                    },
-                    {
-                        "title": "Inventaire",
-                        "icon": "warehouse",
-                        "link": "/admin/products/product/?o=6",
-                    },
-                    {
-                        "title": "Livraisons",
-                        "icon": "local_shipping",
-                        "link": reverse_lazy("admin:delivery_delivery_changelist"),
-                    },
-                    {
-                        "title": "Paiements",
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:payments_payment_changelist"),
-                    },
-                    {
-                        "title": "Réglages paiement",
-                        "icon": "toggle_on",
-                        "link": reverse_lazy("admin:payments_paymentsettings_changelist"),
-                    },
-                    {
-                        "title": "Réglages boutique",
-                        "icon": "storefront",
-                        "link": reverse_lazy("admin:core_storesettings_changelist"),
-                    },
-                    {
-                        "title": "Demandes de changement",
-                        "icon": "fact_check",
-                        "link": reverse_lazy("admin:core_settingchangerequest_changelist"),
-                        "badge": _pending_setting_requests_badge,
-                    },
-                    {
-                        "title": "Retours & Remboursements",
-                        "icon": "assignment_return",
-                        "link": reverse_lazy("admin:returns_returnrequest_changelist"),
+                        "title": "Clients",
+                        "icon": "group",
+                        "link": "/admin/auth/user/?is_staff__exact=0",
                     },
                     {
                         "title": "Avis",
@@ -369,24 +374,43 @@ UNFOLD = {
                         "link": reverse_lazy("admin:reviews_review_changelist"),
                     },
                     {
-                        "title": "Rapports",
-                        "icon": "bar_chart",
-                        "link": "/admin/rapports/",
+                        "title": "Listes d'envies",
+                        "icon": "favorite",
+                        "link": reverse_lazy("admin:wishlist_wishlistitem_changelist"),
                     },
+                ],
+            },
+            {
+                "title": "Communication",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Contenu",
+                        "icon": "article",
+                        "link": reverse_lazy("admin:content_banner_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Réglages boutique",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Réglages boutique",
+                        "icon": "storefront",
+                        "link": "/admin/reglages/",
+                        "badge": _pending_setting_requests_badge,
+                    },
+                ],
+            },
+            {
+                "title": "Administration",
+                "separator": True,
+                "items": [
                     {
                         "title": "Utilisateurs",
                         "icon": "manage_accounts",
                         "link": "/admin/auth/user/?is_staff__exact=1",
-                    },
-                    {
-                        "title": "Notifications",
-                        "icon": "notifications",
-                        "link": reverse_lazy("admin:notifications_notification_changelist"),
-                    },
-                    {
-                        "title": "Réglages notifications",
-                        "icon": "settings",
-                        "link": reverse_lazy("admin:notifications_notificationsettings_changelist"),
                     },
                     {
                         "title": "Activité système",

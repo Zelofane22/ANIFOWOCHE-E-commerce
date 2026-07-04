@@ -74,3 +74,38 @@ class Notification(models.Model):
     def __str__(self):
         recipient = self.recipient_email or self.recipient_phone
         return f"{self.get_event_display()} → {recipient} ({self.status})"
+
+
+class BackofficeNotification(models.Model):
+    """Alerte éphémère destinée aux administrateurs.
+
+    Contrairement au journal d'envoi client (Notification), ces alertes ne sont
+    conservées que tant qu'elles n'ont pas été lues dans le backoffice.
+    """
+
+    class Kind(models.TextChoices):
+        APPROVAL_REQUIRED = "approval_required", "Validation requise"
+        PROVIDER_ERROR = "provider_error", "Erreur fournisseur"
+        CONFIGURATION = "configuration", "Problème de configuration"
+        SYSTEM_ERROR = "system_error", "Erreur système"
+
+    class Severity(models.TextChoices):
+        INFO = "info", "Info"
+        WARNING = "warning", "Attention"
+        ERROR = "error", "Erreur"
+
+    kind = models.CharField(max_length=30, choices=Kind.choices)
+    severity = models.CharField(max_length=10, choices=Severity.choices, default=Severity.WARNING)
+    title = models.CharField(max_length=160)
+    message = models.TextField()
+    action_url = models.CharField(max_length=255, blank=True, default="")
+    source = models.CharField(max_length=80, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Alerte backoffice"
+        verbose_name_plural = "Alertes backoffice"
+
+    def __str__(self):
+        return self.title

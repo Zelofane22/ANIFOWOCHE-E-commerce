@@ -2,14 +2,16 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.db import ProgrammingError
 from django.test import TestCase
 
+from .context_processors import backoffice_notifications
 from apps.delivery.models import Delivery, DeliverySlot, DeliveryZone
 from apps.orders.models import Order
 from apps.payments.models import Payment
 from apps.users.models import Profile
 
-from .models import Notification, NotificationSettings
+from .models import BackofficeNotification, Notification, NotificationSettings
 from .services import (
     notify_account_created,
     notify_delivery_confirmed,
@@ -40,6 +42,8 @@ class NotificationServiceTests(TestCase):
         self.assertEqual(notification.status, Notification.Status.FAILED)
         self.assertEqual(notification.event, Notification.Event.ORDER_CONFIRMATION)
         self.assertIn("Client", notification.message)
+        self.assertEqual(BackofficeNotification.objects.count(), 1)
+        self.assertEqual(BackofficeNotification.objects.get().kind, BackofficeNotification.Kind.PROVIDER_ERROR)
 
     def test_notify_order_confirmation_stores_sent_status_on_success(self):
         response = mock.Mock()
@@ -162,6 +166,7 @@ class NotificationServiceTests(TestCase):
         self.assertEqual(notification.channel, Notification.Channel.SMS)
         self.assertEqual(notification.status, Notification.Status.FAILED)
         self.assertIn("Aucun fournisseur SMS", notification.error_detail)
+        self.assertEqual(BackofficeNotification.objects.get().kind, BackofficeNotification.Kind.CONFIGURATION)
 
     def test_notify_account_created_defaults_to_email(self):
         user = User.objects.create_user(username="newuser", email="new@example.com")
@@ -225,3 +230,48 @@ class NotificationSettingsAdminTests(TestCase):
         self.client.force_login(self.admin_user)
         response = self.client.get("/admin/notifications/notificationsettings/add/")
         self.assertEqual(response.status_code, 403)
+
+
+class BackofficeNotificationAdminTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(username="alerts-admin", password="pass1234")
+
+    def test_header_exposes_unread_alert_icon_with_count(self):
+        BackofficeNotification.objects.create(
+            kind=BackofficeNotification.Kind.SYSTEM_ERROR,
+            severity=BackofficeNotification.Severity.ERROR,
+            title="Erreur test",
+            message="Un problème nécessite une action.",
+        )
+
+        self.client.force_login(self.admin_user)
+        response = self.client.get("/admin/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "/admin/notifications-backoffice/")
+        self.assertContains(response, "anw-admin-alert-badge")
+
+    def test_opening_backoffice_notifications_displays_then_deletes_them(self):
+        BackofficeNotification.objects.create(
+            kind=BackofficeNotification.Kind.CONFIGURATION,
+            severity=BackofficeNotification.Severity.WARNING,
+            title="Configuration à vérifier",
+            message="Le fournisseur SMS est absent.",
+        )
+
+        self.client.force_login(self.admin_user)
+        response = self.client.get("/admin/notifications-backoffice/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Configuration à vérifier")
+        self.assertEqual(BackofficeNotification.objects.count(), 0)
+
+    def test_context_processor_does_not_break_when_table_is_missing(self):
+        request = mock.Mock()
+        request.path = "/admin/"
+        request.user = self.admin_user
+
+        with mock.patch.object(BackofficeNotification.objects, "count", side_effect=ProgrammingError):
+            context = backoffice_notifications(request)
+
+        self.assertEqual(context["backoffice_notifications_count"], 0)

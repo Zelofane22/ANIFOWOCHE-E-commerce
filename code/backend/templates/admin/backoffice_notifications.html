@@ -1,0 +1,60 @@
+{% extends 'admin/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block extrastyle %}
+    <style>
+        .anw-alerts-header { align-items: flex-start; display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+        .anw-alerts-title { color: #171717; font-size: 1.35rem; font-weight: 750; margin: 0 0 0.25rem; }
+        .anw-alerts-subtitle { color: #666; font-size: 0.9rem; margin: 0; max-width: 45rem; }
+        .anw-alerts-list { display: grid; gap: 0.75rem; }
+        .anw-alert { background: #fff; border: 1px solid #f1efe0; border-left: 4px solid #a98111; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 1rem; }
+        .anw-alert-error { border-left-color: #b3261e; }
+        .anw-alert-warning { border-left-color: #a98111; }
+        .anw-alert-info { border-left-color: #2764ad; }
+        .anw-alert-top { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; margin-bottom: 0.55rem; }
+        .anw-alert-title { color: #181818; font-size: 0.98rem; font-weight: 750; }
+        .anw-alert-meta { color: #767676; font-size: 0.76rem; }
+        .anw-alert-message { color: #3f3f3f; font-size: 0.88rem; line-height: 1.45; margin-bottom: 0.8rem; white-space: pre-line; }
+        .anw-alert-kind { background: #f6f3df; border-radius: 999px; color: #40340a; display: inline-flex; font-size: 0.72rem; font-weight: 750; padding: 0.35rem 0.55rem; }
+        .anw-alert-action { align-items: center; background: #a98111; border-radius: 7px; color: #fff !important; display: inline-flex; font-size: 0.82rem; font-weight: 700; min-height: 2.15rem; padding: 0.52rem 0.75rem; text-decoration: none; }
+        .anw-alert-empty { align-items: center; background: #fff; border: 1px solid #f1efe0; border-radius: 8px; color: #666; display: flex; min-height: 9rem; justify-content: center; padding: 2rem; text-align: center; }
+        @media (max-width: 640px) { .anw-alerts-header { display: grid; } }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="anw-alerts-header">
+        <div>
+            <h1 class="anw-alerts-title">Alertes backoffice</h1>
+            <p class="anw-alerts-subtitle">Ces alertes correspondent aux erreurs, problèmes de configuration ou validations nécessaires. Elles sont supprimées automatiquement dès cette lecture.</p>
+        </div>
+    </div>
+
+    {% if notifications %}
+        <div class="anw-alerts-list">
+            {% for notification in notifications %}
+                <article class="anw-alert anw-alert-{{ notification.severity }}">
+                    <div class="anw-alert-top">
+                        <div>
+                            <div class="anw-alert-title">{{ notification.title }}</div>
+                            <div class="anw-alert-meta">{{ notification.created_at|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <span class="anw-alert-kind">{{ notification.get_kind_display }}</span>
+                    </div>
+                    <div class="anw-alert-message">{{ notification.message }}</div>
+                    {% if notification.action_url %}
+                        <a class="anw-alert-action" href="{{ notification.action_url }}">Ouvrir</a>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="anw-alert-empty">Aucune alerte non lue pour le moment.</div>
+    {% endif %}
+{% endblock %}

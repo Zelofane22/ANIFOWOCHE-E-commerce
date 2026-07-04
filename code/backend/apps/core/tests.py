@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
 
-from apps.notifications.models import Notification
+from apps.notifications.models import Notification, NotificationSettings
 from apps.payments.models import PaymentSettings
 
 from .models import SettingChangeRequest, StoreSettings
@@ -257,6 +257,30 @@ class LockedSingletonAdminTests(TestCase):
         response = self.client.post(f"/admin/payments/paymentsettings/{obj.pk}/change/", {})
         self.assertEqual(response.status_code, 403)
         self.assertTrue(PaymentSettings.get_solo().mtn_enabled)
+
+
+class SettingsHubAdminTests(TestCase):
+    def setUp(self):
+        self.superuser = User.objects.create_superuser(username="root4", password="pass1234")
+
+    def test_superuser_can_open_the_settings_hub(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"card_enabled": False})
+        NotificationSettings.objects.update_or_create(pk=1, defaults={"whatsapp_enabled": True})
+        SettingChangeRequest.objects.create(
+            setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_CARD,
+            target_value=True,
+            reason="Réactivation carte",
+            requested_by=self.superuser,
+        )
+
+        self.client.force_login(self.superuser)
+        response = self.client.get("/admin/reglages/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Réglages boutique")
+        self.assertContains(response, "Paiement en ligne")
+        self.assertContains(response, "WhatsApp")
+        self.assertContains(response, "Demandes de changement")
 
 
 class StoreStatusViewTests(TestCase):
