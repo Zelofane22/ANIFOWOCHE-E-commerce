@@ -12,6 +12,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
         queryset=Product.objects.all(), source="product", write_only=True
     )
     product_name = serializers.CharField(source="product.name", read_only=True)
+    product_slug = serializers.SlugField(source="product.slug", read_only=True)
+    product_image = serializers.ImageField(source="product.image", read_only=True)
     subtotal_xof = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -20,6 +22,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "id",
             "product_id",
             "product_name",
+            "product_slug",
+            "product_image",
             "quantity",
             "unit_price_xof",
             "subtotal_xof",
