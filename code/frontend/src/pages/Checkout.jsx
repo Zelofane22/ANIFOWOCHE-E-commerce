@@ -3,57 +3,14 @@ import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
-import { getPayment, initiatePayment } from "../api/payments.js";
+import { initiatePayment } from "../api/payments.js";
 import { validateCoupon } from "../api/promotions.js";
+import { PAYMENT_METHODS } from "../constants/payments.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
+import { waitForPaymentApproval } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
-
-const PAYMENT_METHODS = [
-  { value: "mtn", label: "MTN Mobile Money", detail: "Paiement mobile instantané", badge: "MTN" },
-  { value: "moov", label: "Moov Money", detail: "Paiement mobile sécurisé", badge: "MOOV" },
-  { value: "card", label: "Carte Visa / Mastercard", detail: "Carte bancaire internationale", badge: "VISA" },
-];
-
-const PAYMENT_POLL_INTERVAL_MS = 2000;
-const PAYMENT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
-const PAYMENT_FAILURE_STATUSES = ["declined", "canceled", "failed"];
-
-// Sonde le statut réel du paiement (mis à jour par le webhook FedaPay) pendant que
-// le client complète le paiement dans la fenêtre ouverte, jusqu'à approbation,
-// échec, fermeture manuelle de la fenêtre ou expiration du délai.
-function waitForPaymentApproval(paymentId, popup) {
-  return new Promise((resolve) => {
-    const startedAt = Date.now();
-    const timer = window.setInterval(async () => {
-      if (!popup || popup.closed) {
-        window.clearInterval(timer);
-        resolve("closed");
-        return;
-      }
-      if (Date.now() - startedAt > PAYMENT_POLL_TIMEOUT_MS) {
-        window.clearInterval(timer);
-        resolve("timeout");
-        return;
-      }
-      try {
-        const payment = await getPayment(paymentId);
-        if (payment.status === "approved") {
-          window.clearInterval(timer);
-          popup.close();
-          resolve("approved");
-        } else if (PAYMENT_FAILURE_STATUSES.includes(payment.status)) {
-          window.clearInterval(timer);
-          popup.close();
-          resolve(payment.status);
-        }
-      } catch {
-        // Erreur réseau transitoire : on continue de sonder jusqu'au prochain intervalle.
-      }
-    }, PAYMENT_POLL_INTERVAL_MS);
-  });
-}
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
@@ -71,7 +28,7 @@ export default function Checkout() {
   const [fullName, setFullName] = useState(user?.username ?? "");
   const [notes, setNotes] = useState("");
   const [phone, setPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("mtn");
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].value);
   const [submitting, setSubmitting] = useState(false);
   const [waitingForPayment, setWaitingForPayment] = useState(false);
   const [error, setError] = useState(null);
@@ -239,7 +196,7 @@ export default function Checkout() {
       // client garde ses articles pour pouvoir réessayer sans tout resaisir.
       if (paymentStatus === "approved") clearCart();
       navigate("/commande/confirmation", {
-        state: { orderId: order.id, total: orderTotal, paymentStatus },
+        state: { orderId: order.id, total: orderTotal, paymentStatus, method: paymentMethod },
       });
     } catch (err) {
       paymentWindow?.close();

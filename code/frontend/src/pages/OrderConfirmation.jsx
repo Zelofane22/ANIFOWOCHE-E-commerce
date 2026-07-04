@@ -1,5 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
+import { initiatePayment } from "../api/payments.js";
+import { PAYMENT_METHODS } from "../constants/payments.js";
+import { useCart } from "../context/useCart.js";
+import { extractErrorMessage } from "../utils/apiError.js";
+import { waitForPaymentApproval } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
 
 // tone détermine l'icône/couleur : "success" (coche, paiement confirmé),
@@ -48,10 +53,18 @@ const TONE_STYLES = {
   failed: { badge: "bg-red-100", stroke: "#B91C1C", path: "M6 6l12 12M18 6 6 18" },
 };
 
+const RETRYABLE_STATUSES = ["declined", "canceled", "closed", "timeout", "failed"];
+
 export default function OrderConfirmation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { orderId, total, paymentStatus } = location.state ?? {};
+  const { clearCart } = useCart();
+  const { orderId, total, method: initialMethod } = location.state ?? {};
+
+  const [paymentStatus, setPaymentStatus] = useState(location.state?.paymentStatus);
+  const [retryMethod, setRetryMethod] = useState(initialMethod ?? PAYMENT_METHODS[0].value);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState(null);
 
   useEffect(() => {
     if (!orderId) navigate("/", { replace: true });
@@ -61,6 +74,35 @@ export default function OrderConfirmation() {
 
   const content = PAYMENT_CONTENT[paymentStatus] ?? PAYMENT_CONTENT.pending;
   const style = TONE_STYLES[content.tone];
+  const isRetryable = RETRYABLE_STATUSES.includes(paymentStatus);
+
+  const handleRetry = async () => {
+    setRetryError(null);
+    setRetrying(true);
+
+    // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le
+    // blocage popup des navigateurs.
+    const paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
+
+    try {
+      const payment = await initiatePayment({ order_id: orderId, method: retryMethod });
+      let newStatus;
+      if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
+        paymentWindow.location.href = payment.payment_url;
+        newStatus = await waitForPaymentApproval(payment.id, paymentWindow);
+      } else {
+        paymentWindow?.close();
+        newStatus = payment.status;
+      }
+      if (newStatus === "approved") clearCart();
+      setPaymentStatus(newStatus);
+    } catch (err) {
+      paymentWindow?.close();
+      setRetryError(extractErrorMessage(err));
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-16 text-center">
@@ -79,6 +121,39 @@ export default function OrderConfirmation() {
       <p className="mt-2 max-w-xs text-sm text-muted">
         Un récapitulatif de votre commande vous sera envoyé par SMS ou WhatsApp.
       </p>
+
+      {isRetryable && (
+        <div className="mt-6 w-full max-w-xs">
+          <div className="flex flex-col gap-2">
+            {PAYMENT_METHODS.map((method) => (
+              <button
+                key={method.value}
+                type="button"
+                onClick={() => setRetryMethod(method.value)}
+                className={`rounded-lg border px-4 py-2 text-left text-sm ${
+                  retryMethod === method.value
+                    ? "border-brand bg-brand-light text-ink"
+                    : "border-black/10 text-ink"
+                }`}
+              >
+                <span className="font-medium">{method.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {retryError && <p className="mt-3 text-sm text-red-600">{retryError}</p>}
+
+          <button
+            type="button"
+            onClick={handleRetry}
+            disabled={retrying}
+            className="mt-4 w-full rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark disabled:bg-gray-200 disabled:text-gray-400"
+          >
+            {retrying ? "En attente du paiement…" : "Réessayer le paiement"}
+          </button>
+        </div>
+      )}
+
       <Link
         to="/"
         className="mt-8 rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-medium"
