@@ -5,13 +5,15 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import override_settings
 from rest_framework.test import APITestCase
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Category, Product
 
-from .models import Payment
+from .models import Payment, PaymentSettings
 
 User = get_user_model()
 
@@ -61,6 +63,74 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["fedapay_transaction_id"], "42")
         self.assertEqual(response.data["payment_url"], "https://sandbox-pay.fedapay.com/t/42")
+
+    def test_initiate_payment_is_rate_limited(self):
+        """US-38 : chaque appel coûte un appel API FedaPay réel, donc scope dédié
+        plus strict que le throttle anon générique (voir apps.payments.views).
+
+        ScopedRateThrottle.THROTTLE_RATES est figé en attribut de classe au chargement
+        du module DRF : override_settings(REST_FRAMEWORK=...) ne le rafraîchit pas, il
+        faut patcher le dict directement (mock.patch.dict) pour abaisser le taux dans un
+        test rapide. Le cache de throttling (process-wide) doit aussi être vidé : les
+        autres tests de cette classe appellent déjà /api/payments/initiate/ et laissent
+        un historique pour le même ident (127.0.0.1) sous le même scope "payments"."""
+        cache.clear()
+        transaction_response = mock.Mock()
+        transaction_response.json.return_value = {"v1/transaction": {"id": 42}}
+        transaction_response.raise_for_status.return_value = None
+        token_response = mock.Mock()
+        token_response.json.return_value = {"url": "https://sandbox-pay.fedapay.com/t/42"}
+        token_response.raise_for_status.return_value = None
+
+        with mock.patch.dict(ScopedRateThrottle.THROTTLE_RATES, {"payments": "2/minute"}):
+            with mock.patch(
+                "apps.payments.services.requests.post",
+                side_effect=[transaction_response, token_response] * 3,
+            ):
+                statuses = [
+                    self.client.post(
+                        "/api/payments/initiate/", {"order_id": self.order.id, "method": "mtn"}, format="json"
+                    ).status_code
+                    for _ in range(3)
+                ]
+
+        self.assertEqual(statuses[:2], [201, 201])
+        self.assertEqual(statuses[2], 429)
+
+    def test_initiate_payment_rejected_when_online_payment_disabled(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
+        response = self.client.post(
+            "/api/payments/initiate/", {"order_id": self.order.id, "method": "mtn"}, format="json"
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_initiate_cash_on_delivery_creates_pending_payment_without_fedapay(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
+
+        with mock.patch("apps.payments.views.FedaPayClient") as fedapay_client:
+            response = self.client.post(
+                "/api/payments/initiate/",
+                {"order_id": self.order.id, "method": "cash_on_delivery"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 201)
+        fedapay_client.assert_not_called()
+        payment = Payment.objects.get(order=self.order)
+        self.assertEqual(payment.provider, Payment.Provider.CASH_ON_DELIVERY)
+        self.assertEqual(payment.method, Payment.Method.CASH_ON_DELIVERY)
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertEqual(payment.amount_xof, self.order.total_xof)
+        self.assertEqual(payment.payment_url, "")
+
+    def test_initiate_payment_rejected_when_method_disabled(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"card_enabled": False})
+        response = self.client.post(
+            "/api/payments/initiate/", {"order_id": self.order.id, "method": "card"}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Payment.objects.count(), 0)
 
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
     def test_webhook_rejects_invalid_signature(self):

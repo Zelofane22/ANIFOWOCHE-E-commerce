@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 
 import dj_database_url
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ON_RENDER = bool(os.environ.get("RENDER"))
@@ -30,6 +31,15 @@ def _normalize_origins(origins):
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=not ON_RENDER, cast=bool)
 ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()))
+
+# Hors DEBUG (déploiement réel), refuser de démarrer avec une clé de secours ou trop
+# courte pour signature JWT/session — évite de lancer en prod avec la valeur de
+# .env.example jamais remplacée (voir docs/security-review.md, US-38).
+if not DEBUG and (SECRET_KEY in {"dev-secret-key-change-me", "change-me"} or len(SECRET_KEY) < 32):
+    raise ImproperlyConfigured(
+        "SECRET_KEY doit être une valeur aléatoire d'au moins 32 caractères en production "
+        "(DEBUG=False) — voir backend/.env.example pour la commande de génération."
+    )
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -97,6 +107,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.notifications.context_processors.backoffice_notifications",
             ],
         },
     },
@@ -185,6 +196,7 @@ REST_FRAMEWORK = {
         "anon": "60/minute",
         "user": "300/minute",
         "auth": "10/minute",
+        "payments": "20/minute",
     },
 }
 
@@ -238,6 +250,13 @@ def _pending_orders_badge(request):
     return count or None
 
 
+def _pending_setting_requests_badge(request):
+    from apps.core.models import SettingChangeRequest
+
+    count = SettingChangeRequest.objects.filter(status=SettingChangeRequest.Status.PENDING).count()
+    return count or None
+
+
 UNFOLD = {
     "SITE_TITLE": "ANIFOWOCHE Admin",
     "SITE_HEADER": "ANIFOWOCHE",
@@ -267,6 +286,8 @@ UNFOLD = {
         "show_search": True,
         "navigation": [
             {
+                "title": "Pilotage",
+                "separator": True,
                 "items": [
                     {
                         "title": "Tableau de bord",
@@ -274,11 +295,43 @@ UNFOLD = {
                         "link": reverse_lazy("admin:index"),
                     },
                     {
+                        "title": "Rapports",
+                        "icon": "bar_chart",
+                        "link": "/admin/rapports/",
+                    },
+                ],
+            },
+            {
+                "title": "Ventes",
+                "separator": True,
+                "items": [
+                    {
                         "title": "Commandes",
                         "icon": "shopping_bag",
                         "link": reverse_lazy("admin:orders_order_changelist"),
                         "badge": _pending_orders_badge,
                     },
+                    {
+                        "title": "Paiements",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                    },
+                    {
+                        "title": "Livraisons",
+                        "icon": "local_shipping",
+                        "link": reverse_lazy("admin:delivery_delivery_changelist"),
+                    },
+                    {
+                        "title": "Retours & Remboursements",
+                        "icon": "assignment_return",
+                        "link": reverse_lazy("admin:returns_returnrequest_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Inventaire",
+                "separator": True,
+                "items": [
                     {
                         "title": "Produits",
                         "icon": "inventory_2",
@@ -290,9 +343,9 @@ UNFOLD = {
                         "link": reverse_lazy("admin:products_category_changelist"),
                     },
                     {
-                        "title": "Clients",
-                        "icon": "group",
-                        "link": "/admin/auth/user/?is_staff__exact=0",
+                        "title": "Stock produits",
+                        "icon": "warehouse",
+                        "link": "/admin/products/product/?o=6",
                     },
                     {
                         "title": "Promotions",
@@ -304,30 +357,16 @@ UNFOLD = {
                         "icon": "confirmation_number",
                         "link": reverse_lazy("admin:promotions_coupon_changelist"),
                     },
+                ],
+            },
+            {
+                "title": "Clients",
+                "separator": True,
+                "items": [
                     {
-                        "title": "Contenu",
-                        "icon": "article",
-                        "link": reverse_lazy("admin:content_banner_changelist"),
-                    },
-                    {
-                        "title": "Inventaire",
-                        "icon": "warehouse",
-                        "link": "/admin/products/product/?o=6",
-                    },
-                    {
-                        "title": "Livraisons",
-                        "icon": "local_shipping",
-                        "link": reverse_lazy("admin:delivery_delivery_changelist"),
-                    },
-                    {
-                        "title": "Paiements",
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:payments_payment_changelist"),
-                    },
-                    {
-                        "title": "Retours & Remboursements",
-                        "icon": "assignment_return",
-                        "link": reverse_lazy("admin:returns_returnrequest_changelist"),
+                        "title": "Clients",
+                        "icon": "group",
+                        "link": "/admin/auth/user/?is_staff__exact=0",
                     },
                     {
                         "title": "Avis",
@@ -335,10 +374,39 @@ UNFOLD = {
                         "link": reverse_lazy("admin:reviews_review_changelist"),
                     },
                     {
-                        "title": "Rapports",
-                        "icon": "bar_chart",
-                        "link": "/admin/rapports/",
+                        "title": "Listes d'envies",
+                        "icon": "favorite",
+                        "link": reverse_lazy("admin:wishlist_wishlistitem_changelist"),
                     },
+                ],
+            },
+            {
+                "title": "Communication",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Contenu",
+                        "icon": "article",
+                        "link": reverse_lazy("admin:content_banner_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Réglages boutique",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Réglages boutique",
+                        "icon": "storefront",
+                        "link": "/admin/reglages/",
+                        "badge": _pending_setting_requests_badge,
+                    },
+                ],
+            },
+            {
+                "title": "Administration",
+                "separator": True,
+                "items": [
                     {
                         "title": "Utilisateurs",
                         "icon": "manage_accounts",
@@ -354,3 +422,24 @@ UNFOLD = {
         ],
     },
 }
+
+
+# ─── Sentry (monitoring d'erreurs et de performance) ─────────────────────────
+# Peut être surchargé via SENTRY_DSN (Render) si le projet Sentry change.
+SENTRY_DSN = (
+    os.environ.get("SENTRY_DSN")
+    or "https://a6d8174a428bcbb4068726f522042875@o4511675639922688.ingest.us.sentry.io/4511675836661760"
+)
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment="production" if ON_RENDER else "development",
+        release=os.environ.get("RENDER_GIT_COMMIT", "") or None,
+        # 10 % des requêtes tracées pour le monitoring de performance.
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        # Ne jamais envoyer les données personnelles (noms, téléphones,
+        # adresses des clients) dans les événements.
+        send_default_pii=False,
+    )

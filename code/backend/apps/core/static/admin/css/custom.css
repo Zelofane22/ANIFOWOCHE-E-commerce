@@ -22,4 +22,39 @@ nav a[class~="text-primary-600"][href^="/admin/"] svg {
     color: inherit !important;
 }
 
+.anw-admin-alert-link {
+    align-items: center;
+    border-radius: 999px;
+    color: #565656;
+    display: inline-flex;
+    height: 2.25rem;
+    justify-content: center;
+    position: relative;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    width: 2.25rem;
+}
 
+.anw-admin-alert-link:hover {
+    background: #f6f3df;
+    color: #40340a;
+}
+
+.anw-admin-alert-badge {
+    align-items: center;
+    background: #b3261e;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 800;
+    justify-content: center;
+    line-height: 1;
+    min-height: 1.15rem;
+    min-width: 1.15rem;
+    padding: 0 0.24rem;
+    position: absolute;
+    right: -0.18rem;
+    top: -0.16rem;
+}

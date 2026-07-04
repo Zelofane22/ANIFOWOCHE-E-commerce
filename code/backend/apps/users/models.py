@@ -31,11 +31,12 @@ class Profile(models.Model):
     class NotificationChannel(models.TextChoices):
         WHATSAPP = "whatsapp", "WhatsApp"
         EMAIL = "email", "Email"
+        SMS = "sms", "SMS"
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
-    phone = models.CharField(max_length=20, blank=True, help_text="Requis pour recevoir les notifications WhatsApp")
+    phone = models.CharField(max_length=20, blank=True, help_text="Requis pour recevoir les notifications WhatsApp/SMS")
     notification_channel = models.CharField(
-        max_length=10, choices=NotificationChannel.choices, default=NotificationChannel.WHATSAPP
+        max_length=10, choices=NotificationChannel.choices, default=NotificationChannel.EMAIL
     )
 
     def __str__(self):

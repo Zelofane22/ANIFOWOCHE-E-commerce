@@ -4,12 +4,13 @@ import logging
 from django.conf import settings
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.notifications.services import notify_invoice
 from apps.orders.models import Order
 
-from .models import Payment
+from .models import Payment, PaymentSettings
 from .serializers import InitiatePaymentSerializer, PaymentSerializer
 from .services import FedaPayClient, FedaPayError, verify_webhook_signature
 
@@ -34,15 +35,47 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class InitiatePaymentView(APIView):
-    """Crée un paiement et initie la transaction FedaPay (MTN/Moov/carte)."""
+    """Crée un paiement et initie la transaction FedaPay (MTN/Moov/carte).
+    Pour le paiement à la livraison, seule une ligne Payment en attente est
+    créée afin que la commande apparaisse dans le suivi backoffice.
+
+    Limité par un scope de rate limiting dédié (au lieu du seul throttle anon
+    générique) : chaque appel déclenche un appel payant à l'API FedaPay et crée
+    une ligne Payment — un abus serait coûteux, pas juste bruyant."""
 
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
 
     def post(self, request):
         serializer = InitiatePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         order = serializer.validated_data["order"]
         method = serializer.validated_data["method"]
+
+        if method == Payment.Method.CASH_ON_DELIVERY:
+            payment = Payment.objects.create(
+                order=order,
+                provider=Payment.Provider.CASH_ON_DELIVERY,
+                method=method,
+                amount_xof=order.total_xof,
+            )
+            return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+        payment_settings = PaymentSettings.get_solo()
+        if not payment_settings.online_payment_enabled:
+            return Response(
+                {
+                    "detail": "Le paiement en ligne est temporairement indisponible. "
+                    "Merci de choisir le paiement à la livraison."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if not payment_settings.is_method_enabled(method):
+            return Response(
+                {"detail": "Ce moyen de paiement est temporairement indisponible."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         payment = Payment.objects.create(
             order=order,

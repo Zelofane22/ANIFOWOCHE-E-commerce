@@ -3,57 +3,28 @@ import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
-import { getPayment, initiatePayment } from "../api/payments.js";
+import { initiatePayment } from "../api/payments.js";
+import { fetchStoreStatus } from "../api/store.js";
 import { validateCoupon } from "../api/promotions.js";
+import { PAYMENT_METHODS } from "../constants/payments.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
+import { waitForPaymentApproval } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
 
-const PAYMENT_METHODS = [
-  { value: "mtn", label: "MTN Mobile Money", detail: "Paiement mobile instantané", badge: "MTN" },
-  { value: "moov", label: "Moov Money", detail: "Paiement mobile sécurisé", badge: "MOOV" },
-  { value: "card", label: "Carte Visa / Mastercard", detail: "Carte bancaire internationale", badge: "VISA" },
-];
+const DEFAULT_STORE_STATUS = {
+  online_payment_enabled: true,
+  payment_methods: { mtn: true, moov: true, card: true, cash_on_delivery: true },
+};
 
-const PAYMENT_POLL_INTERVAL_MS = 2000;
-const PAYMENT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
-const PAYMENT_FAILURE_STATUSES = ["declined", "canceled", "failed"];
-
-// Sonde le statut réel du paiement (mis à jour par le webhook FedaPay) pendant que
-// le client complète le paiement dans la fenêtre ouverte, jusqu'à approbation,
-// échec, fermeture manuelle de la fenêtre ou expiration du délai.
-function waitForPaymentApproval(paymentId, popup) {
-  return new Promise((resolve) => {
-    const startedAt = Date.now();
-    const timer = window.setInterval(async () => {
-      if (!popup || popup.closed) {
-        window.clearInterval(timer);
-        resolve("closed");
-        return;
-      }
-      if (Date.now() - startedAt > PAYMENT_POLL_TIMEOUT_MS) {
-        window.clearInterval(timer);
-        resolve("timeout");
-        return;
-      }
-      try {
-        const payment = await getPayment(paymentId);
-        if (payment.status === "approved") {
-          window.clearInterval(timer);
-          popup.close();
-          resolve("approved");
-        } else if (PAYMENT_FAILURE_STATUSES.includes(payment.status)) {
-          window.clearInterval(timer);
-          popup.close();
-          resolve(payment.status);
-        }
-      } catch {
-        // Erreur réseau transitoire : on continue de sonder jusqu'au prochain intervalle.
-      }
-    }, PAYMENT_POLL_INTERVAL_MS);
-  });
-}
+const isPaymentMethodDisabled = (method, storeStatus) => {
+  if (!method || method.type === "offline") return false;
+  const paymentMethodsStatus = storeStatus?.payment_methods ?? {};
+  if (storeStatus?.online_payment_enabled === false) return true;
+  if (method.value === "mtn") return paymentMethodsStatus.mtn === false && paymentMethodsStatus.moov === false;
+  return paymentMethodsStatus[method.value] === false;
+};
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
@@ -71,9 +42,10 @@ export default function Checkout() {
   const [fullName, setFullName] = useState(user?.username ?? "");
   const [notes, setNotes] = useState("");
   const [phone, setPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("mtn");
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].value);
   const [submitting, setSubmitting] = useState(false);
   const [waitingForPayment, setWaitingForPayment] = useState(false);
+  const [storeStatus, setStoreStatus] = useState(null);
   const [error, setError] = useState(null);
 
   const [couponCode, setCouponCode] = useState("");
@@ -114,6 +86,15 @@ export default function Checkout() {
       .catch(() => {});
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchStoreStatus()
+      .then(setStoreStatus)
+      .catch(() => setStoreStatus(DEFAULT_STORE_STATUS));
+  }, [isAuthenticated]);
+
+  const isMethodDisabled = (method) => isPaymentMethodDisabled(method, storeStatus);
+
   const applySavedAddress = (addressId) => {
     const address = savedAddresses.find((item) => String(item.id) === addressId);
     if (!address) return;
@@ -146,11 +127,19 @@ export default function Checkout() {
   const deliveryFee = selectedZone?.fee_xof ?? 0;
   const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.discount_percent) / 100) : 0;
   const total = subtotal - discountAmount + deliveryFee;
+  const selectedPaymentMethod = PAYMENT_METHODS.find((method) => method.value === paymentMethod);
+  const effectivePaymentMethod =
+    selectedPaymentMethod && !isMethodDisabled(selectedPaymentMethod)
+      ? selectedPaymentMethod
+      : PAYMENT_METHODS.find((method) => !isMethodDisabled(method));
+  const effectivePaymentMethodValue = effectivePaymentMethod?.value ?? paymentMethod;
+  const isSelectedMethodOffline = effectivePaymentMethod?.type === "offline";
   const canPay =
     fullName.trim() !== "" &&
     phone.trim() !== "" &&
     zoneId != null &&
     slotId != null &&
+    !!effectivePaymentMethod &&
     !submitting &&
     !loadingDeliveryOptions;
 
@@ -189,10 +178,13 @@ export default function Checkout() {
     setError(null);
     setSubmitting(true);
 
-    // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le blocage
-    // popup des navigateurs — elle affiche une page vide le temps que le paiement soit
-    // initié, puis est redirigée vers le vrai payment_url FedaPay.
-    const paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
+    let paymentWindow = null;
+    if (!isSelectedMethodOffline) {
+      // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le blocage
+      // popup des navigateurs — elle affiche une page vide le temps que le paiement soit
+      // initié, puis est redirigée vers le vrai payment_url FedaPay.
+      paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
+    }
 
     const zone = selectedZone;
     const slot = selectedSlot;
@@ -218,28 +210,31 @@ export default function Checkout() {
         // elle pourra être rattachée manuellement depuis l'admin.
       }
 
-      let paymentStatus = "failed";
-      try {
-        const payment = await initiatePayment({ order_id: order.id, method: paymentMethod });
-        if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
-          paymentWindow.location.href = payment.payment_url;
-          setWaitingForPayment(true);
-          paymentStatus = await waitForPaymentApproval(payment.id, paymentWindow);
-        } else {
-          paymentWindow?.close();
-          paymentStatus = payment.status;
-        }
-      } catch {
-        // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
-        paymentWindow?.close();
+      let paymentStatus = "cash_on_delivery";
+      if (!isSelectedMethodOffline) {
         paymentStatus = "failed";
+        try {
+          const payment = await initiatePayment({ order_id: order.id, method: effectivePaymentMethodValue });
+          if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
+            paymentWindow.location.href = payment.payment_url;
+            setWaitingForPayment(true);
+            paymentStatus = await waitForPaymentApproval(payment.id, paymentWindow);
+          } else {
+            paymentWindow?.close();
+            paymentStatus = payment.status;
+          }
+        } catch {
+          // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
+          paymentWindow?.close();
+          paymentStatus = "failed";
+        }
+      } else {
+        await initiatePayment({ order_id: order.id, method: effectivePaymentMethodValue });
       }
 
-      // Le panier n'est vidé que si le paiement est réellement approuvé — sinon le
-      // client garde ses articles pour pouvoir réessayer sans tout resaisir.
-      if (paymentStatus === "approved") clearCart();
+      if (paymentStatus === "approved" || paymentStatus === "cash_on_delivery") clearCart();
       navigate("/commande/confirmation", {
-        state: { orderId: order.id, total: orderTotal, paymentStatus },
+        state: { orderId: order.id, total: orderTotal, paymentStatus, method: effectivePaymentMethodValue },
       });
     } catch (err) {
       paymentWindow?.close();
@@ -248,6 +243,12 @@ export default function Checkout() {
       setWaitingForPayment(false);
       setSubmitting(false);
     }
+  };
+
+  const getSubmitLabel = () => {
+    if (waitingForPayment) return "En attente du paiement…";
+    if (submitting) return "Traitement…";
+    return isSelectedMethodOffline ? `Commander ${formatXof(total)}` : `Payer ${formatXof(total)}`;
   };
 
   const inputClass =
@@ -395,41 +396,65 @@ export default function Checkout() {
             <>
               <h1 className="text-xl font-bold text-ink">Moyen de paiement</h1>
               <div className="mt-5 space-y-3">
-                {PAYMENT_METHODS.map((method) => (
-                  <button
-                    key={method.value}
-                    type="button"
-                    onClick={() => setPaymentMethod(method.value)}
-                    className={`flex w-full items-center gap-4 rounded-[10px] border-2 px-4 py-4 text-left transition ${
-                      paymentMethod === method.value
-                        ? "border-brand bg-brand-light"
-                        : "border-black/10 bg-white hover:border-black/20"
-                    }`}
-                  >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ink text-xs font-bold text-white">
-                      {method.badge}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-ink">{method.label}</span>
-                      <span className="block text-xs text-muted">{method.detail}</span>
-                    </span>
-                    <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                        paymentMethod === method.value ? "border-brand bg-brand" : "border-black/20"
+                {PAYMENT_METHODS.map((method) => {
+                  const disabled = isMethodDisabled(method);
+                  const selected = effectivePaymentMethodValue === method.value;
+                  return (
+                    <button
+                      key={method.value}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (!disabled) setPaymentMethod(method.value);
+                      }}
+                      className={`flex w-full items-center gap-4 rounded-[10px] border-2 px-4 py-4 text-left transition ${
+                        disabled
+                          ? "cursor-not-allowed border-gray-200 bg-gray-50 opacity-75"
+                          : selected
+                            ? "border-brand bg-brand-light"
+                            : "border-black/10 bg-white hover:border-black/20"
                       }`}
                     >
-                      {paymentMethod === method.value && (
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
-                        </svg>
-                      )}
-                    </span>
-                  </button>
-                ))}
+                      <span
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                          disabled ? "bg-gray-300 text-gray-600" : "bg-ink text-white"
+                        }`}
+                      >
+                        {method.badge}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-sm font-semibold ${disabled ? "text-gray-500" : "text-ink"}`}>
+                          {method.label}
+                        </span>
+                        <span className={`block text-xs ${disabled ? "text-gray-500" : "text-muted"}`}>
+                          {method.detail}
+                        </span>
+                        {disabled && (
+                          <span className="mt-1 block text-xs font-medium text-gray-500">
+                            Ce mode de paiement est indisponible pour le moment.
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                          selected && !disabled ? "border-brand bg-brand" : "border-black/20"
+                        }`}
+                      >
+                        {selected && !disabled && (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                          </svg>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="mt-6 rounded-[10px] border border-brand/20 bg-brand-light p-4 text-sm text-brand-dark">
-                Paiement sécurisé. Aucune donnée bancaire n'est stockée par ANIFOWOCHE.
+                {isSelectedMethodOffline
+                  ? "Votre commande sera préparée et le paiement sera effectué à la livraison."
+                  : "Paiement sécurisé. Aucune donnée bancaire n'est stockée par ANIFOWOCHE."}
               </div>
 
               <div className="mt-6 hidden gap-3 md:flex">
@@ -445,7 +470,7 @@ export default function Checkout() {
                   disabled={!canPay}
                   className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium disabled:bg-gray-200 disabled:text-gray-400"
                 >
-                  {waitingForPayment ? "En attente du paiement…" : submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
+                  {getSubmitLabel()}
                 </button>
               </div>
             </>
@@ -548,7 +573,7 @@ export default function Checkout() {
             disabled={!canPay}
             className="w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white disabled:bg-gray-200 disabled:text-gray-400"
           >
-            {waitingForPayment ? "En attente du paiement…" : submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
+            {getSubmitLabel()}
           </button>
         </div>
       )}

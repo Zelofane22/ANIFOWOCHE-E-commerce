@@ -16,7 +16,9 @@ class DeliveryApiTests(APITestCase):
     def setUp(self):
         self.zone = DeliveryZone.objects.create(name="Zone Test", fee_xof=500)
         self.slot = DeliverySlot.objects.create(label="Créneau Test", start_time="08:00", end_time="12:00")
-        self.order = Order.objects.create(full_name="Client", phone="+22990000000", address="Akpakpa", total_xof=1000)
+        self.order = Order.objects.create(
+            full_name="Client", phone="+22990000000", email="client@example.com", address="Akpakpa", total_xof=1000
+        )
         self.staff_user = User.objects.create_user(username="admin", password="pass1234", is_staff=True)
 
     def test_zones_and_slots_are_publicly_readable(self):
@@ -51,7 +53,7 @@ class DeliveryApiTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
-            Notification.objects.filter(event=Notification.Event.DELIVERY_IN_TRANSIT, recipient_phone=self.order.phone).exists()
+            Notification.objects.filter(event=Notification.Event.DELIVERY_IN_TRANSIT, recipient_email=self.order.email).exists()
         )
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)

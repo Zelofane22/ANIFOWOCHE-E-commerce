@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_notification_channel(self, user):
         profile = getattr(user, "profile", None)
-        return profile.notification_channel if profile else Profile.NotificationChannel.WHATSAPP
+        return profile.notification_channel if profile else Profile.NotificationChannel.EMAIL
 
     def get_phone(self, user):
         profile = getattr(user, "profile", None)
@@ -33,7 +33,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     notification_channel = serializers.ChoiceField(
         choices=Profile.NotificationChannel.choices,
         required=False,
-        default=Profile.NotificationChannel.WHATSAPP,
+        default=Profile.NotificationChannel.EMAIL,
     )
 
     class Meta:
@@ -62,7 +62,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         phone = validated_data.pop("phone", "")
-        notification_channel = validated_data.pop("notification_channel", Profile.NotificationChannel.WHATSAPP)
+        notification_channel = validated_data.pop("notification_channel", Profile.NotificationChannel.EMAIL)
         user = User.objects.create_user(**validated_data)
         Profile.objects.create(user=user, phone=phone, notification_channel=notification_channel)
         return user

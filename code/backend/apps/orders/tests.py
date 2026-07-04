@@ -4,6 +4,7 @@ import requests
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
+from apps.core.models import StoreSettings
 from apps.products.models import Category, Product
 from apps.promotions.models import Coupon
 
@@ -46,6 +47,19 @@ class OrderApiTests(APITestCase):
         }
         response = self.client.post("/api/orders/", payload, format="json")
         self.assertEqual(response.status_code, 401)
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_create_order_blocked_during_maintenance_mode(self):
+        StoreSettings.objects.update_or_create(pk=1, defaults={"maintenance_mode": True})
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": self.product.id, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 503)
         self.assertEqual(Order.objects.count(), 0)
 
     def test_create_order_requires_at_least_one_item(self):

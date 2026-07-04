@@ -4,3 +4,5 @@ export const createOrder = (payload) =>
   apiClient.post("/orders/", payload).then((res) => res.data);
 
 export const getOrders = () => apiClient.get("/orders/").then((res) => res.data);
+
+export const getOrder = (id) => apiClient.get(`/orders/${id}/`).then((res) => res.data);

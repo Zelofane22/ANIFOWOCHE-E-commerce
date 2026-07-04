@@ -1,4 +1,7 @@
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
+from rest_framework.response import Response
+
+from apps.core.models import StoreSettings
 
 from .models import Order
 from .serializers import OrderSerializer
@@ -19,6 +22,14 @@ class OrderViewSet(viewsets.ModelViewSet):
         if self.action in ("update", "partial_update", "destroy"):
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        if StoreSettings.get_solo().maintenance_mode:
+            return Response(
+                {"detail": "La boutique est temporairement en maintenance. Merci de réessayer plus tard."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = super().get_queryset()

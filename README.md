@@ -6,7 +6,7 @@
 
 | Statut | Durée MVP | Budget/mois | Zone cible |
 |--------|-----------|-------------|------------|
-| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
+| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E9) partiel — rôles admin + revue sécurité faits, monitoring Sentry intégré (DSN à renseigner), paiement/WhatsApp réels en attente de clés externes · Espace client refondu (maquette Figma) | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
 
 ---
 
@@ -23,6 +23,8 @@
 | [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints MVP (terminé) |
 | [docs/sprints/planning-v2.md](docs/sprints/planning-v2.md) | Planning v2 (post-MVP) — sprints 5+ par priorité/dépendance, sans capacité horaire fixe |
 | [docs/sprints/sprint5-progress.md](docs/sprints/sprint5-progress.md) | Suivi des tâches Sprint 5 (terminé) |
+| [docs/sprints/sprint6-progress.md](docs/sprints/sprint6-progress.md) | Suivi des tâches Sprint 6 (partiel — rôles admin + sécurité faits, reste en attente de clés externes) |
+| [docs/security-review.md](docs/security-review.md) | Revue de sécurité Sprint 6 (US-38) — rate limiting, secrets, HTTPS, dépendances |
 | [docs/sprints/retro-sprint.md](docs/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
 | [docs/docker.md](docs/docker.md) | Lancer le projet en local avec Docker |
@@ -39,10 +41,12 @@ anifowoche/
 ├── code/
 │   ├── frontend/             # Application React (src/, public/, package.json)
 │   │   └── src/
-│   │       ├── components/   # Navbar, ProductCard, QuantityStepper...
+│   │       ├── components/   # Navbar, ProductCard, QuantityStepper, icons,
+│   │       │                 # account/ (badges statut, garde d'auth)
 │   │       ├── context/       # CartContext, AuthContext (Context API)
 │   │       ├── pages/        # Home, Catalogue, Product, Cart, Checkout,
-│   │       │                 # OrderConfirmation, Account, Dashboard (admin)
+│   │       │                 # OrderConfirmation · Espace client : Account,
+│   │       │                 # Orders, OrderDetail, Addresses, Wishlist
 │   │       └── api/           # Fonctions Axios par domaine (products, orders,
 │   │                          # payments, delivery, auth, reviews, content,
 │   │                          # promotions, returns, wishlist)
@@ -75,8 +79,8 @@ Toutes les routes sont préfixées par `/api/`. Détails complets des variables 
 | Domaine | Endpoints | Accès |
 |---------|-----------|-------|
 | Produits | `GET /products/` (filtres prix/unité/stock/catégorie + tri + recherche), `GET /products/{slug}/` (note, remise, galerie), `GET /products/categories/` | Public |
-| Commandes | `POST /orders/` (compte requis, `coupon_code` optionnel) · `GET/PATCH /orders/{id}/`, `GET /orders/` | Création authentifiée · lecture/gestion réservées au staff |
-| Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé, liste réservée au staff |
+| Commandes | `POST /orders/` (compte requis, `coupon_code` optionnel) · `GET /orders/`, `GET /orders/{id}/` (items avec nom, slug et image produit) · `PATCH/DELETE` | Création authentifiée · le client consulte ses propres commandes · modification/suppression réservées au staff |
+| Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé · le client consulte les paiements de ses commandes, staff voit tout |
 | Livraison | `GET /delivery/zones/`, `GET /delivery/slots/` · `POST /delivery/` (checkout) · `GET/PATCH /delivery/{id}/` | Lecture zones/créneaux publique, gestion réservée au staff |
 | Authentification | `POST /auth/register/` (téléphone + préférence de notification optionnels), `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
 | Avis | `GET /reviews/?product__slug=...` (avis approuvés) · `POST /reviews/` (soumission, modération admin) | Public |

@@ -31,6 +31,8 @@ Render génère ou injecte automatiquement `DATABASE_URL`, `SECRET_KEY`, `RENDER
 - `CLOUDINARY_API_SECRET`
 - `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_ACCESS_TOKEN`
+- `SENTRY_DSN` : DSN du projet Sentry « Django » (monitoring erreurs/performance). Optionnel si le
+  DSN configuré par défaut dans `config/settings.py` convient ; à définir si le projet Sentry change.
 
 Optionnelles (valeurs par défaut définies dans `config/settings.py`, à surcharger pour changer les
 identifiants du superadmin créé automatiquement — voir [Superadmin par défaut](#superadmin-par-défaut)
@@ -38,6 +40,7 @@ ci-dessous) :
 
 - `DEFAULT_SUPERUSER_USERNAME` (défaut : `anifowoche`)
 - `DEFAULT_SUPERUSER_PASSWORD` (défaut : `Anifowoche123!`)
+- `SENTRY_TRACES_SAMPLE_RATE` (défaut : `0.1` — part des requêtes tracées pour le monitoring de performance)
 
 `DEBUG` est forcé à `False` dans le Blueprint. Django ajoute automatiquement le domaine Render fourni par `RENDER_EXTERNAL_HOSTNAME` à `ALLOWED_HOSTS`.
 

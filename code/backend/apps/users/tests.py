@@ -69,10 +69,12 @@ class AuthApiTests(APITestCase):
 
         me_response = self.client.get("/api/auth/me/", HTTP_AUTHORIZATION=f"Bearer {access}")
         self.assertEqual(me_response.status_code, 200)
-        self.assertEqual(me_response.data["notification_channel"], "whatsapp")
+        self.assertEqual(me_response.data["notification_channel"], "email")
         self.assertEqual(me_response.data["phone"], "")
 
-    def test_register_defaults_to_whatsapp_channel(self):
+    def test_register_defaults_to_email_channel(self):
+        """WhatsApp reste bloqué par défaut (Sprint 6, voir NotificationSettings)
+        tant qu'aucune vraie clé WhatsApp Business API n'est configurée."""
         payload = {
             "username": "pardefaut",
             "email": "pardefaut@example.com",
@@ -81,9 +83,9 @@ class AuthApiTests(APITestCase):
         }
         response = self.client.post("/api/auth/register/", payload, format="json")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["user"]["notification_channel"], "whatsapp")
+        self.assertEqual(response.data["user"]["notification_channel"], "email")
         profile = Profile.objects.get(user__username="pardefaut")
-        self.assertEqual(profile.notification_channel, Profile.NotificationChannel.WHATSAPP)
+        self.assertEqual(profile.notification_channel, Profile.NotificationChannel.EMAIL)
         self.assertEqual(profile.phone, "")
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)

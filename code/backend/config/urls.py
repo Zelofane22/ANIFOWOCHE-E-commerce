@@ -1,12 +1,19 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from apps.core.views import StoreStatusView
 from apps.users.views import AuthTokenObtainPairView
+
+
+def trigger_error(_request):
+    1 / 0
 
 urlpatterns = [
     path("admin/", include("apps.core.urls")),
     path("admin/", admin.site.urls),
+    path("api/store/status/", StoreStatusView.as_view(), name="store-status"),
     path("api/products/", include("apps.products.urls")),
     path("api/orders/", include("apps.orders.urls")),
     path("api/payments/", include("apps.payments.urls")),
@@ -20,4 +27,8 @@ urlpatterns = [
     path("api/auth/token/", AuthTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/analytics/", include("apps.analytics.urls")),
+    path("api/notifications/", include("apps.notifications.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns.append(path("sentry-debug/", trigger_error, name="sentry-debug"))
