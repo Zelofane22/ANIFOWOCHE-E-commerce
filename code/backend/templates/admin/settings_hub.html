@@ -76,21 +76,21 @@
                     </span>
                 </div>
                 <div class="anw-settings-row">
-                    <span class="anw-settings-label">MTN Mobile Money</span>
-                    <span class="anw-status {% if payment_settings.mtn_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
-                        {% if payment_settings.mtn_enabled %}Actif{% else %}Inactif{% endif %}
-                    </span>
-                </div>
-                <div class="anw-settings-row">
-                    <span class="anw-settings-label">Moov Money</span>
-                    <span class="anw-status {% if payment_settings.moov_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
-                        {% if payment_settings.moov_enabled %}Actif{% else %}Inactif{% endif %}
+                    <span class="anw-settings-label">Mobile Money</span>
+                    <span class="anw-status {% if payment_settings.mobile_money_available %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.mobile_money_available %}Actif{% else %}Inactif{% endif %}
                     </span>
                 </div>
                 <div class="anw-settings-row">
                     <span class="anw-settings-label">Carte bancaire</span>
-                    <span class="anw-status {% if payment_settings.card_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
-                        {% if payment_settings.card_enabled %}Actif{% else %}Inactif{% endif %}
+                    <span class="anw-status {% if payment_settings.card_available %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.card_available %}Actif{% else %}Inactif{% endif %}
+                    </span>
+                </div>
+                <div class="anw-settings-row">
+                    <span class="anw-settings-label">Paiement à la livraison</span>
+                    <span class="anw-status {% if payment_settings.cash_on_delivery_enabled %}anw-status-on{% else %}anw-status-off{% endif %}">
+                        {% if payment_settings.cash_on_delivery_enabled %}Actif{% else %}Inactif{% endif %}
                     </span>
                 </div>
             </div>

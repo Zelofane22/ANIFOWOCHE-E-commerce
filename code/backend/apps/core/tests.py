@@ -279,6 +279,11 @@ class SettingsHubAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Réglages boutique")
         self.assertContains(response, "Paiement en ligne")
+        self.assertContains(response, "Mobile Money")
+        self.assertContains(response, "Carte bancaire")
+        self.assertContains(response, "Paiement à la livraison")
+        self.assertNotContains(response, "MTN Mobile Money")
+        self.assertNotContains(response, "Moov Money")
         self.assertContains(response, "WhatsApp")
         self.assertContains(response, "Demandes de changement")
 
@@ -293,6 +298,42 @@ class StoreStatusViewTests(TestCase):
             {
                 "maintenance_mode": False,
                 "online_payment_enabled": True,
-                "payment_methods": {"mtn": True, "moov": True, "card": False},
+                "payment_methods": {"mtn": True, "moov": True, "card": False, "cash_on_delivery": True},
             },
         )
+
+
+class SettingsHubPaymentCardTests(TestCase):
+    def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="root",
+            email="root@anifowoche.example",
+            password="pass12345",
+        )
+
+    def test_online_methods_look_inactive_when_online_payment_is_disabled(self):
+        PaymentSettings.objects.update_or_create(
+            pk=1,
+            defaults={
+                "online_payment_enabled": False,
+                "mtn_enabled": True,
+                "moov_enabled": True,
+                "card_enabled": True,
+            },
+        )
+        self.client.force_login(self.superuser)
+
+        response = self.client.get("/admin/reglages/")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        payments_card = html.split('<div class="anw-settings-card-title">Paiements</div>', 1)[1].split(
+            '<div class="anw-actions">',
+            1,
+        )[0]
+        self.assertIn('<span class="anw-settings-label">Paiement en ligne</span>', payments_card)
+        self.assertIn('<span class="anw-settings-label">Mobile Money</span>', payments_card)
+        self.assertIn('<span class="anw-settings-label">Carte bancaire</span>', payments_card)
+        self.assertIn('<span class="anw-settings-label">Paiement à la livraison</span>', payments_card)
+        self.assertEqual(payments_card.count("anw-status-off"), 3)
+        self.assertEqual(payments_card.count("anw-status-on"), 1)

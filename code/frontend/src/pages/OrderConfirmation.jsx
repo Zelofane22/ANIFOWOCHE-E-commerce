@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { initiatePayment } from "../api/payments.js";
-import { PAYMENT_METHODS } from "../constants/payments.js";
+import { ONLINE_PAYMENT_METHODS } from "../constants/payments.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { waitForPaymentApproval } from "../utils/fedapay.js";
@@ -45,6 +45,11 @@ const PAYMENT_CONTENT = {
     title: "Commande enregistrée — paiement à finaliser",
     message: "Le paiement n'a pas pu être confirmé automatiquement — vous serez contacté pour finaliser le règlement.",
   },
+  cash_on_delivery: {
+    tone: "success",
+    title: "Commande enregistrée",
+    message: "Votre paiement sera effectué à la livraison.",
+  },
 };
 
 const TONE_STYLES = {
@@ -62,7 +67,7 @@ export default function OrderConfirmation() {
   const { orderId, total, method: initialMethod } = location.state ?? {};
 
   const [paymentStatus, setPaymentStatus] = useState(location.state?.paymentStatus);
-  const [retryMethod, setRetryMethod] = useState(initialMethod ?? PAYMENT_METHODS[0].value);
+  const [retryMethod, setRetryMethod] = useState(initialMethod ?? ONLINE_PAYMENT_METHODS[0].value);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState(null);
 
@@ -125,7 +130,7 @@ export default function OrderConfirmation() {
       {isRetryable && (
         <div className="mt-6 w-full max-w-xs">
           <div className="flex flex-col gap-2">
-            {PAYMENT_METHODS.map((method) => (
+            {ONLINE_PAYMENT_METHODS.map((method) => (
               <button
                 key={method.value}
                 type="button"

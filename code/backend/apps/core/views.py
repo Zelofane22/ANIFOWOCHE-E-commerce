@@ -36,6 +36,7 @@ class StoreStatusView(APIView):
                     "mtn": payment_settings.mtn_enabled,
                     "moov": payment_settings.moov_enabled,
                     "card": payment_settings.card_enabled,
+                    "cash_on_delivery": payment_settings.cash_on_delivery_enabled,
                 },
             }
         )

@@ -105,6 +105,25 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(Payment.objects.count(), 0)
 
+    def test_initiate_cash_on_delivery_creates_pending_payment_without_fedapay(self):
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
+
+        with mock.patch("apps.payments.views.FedaPayClient") as fedapay_client:
+            response = self.client.post(
+                "/api/payments/initiate/",
+                {"order_id": self.order.id, "method": "cash_on_delivery"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 201)
+        fedapay_client.assert_not_called()
+        payment = Payment.objects.get(order=self.order)
+        self.assertEqual(payment.provider, Payment.Provider.CASH_ON_DELIVERY)
+        self.assertEqual(payment.method, Payment.Method.CASH_ON_DELIVERY)
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertEqual(payment.amount_xof, self.order.total_xof)
+        self.assertEqual(payment.payment_url, "")
+
     def test_initiate_payment_rejected_when_method_disabled(self):
         PaymentSettings.objects.update_or_create(pk=1, defaults={"card_enabled": False})
         response = self.client.post(

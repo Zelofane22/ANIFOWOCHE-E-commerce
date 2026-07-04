@@ -36,6 +36,8 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
 class InitiatePaymentView(APIView):
     """Crée un paiement et initie la transaction FedaPay (MTN/Moov/carte).
+    Pour le paiement à la livraison, seule une ligne Payment en attente est
+    créée afin que la commande apparaisse dans le suivi backoffice.
 
     Limité par un scope de rate limiting dédié (au lieu du seul throttle anon
     générique) : chaque appel déclenche un appel payant à l'API FedaPay et crée
@@ -50,6 +52,15 @@ class InitiatePaymentView(APIView):
         serializer.is_valid(raise_exception=True)
         order = serializer.validated_data["order"]
         method = serializer.validated_data["method"]
+
+        if method == Payment.Method.CASH_ON_DELIVERY:
+            payment = Payment.objects.create(
+                order=order,
+                provider=Payment.Provider.CASH_ON_DELIVERY,
+                method=method,
+                amount_xof=order.total_xof,
+            )
+            return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
         payment_settings = PaymentSettings.get_solo()
         if not payment_settings.online_payment_enabled:
