@@ -4,6 +4,7 @@ import { createAddress, deleteAddress, getAddresses } from "../api/addresses.js"
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { getOrders } from "../api/orders.js";
 import { createReturnRequest, fetchReturnRequests } from "../api/returns.js";
+import { fetchNotificationSettings } from "../api/notifications.js";
 import { fetchWishlist, removeFromWishlist } from "../api/wishlist.js";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -15,7 +16,7 @@ const emptyRegisterForm = {
   password: "",
   password2: "",
   phone: "",
-  notification_channel: "whatsapp",
+  notification_channel: "email",
 };
 const emptyLoginForm = { username: "", password: "" };
 const emptyAddressForm = { label: "", full_name: "", phone: "", zone: "", notes: "" };
@@ -334,6 +335,16 @@ export default function Account() {
   const [registerForm, setRegisterForm] = useState(emptyRegisterForm);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    whatsapp_enabled: false,
+    sms_enabled: false,
+  });
+
+  useEffect(() => {
+    fetchNotificationSettings()
+      .then(setNotificationSettings)
+      .catch(() => {});
+  }, []);
 
   if (loading) return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
 
@@ -464,7 +475,7 @@ export default function Account() {
           />
           <input
             type="tel"
-            placeholder="Téléphone (pour WhatsApp)"
+            placeholder="Téléphone"
             value={registerForm.phone}
             onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
@@ -476,8 +487,9 @@ export default function Account() {
               onChange={(e) => setRegisterForm({ ...registerForm, notification_channel: e.target.value })}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             >
-              <option value="whatsapp">WhatsApp</option>
               <option value="email">Email</option>
+              {notificationSettings.whatsapp_enabled && <option value="whatsapp">WhatsApp</option>}
+              {notificationSettings.sms_enabled && <option value="sms">SMS</option>}
             </select>
           </label>
           <input

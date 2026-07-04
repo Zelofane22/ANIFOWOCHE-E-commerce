@@ -356,6 +356,16 @@ UNFOLD = {
                         "link": "/admin/auth/user/?is_staff__exact=1",
                     },
                     {
+                        "title": "Notifications",
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_notification_changelist"),
+                    },
+                    {
+                        "title": "Réglages notifications",
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:notifications_notificationsettings_changelist"),
+                    },
+                    {
                         "title": "Activité système",
                         "icon": "history",
                         "link": reverse_lazy("admin:admin_logentry_changelist"),

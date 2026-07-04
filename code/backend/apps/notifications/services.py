@@ -3,7 +3,9 @@ import logging
 import requests
 from django.conf import settings
 
-from .models import Notification
+from apps.users.models import Profile
+
+from .models import Notification, NotificationSettings
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +82,20 @@ class ResendClient:
 
 
 def _resolve_channel(user):
-    """Détermine le canal préféré d'un utilisateur (WhatsApp par défaut)."""
+    """Détermine le canal effectif compte tenu de la préférence du profil et
+    des bascules admin (NotificationSettings, Sprint 6) : WhatsApp et SMS
+    restent bloqués tant que l'admin ne les active pas dans son interface
+    (vraies clés fournisseur requises), quelle que soit la préférence choisie
+    par le client à l'inscription — repli sur l'email dans ce cas."""
+    channel_settings = NotificationSettings.get_solo()
     profile = getattr(user, "profile", None) if user else None
-    if profile and profile.notification_channel == profile.NotificationChannel.EMAIL:
-        return Notification.Channel.EMAIL
-    return Notification.Channel.WHATSAPP
+    preferred = profile.notification_channel if profile else Profile.NotificationChannel.EMAIL
+
+    if preferred == Profile.NotificationChannel.WHATSAPP and channel_settings.whatsapp_enabled:
+        return Notification.Channel.WHATSAPP
+    if preferred == Profile.NotificationChannel.SMS and channel_settings.sms_enabled:
+        return Notification.Channel.SMS
+    return Notification.Channel.EMAIL
 
 
 def _send_whatsapp(*, event, recipient_phone, message):
@@ -129,13 +140,39 @@ def _send_email(*, event, recipient_email, subject, message):
     return notification
 
 
+def _send_sms(*, event, recipient_phone, message):
+    """Aucun fournisseur SMS n'est encore configuré (voir NotificationSettings,
+    Sprint 6) : on trace la tentative pour l'admin plutôt que de la faire
+    disparaître silencieusement, mais l'envoi échoue toujours tant qu'un vrai
+    fournisseur n'est pas branché ici."""
+    if not recipient_phone:
+        return None
+    notification = Notification.objects.create(
+        channel=Notification.Channel.SMS,
+        event=event,
+        recipient_phone=recipient_phone,
+        message=message,
+    )
+    error_detail = "Aucun fournisseur SMS configuré pour le moment."
+    logger.warning("Notification %s (sms) non envoyée pour %s : %s", event, recipient_phone, error_detail)
+    notification.status = Notification.Status.FAILED
+    notification.error_detail = error_detail
+    notification.save(update_fields=["status", "error_detail"])
+    return notification
+
+
 def _notify_for_order(*, event, order, message, subject):
-    """Envoie sur le canal préféré du client propriétaire de la commande
-    (WhatsApp par défaut, ou pour les clients invités sans compte/profil)."""
+    """Envoie sur le canal effectif du client propriétaire de la commande —
+    email par défaut ; WhatsApp/SMS seulement si le client les préfère ET que
+    l'admin les a activés (voir NotificationSettings, Sprint 6)."""
     channel = _resolve_channel(order.customer)
-    if channel == Notification.Channel.EMAIL and order.email:
+    if channel == Notification.Channel.WHATSAPP:
+        return _send_whatsapp(event=event, recipient_phone=order.phone, message=message)
+    if channel == Notification.Channel.SMS:
+        return _send_sms(event=event, recipient_phone=order.phone, message=message)
+    if order.email:
         return _send_email(event=event, recipient_email=order.email, subject=subject, message=message)
-    return _send_whatsapp(event=event, recipient_phone=order.phone, message=message)
+    return None
 
 
 def notify_order_confirmation(order):
@@ -195,13 +232,18 @@ def notify_invoice(payment):
 def notify_account_created(user):
     channel = _resolve_channel(user)
     message = f"Bienvenue sur ANIFOWOCHE, {user.first_name or user.username} ! Votre compte a bien été créé."
-    if channel == Notification.Channel.EMAIL and user.email:
+    profile = getattr(user, "profile", None)
+    phone = profile.phone if profile else ""
+
+    if channel == Notification.Channel.WHATSAPP:
+        return _send_whatsapp(event=Notification.Event.ACCOUNT_CREATED, recipient_phone=phone, message=message)
+    if channel == Notification.Channel.SMS:
+        return _send_sms(event=Notification.Event.ACCOUNT_CREATED, recipient_phone=phone, message=message)
+    if user.email:
         return _send_email(
             event=Notification.Event.ACCOUNT_CREATED,
             recipient_email=user.email,
             subject="Bienvenue sur ANIFOWOCHE",
             message=message,
         )
-    profile = getattr(user, "profile", None)
-    phone = profile.phone if profile else ""
-    return _send_whatsapp(event=Notification.Event.ACCOUNT_CREATED, recipient_phone=phone, message=message)
+    return None
