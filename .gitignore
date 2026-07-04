@@ -24,7 +24,6 @@ dist/
 # Logs
 *.log
 
-CLAUDE.md
 .claude/
 .codex
 
