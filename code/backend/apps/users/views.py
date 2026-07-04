@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from apps.notifications.services import notify_account_created
+
 from .models import Address
 from .serializers import AddressSerializer, RegisterSerializer, UserSerializer
 
@@ -26,6 +28,7 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        notify_account_created(user)
         refresh = RefreshToken.for_user(user)
         return Response(
             {

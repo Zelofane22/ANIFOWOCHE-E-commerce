@@ -6,7 +6,7 @@
 
 | Statut | Durée MVP | Budget/mois | Zone cible |
 |--------|-----------|-------------|------------|
-| Sprints 1 à 3 terminés · Sprint 4 à venir | ~3 mois (4 sprints) | 0 € (Render gratuit) | Cotonou, Bénin |
+| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
 
 ---
 
@@ -22,12 +22,11 @@
 | [docs/ci-cd.md](docs/ci-cd.md) | Structure CI/CD — GitHub Actions, déploiement Render (backend) & Vercel (frontend) |
 | [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints MVP (terminé) |
 | [docs/sprints/planning-v2.md](docs/sprints/planning-v2.md) | Planning v2 (post-MVP) — sprints 5+ par priorité/dépendance, sans capacité horaire fixe |
-| [docs/sprints/sprint2-progress.md](docs/sprints/sprint2-progress.md) | Suivi des tâches Sprint 2 (terminé) |
-| [docs/sprints/sprint3-progress.md](docs/sprints/sprint3-progress.md) | Suivi des tâches Sprint 3 (terminé) |
+| [docs/sprints/sprint5-progress.md](docs/sprints/sprint5-progress.md) | Suivi des tâches Sprint 5 (terminé) |
 | [docs/sprints/retro-sprint.md](docs/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
 | [docs/docker.md](docs/docker.md) | Lancer le projet en local avec Docker |
-| [docs/prochaines-etapes.md](docs/prochaines-etapes.md) | Actions immédiates avant le Sprint 1 |
+| [docs/render.md](docs/render.md) | Déploiement backend sur Render — Blueprint, variables d'environnement, superadmin par défaut |
 
 ---
 
@@ -45,16 +44,22 @@ anifowoche/
 │   │       ├── pages/        # Home, Catalogue, Product, Cart, Checkout,
 │   │       │                 # OrderConfirmation, Account, Dashboard (admin)
 │   │       └── api/           # Fonctions Axios par domaine (products, orders,
-│   │                          # payments, delivery, auth)
+│   │                          # payments, delivery, auth, reviews, content,
+│   │                          # promotions, returns, wishlist)
 │   ├── backend/              # Projet Django (manage.py, requirements.txt)
 │   │   ├── entrypoint.sh     # migrate + collectstatic + gunicorn (prod)
 │   │   └── apps/
-│   │       ├── products/     # Modèles, serializers, vues API — Produits
-│   │       ├── orders/       # Modèles, serializers, vues API — Commandes
+│   │       ├── products/     # Modèles, serializers, vues API — Produits (+ galerie)
+│   │       ├── orders/       # Modèles, serializers, vues API — Commandes (+ coupons)
 │   │       ├── payments/     # Intégration FedaPay (sandbox) + webhook
-│   │       ├── users/        # Authentification JWT (inscription, connexion)
+│   │       ├── users/        # Authentification JWT + profil (téléphone, préférence notif.)
 │   │       ├── delivery/     # Zones/créneaux Cotonou, suivi de livraison
-│   │       └── notifications/ # Client WhatsApp Business (confirmation, en route)
+│   │       ├── notifications/ # WhatsApp Business + email (Resend), selon préférence client
+│   │       ├── reviews/      # Avis produits (lecture approuvés + soumission)
+│   │       ├── content/      # Bannières carrousel accueil
+│   │       ├── promotions/   # Promotions actives + validation coupons
+│   │       ├── returns/      # Demandes de retour client
+│   │       └── wishlist/     # Liste de souhaits persistée
 │   └── docker-compose.yml
 ├── .github/                 # Templates issues, workflows CI/CD
 ├── docs/                    # Sprints, rétrospectives, ADR (décisions d'architecture)
@@ -69,20 +74,26 @@ Toutes les routes sont préfixées par `/api/`. Détails complets des variables 
 
 | Domaine | Endpoints | Accès |
 |---------|-----------|-------|
-| Produits | `GET /products/`, `GET /products/{slug}/`, `GET /products/categories/` | Public |
-| Commandes | `POST /orders/` (checkout invité) · `GET/PATCH /orders/{id}/`, `GET /orders/` | Création publique · lecture/gestion réservées au staff |
+| Produits | `GET /products/` (filtres prix/unité/stock/catégorie + tri + recherche), `GET /products/{slug}/` (note, remise, galerie), `GET /products/categories/` | Public |
+| Commandes | `POST /orders/` (compte requis, `coupon_code` optionnel) · `GET/PATCH /orders/{id}/`, `GET /orders/` | Création authentifiée · lecture/gestion réservées au staff |
 | Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé, liste réservée au staff |
 | Livraison | `GET /delivery/zones/`, `GET /delivery/slots/` · `POST /delivery/` (checkout) · `GET/PATCH /delivery/{id}/` | Lecture zones/créneaux publique, gestion réservée au staff |
-| Authentification | `POST /auth/register/`, `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
-| Notifications | déclenchées automatiquement (confirmation de commande, livraison en route) — pas d'endpoint direct | — |
+| Authentification | `POST /auth/register/` (téléphone + préférence de notification optionnels), `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
+| Avis | `GET /reviews/?product__slug=...` (avis approuvés) · `POST /reviews/` (soumission, modération admin) | Public |
+| Contenu | `GET /content/banners/` (bannières publiées, carrousel accueil) | Public |
+| Promotions | `POST /promotions/coupons/validate/` (vérifie un code sans le consommer) | Public |
+| Retours | `POST /returns/` (demande sur une commande possédée) · `GET /returns/` | Utilisateur connecté (scope à ses propres commandes) · staff voit tout |
+| Wishlist | `GET /wishlist/`, `POST /wishlist/`, `DELETE /wishlist/{product_id}/` | Utilisateur connecté |
+| Notifications | déclenchées automatiquement (création de compte, commande reçue, facture, livraison en route/livrée) — WhatsApp ou email (Resend) selon la préférence du client, pas d'endpoint direct | — |
 
 Dashboard admin frontend : route `/admin` (visible et accessible seulement aux comptes `is_staff`).
 
-Cred anifowoche/Anifowoche123!
+Superadmin créé automatiquement au déploiement (voir [docs/render.md](docs/render.md)) : identifiants par
+défaut `anifowoche` / `Anifowoche123!` — changement de mot de passe forcé à la première connexion.
 
 ## ✅ Tests
 
-Suite de tests Django (29 tests, appels externes FedaPay/WhatsApp mockés) :
+Suite de tests Django (77 tests, appels externes FedaPay/WhatsApp/Resend mockés) :
 
 ```
 docker compose -f code/docker-compose.yml exec backend python manage.py test
@@ -97,4 +108,4 @@ Toutes les tâches sont suivies via **[GitHub Projects](../../projects)**.
 
 ---
 
-*Document mis à jour le 1er juillet 2026 — ANIFOWOCHE E-Commerce · Confidentiel*
+*Document mis à jour le 3 juillet 2026 — ANIFOWOCHE E-Commerce · Confidentiel*

@@ -26,7 +26,11 @@ class PaymentApiTests(APITestCase):
     def setUp(self):
         category = Category.objects.create(name="Tissus", slug="tissus")
         product = Product.objects.create(category=category, name="Pagne", slug="pagne", price_xof=1000, stock=5)
-        self.order = Order.objects.create(full_name="Client", phone="+22990000000", address="Cotonou", total_xof=1000)
+        self.owner = User.objects.create_user(username="owner", password="pass1234")
+        self.other_user = User.objects.create_user(username="other", password="pass1234")
+        self.order = Order.objects.create(
+            customer=self.owner, full_name="Client", phone="+22990000000", address="Cotonou", total_xof=1000
+        )
         OrderItem.objects.create(order=self.order, product=product, quantity=1, unit_price_xof=1000)
         self.staff_user = User.objects.create_user(username="admin", password="pass1234", is_staff=True)
 
@@ -70,7 +74,8 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.status_code, 401)
 
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
-    def test_webhook_approves_payment_and_updates_order(self):
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_webhook_approves_payment_and_updates_order(self, mock_post):
         payment = Payment.objects.create(
             order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="777"
         )
@@ -100,3 +105,29 @@ class PaymentApiTests(APITestCase):
         response = self.client.get("/api/payments/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
+
+    def test_owner_can_retrieve_own_payment(self):
+        payment = Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(f"/api/payments/{payment.id}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["id"], payment.id)
+
+    def test_other_customer_cannot_retrieve_someone_elses_payment(self):
+        payment = Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(f"/api/payments/{payment.id}/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_sees_only_own_payments_in_list(self):
+        other_order = Order.objects.create(
+            customer=self.other_user, full_name="Autre", phone="+22990000001", address="Cotonou", total_xof=500
+        )
+        Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        Payment.objects.create(order=other_order, method="moov", amount_xof=500)
+
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get("/api/payments/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["order"], self.order.id)

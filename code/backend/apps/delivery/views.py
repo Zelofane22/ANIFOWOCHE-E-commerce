@@ -1,6 +1,6 @@
 from rest_framework import permissions, viewsets
 
-from apps.notifications.services import notify_delivery_in_transit
+from apps.notifications.services import notify_delivery_confirmed, notify_delivery_in_transit
 
 from .models import Delivery, DeliverySlot, DeliveryZone
 from .serializers import DeliverySerializer, DeliverySlotSerializer, DeliveryZoneSerializer
@@ -42,3 +42,5 @@ class DeliveryViewSet(viewsets.ModelViewSet):
         delivery = serializer.save()
         if previous_status != Delivery.Status.IN_TRANSIT and delivery.status == Delivery.Status.IN_TRANSIT:
             notify_delivery_in_transit(delivery)
+        if previous_status != Delivery.Status.DELIVERED and delivery.status == Delivery.Status.DELIVERED:
+            notify_delivery_confirmed(delivery)

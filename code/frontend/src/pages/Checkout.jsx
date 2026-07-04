@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
-import { initiatePayment } from "../api/payments.js";
+import { getPayment, initiatePayment } from "../api/payments.js";
+import { validateCoupon } from "../api/promotions.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -14,6 +15,45 @@ const PAYMENT_METHODS = [
   { value: "moov", label: "Moov Money", detail: "Paiement mobile sécurisé", badge: "MOOV" },
   { value: "card", label: "Carte Visa / Mastercard", detail: "Carte bancaire internationale", badge: "VISA" },
 ];
+
+const PAYMENT_POLL_INTERVAL_MS = 2000;
+const PAYMENT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+const PAYMENT_FAILURE_STATUSES = ["declined", "canceled", "failed"];
+
+// Sonde le statut réel du paiement (mis à jour par le webhook FedaPay) pendant que
+// le client complète le paiement dans la fenêtre ouverte, jusqu'à approbation,
+// échec, fermeture manuelle de la fenêtre ou expiration du délai.
+function waitForPaymentApproval(paymentId, popup) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(async () => {
+      if (!popup || popup.closed) {
+        window.clearInterval(timer);
+        resolve("closed");
+        return;
+      }
+      if (Date.now() - startedAt > PAYMENT_POLL_TIMEOUT_MS) {
+        window.clearInterval(timer);
+        resolve("timeout");
+        return;
+      }
+      try {
+        const payment = await getPayment(paymentId);
+        if (payment.status === "approved") {
+          window.clearInterval(timer);
+          popup.close();
+          resolve("approved");
+        } else if (PAYMENT_FAILURE_STATUSES.includes(payment.status)) {
+          window.clearInterval(timer);
+          popup.close();
+          resolve(payment.status);
+        }
+      } catch {
+        // Erreur réseau transitoire : on continue de sonder jusqu'au prochain intervalle.
+      }
+    }, PAYMENT_POLL_INTERVAL_MS);
+  });
+}
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
@@ -33,7 +73,13 @@ export default function Checkout() {
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("mtn");
   const [submitting, setSubmitting] = useState(false);
+  const [waitingForPayment, setWaitingForPayment] = useState(false);
   const [error, setError] = useState(null);
+
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
     if (authLoading || isAuthenticated) return;
@@ -98,7 +144,8 @@ export default function Checkout() {
   const selectedZone = zones.find((option) => option.id === zoneId);
   const selectedSlot = slots.find((option) => option.id === slotId);
   const deliveryFee = selectedZone?.fee_xof ?? 0;
-  const total = subtotal + deliveryFee;
+  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.discount_percent) / 100) : 0;
+  const total = subtotal - discountAmount + deliveryFee;
   const canPay =
     fullName.trim() !== "" &&
     phone.trim() !== "" &&
@@ -114,11 +161,38 @@ export default function Checkout() {
     slotId != null &&
     !loadingDeliveryOptions;
 
+  const handleApplyCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
+    setCouponError(null);
+    setValidatingCoupon(true);
+    try {
+      const result = await validateCoupon(code);
+      setAppliedCoupon(result);
+    } catch (err) {
+      setAppliedCoupon(null);
+      setCouponError(extractErrorMessage(err));
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+  };
+
   const handlePay = async (event) => {
     event.preventDefault();
     if (!canPay) return;
     setError(null);
     setSubmitting(true);
+
+    // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le blocage
+    // popup des navigateurs — elle affiche une page vide le temps que le paiement soit
+    // initié, puis est redirigée vers le vrai payment_url FedaPay.
+    const paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
 
     const zone = selectedZone;
     const slot = selectedSlot;
@@ -131,6 +205,7 @@ export default function Checkout() {
         email: user?.email ?? "",
         address,
         city: "Cotonou",
+        coupon_code: appliedCoupon?.code ?? "",
         items: items.map((item) => ({ product_id: item.id, quantity: item.quantity })),
       });
 
@@ -146,19 +221,31 @@ export default function Checkout() {
       let paymentStatus = "failed";
       try {
         const payment = await initiatePayment({ order_id: order.id, method: paymentMethod });
-        paymentStatus = payment.status;
+        if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
+          paymentWindow.location.href = payment.payment_url;
+          setWaitingForPayment(true);
+          paymentStatus = await waitForPaymentApproval(payment.id, paymentWindow);
+        } else {
+          paymentWindow?.close();
+          paymentStatus = payment.status;
+        }
       } catch {
         // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
+        paymentWindow?.close();
         paymentStatus = "failed";
       }
 
-      clearCart();
+      // Le panier n'est vidé que si le paiement est réellement approuvé — sinon le
+      // client garde ses articles pour pouvoir réessayer sans tout resaisir.
+      if (paymentStatus === "approved") clearCart();
       navigate("/commande/confirmation", {
         state: { orderId: order.id, total: orderTotal, paymentStatus },
       });
     } catch (err) {
+      paymentWindow?.close();
       setError(extractErrorMessage(err));
     } finally {
+      setWaitingForPayment(false);
       setSubmitting(false);
     }
   };
@@ -358,7 +445,7 @@ export default function Checkout() {
                   disabled={!canPay}
                   className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium disabled:bg-gray-200 disabled:text-gray-400"
                 >
-                  {submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
+                  {waitingForPayment ? "En attente du paiement…" : submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
                 </button>
               </div>
             </>
@@ -388,11 +475,55 @@ export default function Checkout() {
               ))}
             </div>
 
+            <div className="mt-4 border-t border-black/10 pt-4">
+              <label className="block text-xs font-semibold text-ink">Code promo</label>
+              <div className="mt-1.5 flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value)}
+                  placeholder="Code coupon"
+                  disabled={!!appliedCoupon}
+                  className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand focus:outline-none disabled:bg-gray-50"
+                />
+                {appliedCoupon ? (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="shrink-0 rounded-lg border border-black/15 px-3 py-2 text-sm font-semibold text-ink transition hover:border-red-300 hover:text-red-600"
+                  >
+                    Retirer
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={!couponCode.trim() || validatingCoupon}
+                    className="shrink-0 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+                  >
+                    {validatingCoupon ? "…" : "Appliquer"}
+                  </button>
+                )}
+              </div>
+              {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
+              {appliedCoupon && (
+                <p className="mt-1.5 text-xs font-medium text-green-700">
+                  Code « {appliedCoupon.code} » appliqué (-{appliedCoupon.discount_percent}%)
+                </p>
+              )}
+            </div>
+
             <div className="mt-4 space-y-2 border-t border-black/10 pt-4 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Sous-total</span>
                 <span className="text-ink">{formatXof(subtotal)}</span>
               </div>
+              {appliedCoupon && (
+                <div className="flex justify-between text-green-700">
+                  <span>Réduction ({appliedCoupon.discount_percent}%)</span>
+                  <span>-{formatXof(discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-muted">
                 <span>Livraison</span>
                 {deliveryFee > 0 ? (
@@ -417,7 +548,7 @@ export default function Checkout() {
             disabled={!canPay}
             className="w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white disabled:bg-gray-200 disabled:text-gray-400"
           >
-            {submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
+            {waitingForPayment ? "En attente du paiement…" : submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
           </button>
         </div>
       )}

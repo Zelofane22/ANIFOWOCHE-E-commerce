@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { fetchBanners } from "../api/content.js";
 import { fetchProducts } from "../api/products.js";
 import ProductCard from "../components/ProductCard.jsx";
 
@@ -17,39 +18,7 @@ export default function Home() {
 
   return (
     <div>
-      <section className="relative min-h-[430px] overflow-hidden bg-charcoal">
-        <img
-          src="https://images.unsplash.com/photo-1768212565426-58b089b6386d?w=1600&h=900&fit=crop&auto=format"
-          alt="Tissus africains colorés"
-          className="absolute inset-0 h-full w-full object-cover opacity-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/70 to-transparent" />
-        <div className="relative mx-auto flex min-h-[430px] max-w-7xl items-center px-4 py-14">
-          <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">Collection Cotonou</p>
-            <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">
-              Tissus, vêtements & accessoires
-            </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
-              Des pièces sélectionnées pour le quotidien, les cérémonies et les sorties, avec paiement mobile money et livraison à domicile sur Cotonou.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                to="/catalogue"
-                className="inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-medium"
-              >
-                Voir le catalogue
-              </Link>
-              <Link
-                to="/catalogue"
-                className="inline-flex items-center justify-center rounded-lg border border-white/25 px-6 py-3 font-semibold text-white transition hover:border-brand hover:text-brand"
-              >
-                Nouveautés
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroCarousel />
 
       <div className="mx-auto max-w-7xl px-4">
         <div className="grid gap-3 border-b border-black/10 py-4 text-sm font-medium text-ink sm:grid-cols-2 lg:grid-cols-4">
@@ -140,5 +109,140 @@ export default function Home() {
         )}
       </div>
     </div>
+  );
+}
+
+const FALLBACK_HERO_IMAGE =
+  "https://images.unsplash.com/photo-1768212565426-58b089b6386d?w=1600&h=900&fit=crop&auto=format";
+
+function HeroCarousel() {
+  const [banners, setBanners] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    fetchBanners()
+      .then((data) => setBanners(data.results ?? data))
+      .catch(() => setBanners([]))
+      .finally(() => setLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (banners.length < 2) return undefined;
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % banners.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [banners.length]);
+
+  if (!loaded || banners.length === 0) {
+    return <StaticHero />;
+  }
+
+  const banner = banners[index];
+  const goTo = (nextIndex) => setIndex((nextIndex + banners.length) % banners.length);
+
+  return (
+    <section className="relative min-h-[430px] overflow-hidden bg-charcoal">
+      {banner.image && (
+        <img
+          src={banner.image}
+          alt={banner.title}
+          className="absolute inset-0 h-full w-full object-cover opacity-50"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/70 to-transparent" />
+      <div className="relative mx-auto flex min-h-[430px] max-w-7xl items-center px-4 py-14">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">Collection Cotonou</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">{banner.title}</h1>
+          {banner.subtitle && (
+            <p className="mt-4 max-w-xl text-base leading-7 text-white/75">{banner.subtitle}</p>
+          )}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a
+              href={banner.link_url || "/catalogue"}
+              className="inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-medium"
+            >
+              Découvrir
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {banners.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => goTo(index - 1)}
+            aria-label="Bannière précédente"
+            className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white shadow transition hover:bg-white/25"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo(index + 1)}
+            aria-label="Bannière suivante"
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white shadow transition hover:bg-white/25"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+          <div className="absolute inset-x-0 bottom-4 flex justify-center gap-1.5">
+            {banners.map((item, i) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-label={`Aller à la bannière ${i + 1}`}
+                className={`h-2 rounded-full transition-all ${i === index ? "w-4 bg-brand" : "w-2 bg-white/50"}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function StaticHero() {
+  return (
+    <section className="relative min-h-[430px] overflow-hidden bg-charcoal">
+      <img
+        src={FALLBACK_HERO_IMAGE}
+        alt="Tissus africains colorés"
+        className="absolute inset-0 h-full w-full object-cover opacity-50"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/70 to-transparent" />
+      <div className="relative mx-auto flex min-h-[430px] max-w-7xl items-center px-4 py-14">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">Collection Cotonou</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">
+            Tissus, vêtements & accessoires
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
+            Des pièces sélectionnées pour le quotidien, les cérémonies et les sorties, avec paiement mobile money et livraison à domicile sur Cotonou.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/catalogue"
+              className="inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-medium"
+            >
+              Voir le catalogue
+            </Link>
+            <Link
+              to="/catalogue"
+              className="inline-flex items-center justify-center rounded-lg border border-white/25 px-6 py-3 font-semibold text-white transition hover:border-brand hover:text-brand"
+            >
+              Nouveautés
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

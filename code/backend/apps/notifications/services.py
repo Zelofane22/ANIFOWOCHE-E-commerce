@@ -46,23 +46,96 @@ class WhatsAppClient:
         return data.get("messages", [{}])[0].get("id", "")
 
 
-def _send(*, event, recipient_phone, message):
+class ResendClient:
+    """Client minimal pour l'API Resend (emails transactionnels).
+
+    Utilise une clé API et une adresse d'expédition placeholder tant que le
+    domaine n'est pas vérifié et la vraie clé fournie via les variables
+    d'environnement. Voir https://resend.com/docs/api-reference/emails/send-email.
+    """
+
+    def __init__(self):
+        self.base_url = settings.RESEND_API_BASE_URL.rstrip("/")
+        self.api_key = settings.RESEND_API_KEY
+        self.from_email = settings.RESEND_FROM_EMAIL
+
+    def send_email(self, *, to_email, subject, message):
+        payload = {
+            "from": self.from_email,
+            "to": [to_email],
+            "subject": subject,
+            "html": f"<p>{message}</p>".replace("\n", "<br>"),
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/emails",
+                json=payload,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=10,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            raise NotificationDeliveryError(f"Échec d'envoi email Resend : {exc}") from exc
+        return response.json().get("id", "")
+
+
+def _resolve_channel(user):
+    """Détermine le canal préféré d'un utilisateur (WhatsApp par défaut)."""
+    profile = getattr(user, "profile", None) if user else None
+    if profile and profile.notification_channel == profile.NotificationChannel.EMAIL:
+        return Notification.Channel.EMAIL
+    return Notification.Channel.WHATSAPP
+
+
+def _send_whatsapp(*, event, recipient_phone, message):
+    if not recipient_phone:
+        return None
     notification = Notification.objects.create(
+        channel=Notification.Channel.WHATSAPP,
         event=event,
         recipient_phone=recipient_phone,
         message=message,
     )
-    client = WhatsAppClient()
     try:
-        message_id = client.send_text_message(to_phone=recipient_phone, message=message)
+        message_id = WhatsAppClient().send_text_message(to_phone=recipient_phone, message=message)
         notification.status = Notification.Status.SENT
         notification.provider_message_id = message_id
     except NotificationDeliveryError as exc:
-        logger.warning("Notification %s échouée pour %s : %s", event, recipient_phone, exc)
+        logger.warning("Notification %s (whatsapp) échouée pour %s : %s", event, recipient_phone, exc)
         notification.status = Notification.Status.FAILED
         notification.error_detail = str(exc)
     notification.save(update_fields=["status", "provider_message_id", "error_detail"])
     return notification
+
+
+def _send_email(*, event, recipient_email, subject, message):
+    if not recipient_email:
+        return None
+    notification = Notification.objects.create(
+        channel=Notification.Channel.EMAIL,
+        event=event,
+        recipient_email=recipient_email,
+        message=message,
+    )
+    try:
+        message_id = ResendClient().send_email(to_email=recipient_email, subject=subject, message=message)
+        notification.status = Notification.Status.SENT
+        notification.provider_message_id = message_id
+    except NotificationDeliveryError as exc:
+        logger.warning("Notification %s (email) échouée pour %s : %s", event, recipient_email, exc)
+        notification.status = Notification.Status.FAILED
+        notification.error_detail = str(exc)
+    notification.save(update_fields=["status", "provider_message_id", "error_detail"])
+    return notification
+
+
+def _notify_for_order(*, event, order, message, subject):
+    """Envoie sur le canal préféré du client propriétaire de la commande
+    (WhatsApp par défaut, ou pour les clients invités sans compte/profil)."""
+    channel = _resolve_channel(order.customer)
+    if channel == Notification.Channel.EMAIL and order.email:
+        return _send_email(event=event, recipient_email=order.email, subject=subject, message=message)
+    return _send_whatsapp(event=event, recipient_phone=order.phone, message=message)
 
 
 def notify_order_confirmation(order):
@@ -71,7 +144,12 @@ def notify_order_confirmation(order):
         f"Bonjour {order.full_name}, votre commande ANIFOWOCHE #{order.pk} "
         f"({items_summary}) d'un montant de {order.total_xof} FCFA a bien été reçue."
     )
-    return _send(event=Notification.Event.ORDER_CONFIRMATION, recipient_phone=order.phone, message=message)
+    return _notify_for_order(
+        event=Notification.Event.ORDER_CONFIRMATION,
+        order=order,
+        message=message,
+        subject=f"Commande ANIFOWOCHE #{order.pk} reçue",
+    )
 
 
 def notify_delivery_in_transit(delivery):
@@ -80,4 +158,50 @@ def notify_delivery_in_transit(delivery):
         f"Bonjour {order.full_name}, votre commande ANIFOWOCHE #{order.pk} est en route "
         f"vers {delivery.zone.name} (créneau {delivery.slot.label})."
     )
-    return _send(event=Notification.Event.DELIVERY_IN_TRANSIT, recipient_phone=order.phone, message=message)
+    return _notify_for_order(
+        event=Notification.Event.DELIVERY_IN_TRANSIT,
+        order=order,
+        message=message,
+        subject=f"Commande ANIFOWOCHE #{order.pk} en route",
+    )
+
+
+def notify_delivery_confirmed(delivery):
+    order = delivery.order
+    message = f"Bonjour {order.full_name}, votre commande ANIFOWOCHE #{order.pk} a bien été livrée. Merci pour votre confiance !"
+    return _notify_for_order(
+        event=Notification.Event.DELIVERY_CONFIRMED,
+        order=order,
+        message=message,
+        subject=f"Commande ANIFOWOCHE #{order.pk} livrée",
+    )
+
+
+def notify_invoice(payment):
+    order = payment.order
+    items_summary = ", ".join(f"{item.quantity}x {item.product.name}" for item in order.items.all())
+    message = (
+        f"Bonjour {order.full_name}, voici la facture de votre commande ANIFOWOCHE #{order.pk} "
+        f"({items_summary}). Montant payé : {payment.amount_xof} FCFA. Merci pour votre achat !"
+    )
+    return _notify_for_order(
+        event=Notification.Event.INVOICE,
+        order=order,
+        message=message,
+        subject=f"Facture — commande ANIFOWOCHE #{order.pk}",
+    )
+
+
+def notify_account_created(user):
+    channel = _resolve_channel(user)
+    message = f"Bienvenue sur ANIFOWOCHE, {user.first_name or user.username} ! Votre compte a bien été créé."
+    if channel == Notification.Channel.EMAIL and user.email:
+        return _send_email(
+            event=Notification.Event.ACCOUNT_CREATED,
+            recipient_email=user.email,
+            subject="Bienvenue sur ANIFOWOCHE",
+            message=message,
+        )
+    profile = getattr(user, "profile", None)
+    phone = profile.phone if profile else ""
+    return _send_whatsapp(event=Notification.Event.ACCOUNT_CREATED, recipient_phone=phone, message=message)

@@ -1,8 +1,8 @@
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 
 from django.contrib import admin
 
-from .models import Category, Product
+from .models import Category, Product, ProductImage
 
 
 @admin.register(Category)
@@ -11,9 +11,15 @@ class CategoryAdmin(ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
 
 
+class ProductImageInline(TabularInline):
+    model = ProductImage
+    extra = 1
+
+
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
     list_display = ["name", "category", "price_xof", "unit", "stock", "is_active"]
     list_filter = ["category", "is_active", "unit", "size"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
+    inlines = [ProductImageInline]

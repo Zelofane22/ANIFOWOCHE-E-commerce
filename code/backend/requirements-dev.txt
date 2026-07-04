@@ -1,0 +1,8 @@
+# Dépendances de développement local uniquement (docker-compose), en plus de
+# requirements.txt. Jamais installé en production (Render utilise
+# requirements.txt directement via build.sh, sans passer par ce fichier).
+-r requirements.txt
+
+# Tunnel ngrok pour tester les webhooks externes (FedaPay...) en local —
+# voir apps/core/management/commands/start_ngrok.py.
+pyngrok>=7.0

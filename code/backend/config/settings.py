@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "apps.content",
     "apps.returns",
     "apps.reviews",
+    "apps.wishlist",
 ]
 
 MIDDLEWARE = [
@@ -209,6 +210,20 @@ FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
 WHATSAPP_API_BASE_URL = config("WHATSAPP_API_BASE_URL", default="https://graph.facebook.com/v20.0")
 WHATSAPP_PHONE_NUMBER_ID = config("WHATSAPP_PHONE_NUMBER_ID", default="000000000000000")
 WHATSAPP_ACCESS_TOKEN = config("WHATSAPP_ACCESS_TOKEN", default="whatsapp_token_placeholder")
+
+# Notifications par email via Resend. Valeurs placeholder (adresse de test
+# resend.dev, clé factice) tant qu'un domaine vérifié et une vraie clé API
+# ne sont pas fournis via les variables d'environnement — voir
+# https://resend.com/docs/api-reference/emails/send-email.
+RESEND_API_BASE_URL = config("RESEND_API_BASE_URL", default="https://api.resend.com")
+RESEND_API_KEY = config("RESEND_API_KEY", default="re_placeholder")
+RESEND_FROM_EMAIL = config("RESEND_FROM_EMAIL", default="ANIFOWOCHE <onboarding@resend.dev>")
+
+# Tunnel ngrok (dev uniquement) pour tester en local les webhooks externes
+# (FedaPay...) qui ne peuvent pas atteindre localhost. Vide par défaut : la
+# commande `manage.py start_ngrok` refuse de démarrer sans token — voir
+# https://dashboard.ngrok.com/get-started/your-authtoken.
+NGROK_AUTHTOKEN = config("NGROK_AUTHTOKEN", default="")
 
 # Thème de l'admin Django (django-unfold) — couleurs alignées sur la charte
 # frontend (voir code/frontend/src/index.css : --color-brand et dérivés).
