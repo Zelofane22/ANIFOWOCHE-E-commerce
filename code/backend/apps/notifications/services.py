@@ -3,6 +3,7 @@ import logging
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
 
 from apps.users.models import Profile
 
@@ -83,12 +84,12 @@ class ResendClient:
         self.api_key = settings.RESEND_API_KEY
         self.from_email = settings.RESEND_FROM_EMAIL
 
-    def send_email(self, *, to_email, subject, message):
+    def send_email(self, *, to_email, subject, html):
         payload = {
             "from": self.from_email,
             "to": [to_email],
             "subject": subject,
-            "html": f"<p>{message}</p>".replace("\n", "<br>"),
+            "html": html,
         }
         try:
             response = requests.post(
@@ -101,6 +102,20 @@ class ResendClient:
         except requests.RequestException as exc:
             raise NotificationDeliveryError(f"Échec d'envoi email Resend : {exc}") from exc
         return response.json().get("id", "")
+
+
+def _render_email_html(*, title, message, cta_label="", cta_url=""):
+    return render_to_string(
+        "emails/base_email.html",
+        {
+            "title": title,
+            "message": message,
+            "preheader": message,
+            "cta_label": cta_label,
+            "cta_url": cta_url,
+            "logo_url": f"{settings.FRONTEND_BASE_URL}/anifowoche-logo.png",
+        },
+    )
 
 
 def _resolve_channel(user):
@@ -148,7 +163,7 @@ def _send_whatsapp(*, event, recipient_phone, message):
     return notification
 
 
-def _send_email(*, event, recipient_email, subject, message):
+def _send_email(*, event, recipient_email, subject, message, title, cta_label="", cta_url=""):
     if not recipient_email:
         return None
     notification = Notification.objects.create(
@@ -158,7 +173,8 @@ def _send_email(*, event, recipient_email, subject, message):
         message=message,
     )
     try:
-        message_id = ResendClient().send_email(to_email=recipient_email, subject=subject, message=message)
+        html = _render_email_html(title=title, message=message, cta_label=cta_label, cta_url=cta_url)
+        message_id = ResendClient().send_email(to_email=recipient_email, subject=subject, html=html)
         notification.status = Notification.Status.SENT
         notification.provider_message_id = message_id
     except NotificationDeliveryError as exc:
@@ -204,17 +220,24 @@ def _send_sms(*, event, recipient_phone, message):
     return notification
 
 
-def _notify_for_order(*, event, order, message, subject):
-    """Envoie sur le canal effectif du client propriétaire de la commande —
-    email par défaut ; WhatsApp/SMS seulement si le client les préfère ET que
-    l'admin les a activés (voir NotificationSettings, Sprint 6)."""
+def _notify_for_order(*, event, order, message, subject, title, cta_label="", cta_url=""):
+    """Envoie sur le canal effectif du client propriétaire de la commande,
+    avec un rendu HTML pour les emails lorsqu'un email est utilisé."""
     channel = _resolve_channel(order.customer)
     if channel == Notification.Channel.WHATSAPP:
         return _send_whatsapp(event=event, recipient_phone=order.phone, message=message)
     if channel == Notification.Channel.SMS:
         return _send_sms(event=event, recipient_phone=order.phone, message=message)
     if order.email:
-        return _send_email(event=event, recipient_email=order.email, subject=subject, message=message)
+        return _send_email(
+            event=event,
+            recipient_email=order.email,
+            subject=subject,
+            message=message,
+            title=title,
+            cta_label=cta_label,
+            cta_url=cta_url,
+        )
     return None
 
 
@@ -229,6 +252,9 @@ def notify_order_confirmation(order):
         order=order,
         message=message,
         subject=f"Commande ANIFOWOCHE #{order.pk} reçue",
+        title="Commande confirmée",
+        cta_label="Suivre ma commande",
+        cta_url=f"{settings.FRONTEND_BASE_URL}/compte",
     )
 
 
@@ -243,6 +269,9 @@ def notify_delivery_in_transit(delivery):
         order=order,
         message=message,
         subject=f"Commande ANIFOWOCHE #{order.pk} en route",
+        title="Votre commande est en route",
+        cta_label="Suivre ma commande",
+        cta_url=f"{settings.FRONTEND_BASE_URL}/compte",
     )
 
 
@@ -254,6 +283,9 @@ def notify_delivery_confirmed(delivery):
         order=order,
         message=message,
         subject=f"Commande ANIFOWOCHE #{order.pk} livrée",
+        title="Commande livrée",
+        cta_label="Voir mon compte",
+        cta_url=f"{settings.FRONTEND_BASE_URL}/compte",
     )
 
 
@@ -269,7 +301,45 @@ def notify_invoice(payment):
         order=order,
         message=message,
         subject=f"Facture — commande ANIFOWOCHE #{order.pk}",
+        title="Votre facture ANIFOWOCHE",
+        cta_label="Voir mon compte",
+        cta_url=f"{settings.FRONTEND_BASE_URL}/compte",
     )
+
+
+def resend_notification(notification):
+    """Retente l'envoi d'une notification existante (même message, même destinataire)."""
+    if notification.channel == Notification.Channel.EMAIL:
+        try:
+            html = _render_email_html(title=notification.get_event_display(), message=notification.message)
+            message_id = ResendClient().send_email(
+                to_email=notification.recipient_email,
+                subject=f"ANIFOWOCHE — {notification.get_event_display()}",
+                html=html,
+            )
+        except NotificationDeliveryError as exc:
+            notification.status = Notification.Status.FAILED
+            notification.error_detail = str(exc)
+        else:
+            notification.status = Notification.Status.SENT
+            notification.provider_message_id = message_id
+            notification.error_detail = ""
+    elif notification.channel == Notification.Channel.WHATSAPP:
+        try:
+            message_id = WhatsAppClient().send_text_message(
+                to_phone=notification.recipient_phone, message=notification.message
+            )
+        except NotificationDeliveryError as exc:
+            notification.status = Notification.Status.FAILED
+            notification.error_detail = str(exc)
+        else:
+            notification.status = Notification.Status.SENT
+            notification.provider_message_id = message_id
+            notification.error_detail = ""
+    else:
+        raise NotificationDeliveryError(f"Canal non pris en charge pour le renvoi : {notification.channel}")
+    notification.save(update_fields=["status", "provider_message_id", "error_detail"])
+    return notification
 
 
 def notify_account_created(user):
@@ -288,6 +358,9 @@ def notify_account_created(user):
             recipient_email=user.email,
             subject="Bienvenue sur ANIFOWOCHE",
             message=message,
+            title=f"Bienvenue, {user.first_name or user.username} !",
+            cta_label="Découvrir la boutique",
+            cta_url=settings.FRONTEND_BASE_URL,
         )
     return None
 

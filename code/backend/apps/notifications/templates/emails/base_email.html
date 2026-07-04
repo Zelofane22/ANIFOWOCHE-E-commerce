@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#fffaf0; font-family:'Manrope','Inter',Arial,sans-serif;">
+  <span style="display:none; max-height:0; overflow:hidden; opacity:0;">{{ preheader }}</span>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fffaf0; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #f0e5cc;">
+          <tr>
+            <td style="background-color:#c99f08; height:6px; line-height:6px; font-size:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:32px 32px 16px 32px;">
+              <img src="{{ logo_url }}" alt="ANIFOWOCHE" width="140" style="display:block; max-width:140px; height:auto;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 40px 0 40px;">
+              <h1 style="margin:0 0 16px 0; color:#1a1a1a; font-size:22px; line-height:1.3; font-weight:700; text-align:center;">{{ title }}</h1>
+              <div style="color:#333333; font-size:15px; line-height:1.6;">
+                {{ message|linebreaks }}
+              </div>
+            </td>
+          </tr>
+          {% if cta_url %}
+          <tr>
+            <td align="center" style="padding:24px 40px 8px 40px;">
+              <a href="{{ cta_url }}" style="display:inline-block; background-color:#c99f08; color:#1a1a1a; text-decoration:none; font-weight:700; font-size:15px; padding:14px 28px; border-radius:8px;">{{ cta_label }}</a>
+            </td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td style="padding:32px 40px 32px 40px;">
+              <hr style="border:none; border-top:1px solid #f0e5cc; margin:0 0 20px 0;">
+              <p style="margin:0; color:#6b6b6b; font-size:12px; line-height:1.6; text-align:center;">
+                ANIFOWOCHE — cet email est envoyé automatiquement suite à votre activité sur notre boutique.<br>
+                Merci de ne pas répondre directement à ce message.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

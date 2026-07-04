@@ -1,10 +1,29 @@
-from unfold.admin import ModelAdmin
-
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse
+from unfold.admin import ModelAdmin
 
 from .models import Notification, NotificationSettings
+from .services import NotificationDeliveryError, resend_notification
+
+
+@admin.action(description="Renvoyer la/les notification(s) sélectionnée(s)")
+def resend_notifications(modeladmin, request, queryset):
+    sent, failed = 0, 0
+    for notification in queryset:
+        try:
+            resend_notification(notification)
+        except NotificationDeliveryError:
+            failed += 1
+            continue
+        if notification.status == Notification.Status.SENT:
+            sent += 1
+        else:
+            failed += 1
+    if sent:
+        modeladmin.message_user(request, f"{sent} notification(s) renvoyée(s) avec succès.", messages.SUCCESS)
+    if failed:
+        modeladmin.message_user(request, f"{failed} notification(s) toujours en échec.", messages.WARNING)
 
 
 @admin.register(Notification)
@@ -13,6 +32,7 @@ class NotificationAdmin(ModelAdmin):
     list_filter = ["event", "channel", "status"]
     search_fields = ["recipient_phone", "recipient_email"]
     readonly_fields = ["provider_message_id", "error_detail"]
+    actions = [resend_notifications]
 
 
 @admin.register(NotificationSettings)
