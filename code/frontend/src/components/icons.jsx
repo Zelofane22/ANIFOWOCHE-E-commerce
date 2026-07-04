@@ -141,3 +141,24 @@ export const CircleIcon = (props) => (
     <circle cx="12" cy="12" r="10" />
   </Icon>
 );
+
+export const UserIcon = (props) => (
+  <Icon {...props}>
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </Icon>
+);
+
+export const ChevronDownIcon = (props) => (
+  <Icon {...props}>
+    <path d="m6 9 6 6 6-6" />
+  </Icon>
+);
+
+export const MenuIcon = (props) => (
+  <Icon {...props}>
+    <path d="M4 6h16" />
+    <path d="M4 12h16" />
+    <path d="M4 18h16" />
+  </Icon>
+);
