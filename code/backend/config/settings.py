@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 
 import dj_database_url
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ON_RENDER = bool(os.environ.get("RENDER"))
@@ -30,6 +31,15 @@ def _normalize_origins(origins):
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=not ON_RENDER, cast=bool)
 ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()))
+
+# Hors DEBUG (déploiement réel), refuser de démarrer avec une clé de secours ou trop
+# courte pour signature JWT/session — évite de lancer en prod avec la valeur de
+# .env.example jamais remplacée (voir docs/security-review.md, US-38).
+if not DEBUG and (SECRET_KEY in {"dev-secret-key-change-me", "change-me"} or len(SECRET_KEY) < 32):
+    raise ImproperlyConfigured(
+        "SECRET_KEY doit être une valeur aléatoire d'au moins 32 caractères en production "
+        "(DEBUG=False) — voir backend/.env.example pour la commande de génération."
+    )
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
@@ -185,6 +195,7 @@ REST_FRAMEWORK = {
         "anon": "60/minute",
         "user": "300/minute",
         "auth": "10/minute",
+        "payments": "20/minute",
     },
 }
 

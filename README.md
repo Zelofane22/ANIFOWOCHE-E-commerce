@@ -6,7 +6,7 @@
 
 | Statut | Durée MVP | Budget/mois | Zone cible |
 |--------|-----------|-------------|------------|
-| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
+| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E9) partiel — rôles admin + revue sécurité faits, paiement/WhatsApp/monitoring réels en attente de clés externes | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
 
 ---
 
@@ -23,6 +23,8 @@
 | [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints MVP (terminé) |
 | [docs/sprints/planning-v2.md](docs/sprints/planning-v2.md) | Planning v2 (post-MVP) — sprints 5+ par priorité/dépendance, sans capacité horaire fixe |
 | [docs/sprints/sprint5-progress.md](docs/sprints/sprint5-progress.md) | Suivi des tâches Sprint 5 (terminé) |
+| [docs/sprints/sprint6-progress.md](docs/sprints/sprint6-progress.md) | Suivi des tâches Sprint 6 (partiel — rôles admin + sécurité faits, reste en attente de clés externes) |
+| [docs/security-review.md](docs/security-review.md) | Revue de sécurité Sprint 6 (US-38) — rate limiting, secrets, HTTPS, dépendances |
 | [docs/sprints/retro-sprint.md](docs/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
 | [docs/docker.md](docs/docker.md) | Lancer le projet en local avec Docker |

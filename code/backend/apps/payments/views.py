@@ -4,6 +4,7 @@ import logging
 from django.conf import settings
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.notifications.services import notify_invoice
@@ -34,9 +35,15 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class InitiatePaymentView(APIView):
-    """Crée un paiement et initie la transaction FedaPay (MTN/Moov/carte)."""
+    """Crée un paiement et initie la transaction FedaPay (MTN/Moov/carte).
+
+    Limité par un scope de rate limiting dédié (au lieu du seul throttle anon
+    générique) : chaque appel déclenche un appel payant à l'API FedaPay et crée
+    une ligne Payment — un abus serait coûteux, pas juste bruyant."""
 
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
 
     def post(self, request):
         serializer = InitiatePaymentSerializer(data=request.data)

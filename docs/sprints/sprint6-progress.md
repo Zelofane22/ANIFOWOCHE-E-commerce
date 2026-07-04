@@ -11,7 +11,7 @@ même mécanisme que [Sprint 5](sprint5-progress.md)). Chaque tâche ne démarre
 committée. Aucun push pendant la boucle — commits locaux uniquement.
 
 - [x] 1. US-35 — Rôles admin prédéfinis (Gestion catalogue / Gestion commandes / Support client) avec permissions pré-remplies
-- [ ] 2. US-38 — Revue de sécurité complète (rate limiting, secrets, HTTPS, dépendances à jour) avant ouverture publique
+- [x] 2. US-38 — Revue de sécurité complète (rate limiting, secrets, HTTPS, dépendances à jour) avant ouverture publique
 
 ## Hors boucle — en attente de l'utilisateur
 
