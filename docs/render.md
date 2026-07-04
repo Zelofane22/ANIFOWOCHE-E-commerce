@@ -31,8 +31,8 @@ Render génère ou injecte automatiquement `DATABASE_URL`, `SECRET_KEY`, `RENDER
 - `CLOUDINARY_API_SECRET`
 - `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_ACCESS_TOKEN`
-- `SENTRY_DSN` : DSN du projet Sentry « Django » (monitoring erreurs/performance). Sans cette
-  variable, Sentry reste inactif — le backend démarre normalement.
+- `SENTRY_DSN` : DSN du projet Sentry « Django » (monitoring erreurs/performance). Optionnel si le
+  DSN configuré par défaut dans `config/settings.py` convient ; à définir si le projet Sentry change.
 
 Optionnelles (valeurs par défaut définies dans `config/settings.py`, à surcharger pour changer les
 identifiants du superadmin créé automatiquement — voir [Superadmin par défaut](#superadmin-par-défaut)

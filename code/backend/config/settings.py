@@ -401,8 +401,11 @@ UNFOLD = {
 
 
 # ─── Sentry (monitoring d'erreurs et de performance) ─────────────────────────
-# Actif uniquement si SENTRY_DSN est défini (env vars Render) — inactif en dev.
-SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+# Peut être surchargé via SENTRY_DSN (Render) si le projet Sentry change.
+SENTRY_DSN = (
+    os.environ.get("SENTRY_DSN")
+    or "https://a6d8174a428bcbb4068726f522042875@o4511675639922688.ingest.us.sentry.io/4511675836661760"
+)
 if SENTRY_DSN:
     import sentry_sdk
 

@@ -6,10 +6,13 @@ import App from "./App.jsx";
 import ErrorFallback from "./components/ErrorFallback.jsx";
 import "./index.css";
 
-// Actif uniquement si VITE_SENTRY_DSN est défini (env vars Vercel) — inactif en dev.
-if (import.meta.env.VITE_SENTRY_DSN) {
+const sentryDsn =
+  import.meta.env.VITE_SENTRY_DSN ||
+  "https://bc2ff1efc6a18599ddff3c00895c5757@o4511675639922688.ingest.us.sentry.io/4511675843149824";
+
+if (sentryDsn) {
   Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
+    dsn: sentryDsn,
     environment: import.meta.env.MODE,
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: 0.1,

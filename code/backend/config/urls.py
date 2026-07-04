@@ -1,9 +1,14 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.core.views import StoreStatusView
 from apps.users.views import AuthTokenObtainPairView
+
+
+def trigger_error(_request):
+    1 / 0
 
 urlpatterns = [
     path("admin/", include("apps.core.urls")),
@@ -24,3 +29,6 @@ urlpatterns = [
     path("api/analytics/", include("apps.analytics.urls")),
     path("api/notifications/", include("apps.notifications.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns.append(path("sentry-debug/", trigger_error, name="sentry-debug"))

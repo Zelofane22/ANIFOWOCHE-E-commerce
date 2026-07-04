@@ -101,7 +101,7 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 - Output directory : `dist` (sortie Vite, relative à `code/frontend/`)
 - Déploiement automatique à chaque push sur `main`
 - Variable d'environnement : `VITE_API_BASE_URL` → URL publique de l'API backend Render, avec le suffixe `/api`, par exemple `https://anifowoche-backend.onrender.com/api`
-- Monitoring Sentry (optionnel, recommandé) : `VITE_SENTRY_DSN` (DSN du projet Sentry « React » — sans elle, Sentry est inactif) ; pour l'upload des source maps au build : `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (le plugin Vite ne s'active que si le token est présent)
+- Monitoring Sentry : le DSN du projet Sentry « React » est configuré par défaut dans le code et peut être surchargé via `VITE_SENTRY_DSN` ; pour l'upload des source maps au build : `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (le plugin Vite ne s'active que si le token est présent)
 - Le fichier [code/frontend/vercel.json](../code/frontend/vercel.json) force les rewrites SPA vers `index.html`, pour que les routes React (`/catalogue`, `/panier`, `/compte`, etc.) fonctionnent aussi après un rafraîchissement direct.
 
 ## Stratégie de branches
@@ -118,8 +118,8 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 | `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | Render | Autoriser les requêtes depuis le domaine Vercel |
 | Clés FedaPay / KkiaPay | Render | Paiement mobile money / carte |
 | `VITE_API_BASE_URL` | Vercel (Environment Variables) | URL de l'API consommée par le frontend, ex. `https://anifowoche-backend.onrender.com/api` |
-| `SENTRY_DSN` | Render | Monitoring erreurs/performance backend (inactif si absent) |
-| `VITE_SENTRY_DSN` | Vercel (Environment Variables) | Monitoring erreurs/performance frontend (inactif si absent) |
+| `SENTRY_DSN` | Render | Monitoring erreurs/performance backend (surcharge le DSN configuré par défaut) |
+| `VITE_SENTRY_DSN` | Vercel (Environment Variables) | Monitoring erreurs/performance frontend (surcharge le DSN configuré par défaut) |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Vercel (env de build) | Upload des source maps vers Sentry au build (plugin Vite inactif sans le token) |
 | Secrets GitHub Actions (si ajoutés plus tard) | GitHub repo → Settings → Secrets | Ex. tokens pour notifications CI |
 

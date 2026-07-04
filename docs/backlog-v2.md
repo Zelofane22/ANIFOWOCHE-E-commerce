@@ -48,7 +48,7 @@ créer des avis/promotions/bannières/retours, mais rien n'est visible ni action
 |----|-------------|----------|---------|
 | US-35 | En tant que super admin, j'attribue des rôles prédéfinis (ex. "Gestion catalogue", "Gestion commandes", "Support client") avec permissions pré-remplies, au lieu de cocher les permissions une par une | P2 | Seuls les groupes Django génériques existent, pas de rôles métier pré-configurés |
 | US-36 | En tant que super admin, je suis alerté sur des actions sensibles (suppression en masse, changement de permissions) | P3 | `LogEntry` déjà visible dans l'admin (US antérieure), pas d'alerting actif |
-| US-37 | En tant qu'admin, la base de données est sauvegardée automatiquement et les erreurs serveur sont monitorées (Sentry ou équivalent) | P1 | SDK Sentry intégré backend + frontend (inactif sans DSN) — reste les comptes sentry.io, les DSN sur Render/Vercel et les backups Render |
+| US-37 | En tant qu'admin, la base de données est sauvegardée automatiquement et les erreurs serveur sont monitorées (Sentry ou équivalent) | P1 | SDK Sentry intégré backend + frontend avec DSN configurés — reste l'upload des source maps via token Sentry et les backups Render |
 | US-38 | En tant qu'admin, une revue de sécurité complète est faite avant l'ouverture publique (rate limiting, secrets, HTTPS, dépendances) | P1 | Bases posées (JWT, CORS, throttling) mais pas d'audit formel |
 
 ## E10 — Qualité & CI (dette notée dans `docs/sprints/retro-sprint.md`)
