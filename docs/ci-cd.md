@@ -38,6 +38,7 @@ Fichier à créer : `.github/workflows/ci.yml`. Déclenché sur `push` et `pull_
 **Job `backend`**
 - Service `postgres:18` (conteneur éphémère pour les tests)
 - Setup Python 3.13
+- Variables CI : `DEBUG=False` et `SECRET_KEY` factice de plus de 32 caractères pour valider le garde-fou de configuration production sans utiliser de secret réel
 - `pip install -r code/backend/requirements.txt`
 - `python code/backend/manage.py test`
 

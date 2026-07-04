@@ -6,6 +6,12 @@ import globals from "globals";
 export default [
   { ignores: ["dist"] },
   {
+    files: ["vite.config.js"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
       ecmaVersion: 2024,

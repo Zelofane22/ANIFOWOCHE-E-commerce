@@ -4,11 +4,8 @@ import { getAddresses } from "../api/addresses.js";
 import { fetchNotificationSettings } from "../api/notifications.js";
 import { getOrders } from "../api/orders.js";
 import { fetchWishlist } from "../api/wishlist.js";
-import {
-  formatDate,
-  orderRef,
-  OrderStatusBadge,
-} from "../components/account/common.jsx";
+import { OrderStatusBadge } from "../components/account/common.jsx";
+import { formatDate, orderRef } from "../components/account/orderHelpers.js";
 import {
   ArrowRightIcon,
   ChevronRightIcon,
