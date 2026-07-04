@@ -32,6 +32,13 @@ Render génère ou injecte automatiquement `DATABASE_URL`, `SECRET_KEY`, `RENDER
 - `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_ACCESS_TOKEN`
 
+Optionnelles (valeurs par défaut définies dans `config/settings.py`, à surcharger pour changer les
+identifiants du superadmin créé automatiquement — voir [Superadmin par défaut](#superadmin-par-défaut)
+ci-dessous) :
+
+- `DEFAULT_SUPERUSER_USERNAME` (défaut : `anifowoche`)
+- `DEFAULT_SUPERUSER_PASSWORD` (défaut : `Anifowoche123!`)
+
 `DEBUG` est forcé à `False` dans le Blueprint. Django ajoute automatiquement le domaine Render fourni par `RENDER_EXTERNAL_HOSTNAME` à `ALLOWED_HOSTS`.
 
 `SECURE_SSL_REDIRECT` est activé par défaut sur Render. `SECURE_HSTS_SECONDS` reste à `0` au lancement ; augmente cette valeur uniquement quand le domaine final est validé en HTTPS.
@@ -42,14 +49,28 @@ Render génère ou injecte automatiquement `DATABASE_URL`, `SECRET_KEY`, `RENDER
 2. Sélectionner le fichier `render.yaml`.
 3. Renseigner les variables marquées `sync: false`.
 4. Appliquer le Blueprint.
-5. Après le premier déploiement, créer un superutilisateur depuis le Shell Render :
-
-```bash
-python manage.py createsuperuser
-```
+5. Après le premier déploiement, se connecter à `/admin` avec le superadmin créé automatiquement (voir
+   ci-dessous) — aucune commande manuelle nécessaire.
 
 Le frontend Vercel doit utiliser l'URL Render avec `/api`, par exemple :
 
 ```bash
 VITE_API_BASE_URL=https://anifowoche-backend.onrender.com/api
 ```
+
+## Superadmin par défaut
+
+Le script [build.sh](../code/backend/build.sh) exécute `python manage.py create_default_superuser` à
+chaque déploiement (commande idempotente : ne recrée rien si le compte existe déjà). Identifiants par
+défaut :
+
+| Champ | Valeur par défaut |
+|-------|--------------------|
+| Username | `anifowoche` |
+| Mot de passe | `Anifowoche123!` |
+
+`apps.core.middleware.ForceDefaultPasswordChangeMiddleware` oblige un changement de mot de passe dès la
+première connexion tant que ce mot de passe par défaut est actif — mais mieux vaut ne pas dépendre
+uniquement de ce garde-fou : renseigner `DEFAULT_SUPERUSER_USERNAME` / `DEFAULT_SUPERUSER_PASSWORD` sur
+Render avant le premier déploiement en production évite d'exposer, même brièvement, un mot de passe connu
+publiquement (il est visible en clair dans ce dépôt).

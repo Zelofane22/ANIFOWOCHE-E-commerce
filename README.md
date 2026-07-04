@@ -26,6 +26,7 @@
 | [docs/sprints/retro-sprint.md](docs/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
 | [docs/docker.md](docs/docker.md) | Lancer le projet en local avec Docker |
+| [docs/render.md](docs/render.md) | Déploiement backend sur Render — Blueprint, variables d'environnement, superadmin par défaut |
 
 ---
 
@@ -51,9 +52,9 @@ anifowoche/
 │   │       ├── products/     # Modèles, serializers, vues API — Produits (+ galerie)
 │   │       ├── orders/       # Modèles, serializers, vues API — Commandes (+ coupons)
 │   │       ├── payments/     # Intégration FedaPay (sandbox) + webhook
-│   │       ├── users/        # Authentification JWT (inscription, connexion)
+│   │       ├── users/        # Authentification JWT + profil (téléphone, préférence notif.)
 │   │       ├── delivery/     # Zones/créneaux Cotonou, suivi de livraison
-│   │       ├── notifications/ # Client WhatsApp Business (confirmation, en route)
+│   │       ├── notifications/ # WhatsApp Business + email (Resend), selon préférence client
 │   │       ├── reviews/      # Avis produits (lecture approuvés + soumission)
 │   │       ├── content/      # Bannières carrousel accueil
 │   │       ├── promotions/   # Promotions actives + validation coupons
@@ -77,21 +78,22 @@ Toutes les routes sont préfixées par `/api/`. Détails complets des variables 
 | Commandes | `POST /orders/` (compte requis, `coupon_code` optionnel) · `GET/PATCH /orders/{id}/`, `GET /orders/` | Création authentifiée · lecture/gestion réservées au staff |
 | Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé, liste réservée au staff |
 | Livraison | `GET /delivery/zones/`, `GET /delivery/slots/` · `POST /delivery/` (checkout) · `GET/PATCH /delivery/{id}/` | Lecture zones/créneaux publique, gestion réservée au staff |
-| Authentification | `POST /auth/register/`, `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
+| Authentification | `POST /auth/register/` (téléphone + préférence de notification optionnels), `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
 | Avis | `GET /reviews/?product__slug=...` (avis approuvés) · `POST /reviews/` (soumission, modération admin) | Public |
 | Contenu | `GET /content/banners/` (bannières publiées, carrousel accueil) | Public |
 | Promotions | `POST /promotions/coupons/validate/` (vérifie un code sans le consommer) | Public |
 | Retours | `POST /returns/` (demande sur une commande possédée) · `GET /returns/` | Utilisateur connecté (scope à ses propres commandes) · staff voit tout |
 | Wishlist | `GET /wishlist/`, `POST /wishlist/`, `DELETE /wishlist/{product_id}/` | Utilisateur connecté |
-| Notifications | déclenchées automatiquement (confirmation de commande, livraison en route) — pas d'endpoint direct | — |
+| Notifications | déclenchées automatiquement (création de compte, commande reçue, facture, livraison en route/livrée) — WhatsApp ou email (Resend) selon la préférence du client, pas d'endpoint direct | — |
 
 Dashboard admin frontend : route `/admin` (visible et accessible seulement aux comptes `is_staff`).
 
-Cred anifowoche/Anifowoche123!
+Superadmin créé automatiquement au déploiement (voir [docs/render.md](docs/render.md)) : identifiants par
+défaut `anifowoche` / `Anifowoche123!` — changement de mot de passe forcé à la première connexion.
 
 ## ✅ Tests
 
-Suite de tests Django (67 tests, appels externes FedaPay/WhatsApp mockés) :
+Suite de tests Django (77 tests, appels externes FedaPay/WhatsApp/Resend mockés) :
 
 ```
 docker compose -f code/docker-compose.yml exec backend python manage.py test

@@ -17,11 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
-    """Consultation des paiements — réservée au staff (dashboard admin)."""
+    """Consultation des paiements : le client authentifié consulte ses
+    propres paiements (via ses commandes, pour suivre l'état pendant le
+    paiement au checkout) ; le staff voit tout (dashboard admin)."""
 
     queryset = Payment.objects.all().select_related("order")
     serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated and not user.is_staff:
+            return qs.filter(order__customer=user)
+        return qs
 
 
 class InitiatePaymentView(APIView):

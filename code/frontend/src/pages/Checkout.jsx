@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
-import { initiatePayment } from "../api/payments.js";
+import { getPayment, initiatePayment } from "../api/payments.js";
 import { validateCoupon } from "../api/promotions.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
@@ -15,6 +15,45 @@ const PAYMENT_METHODS = [
   { value: "moov", label: "Moov Money", detail: "Paiement mobile sécurisé", badge: "MOOV" },
   { value: "card", label: "Carte Visa / Mastercard", detail: "Carte bancaire internationale", badge: "VISA" },
 ];
+
+const PAYMENT_POLL_INTERVAL_MS = 2000;
+const PAYMENT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+const PAYMENT_FAILURE_STATUSES = ["declined", "canceled", "failed"];
+
+// Sonde le statut réel du paiement (mis à jour par le webhook FedaPay) pendant que
+// le client complète le paiement dans la fenêtre ouverte, jusqu'à approbation,
+// échec, fermeture manuelle de la fenêtre ou expiration du délai.
+function waitForPaymentApproval(paymentId, popup) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(async () => {
+      if (!popup || popup.closed) {
+        window.clearInterval(timer);
+        resolve("closed");
+        return;
+      }
+      if (Date.now() - startedAt > PAYMENT_POLL_TIMEOUT_MS) {
+        window.clearInterval(timer);
+        resolve("timeout");
+        return;
+      }
+      try {
+        const payment = await getPayment(paymentId);
+        if (payment.status === "approved") {
+          window.clearInterval(timer);
+          popup.close();
+          resolve("approved");
+        } else if (PAYMENT_FAILURE_STATUSES.includes(payment.status)) {
+          window.clearInterval(timer);
+          popup.close();
+          resolve(payment.status);
+        }
+      } catch {
+        // Erreur réseau transitoire : on continue de sonder jusqu'au prochain intervalle.
+      }
+    }, PAYMENT_POLL_INTERVAL_MS);
+  });
+}
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
@@ -34,6 +73,7 @@ export default function Checkout() {
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("mtn");
   const [submitting, setSubmitting] = useState(false);
+  const [waitingForPayment, setWaitingForPayment] = useState(false);
   const [error, setError] = useState(null);
 
   const [couponCode, setCouponCode] = useState("");
@@ -149,6 +189,11 @@ export default function Checkout() {
     setError(null);
     setSubmitting(true);
 
+    // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le blocage
+    // popup des navigateurs — elle affiche une page vide le temps que le paiement soit
+    // initié, puis est redirigée vers le vrai payment_url FedaPay.
+    const paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
+
     const zone = selectedZone;
     const slot = selectedSlot;
     const address = `${zone.name} — créneau : ${slot.label}${notes.trim() ? ` — ${notes.trim()}` : ""}`;
@@ -176,19 +221,31 @@ export default function Checkout() {
       let paymentStatus = "failed";
       try {
         const payment = await initiatePayment({ order_id: order.id, method: paymentMethod });
-        paymentStatus = payment.status;
+        if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
+          paymentWindow.location.href = payment.payment_url;
+          setWaitingForPayment(true);
+          paymentStatus = await waitForPaymentApproval(payment.id, paymentWindow);
+        } else {
+          paymentWindow?.close();
+          paymentStatus = payment.status;
+        }
       } catch {
         // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
+        paymentWindow?.close();
         paymentStatus = "failed";
       }
 
-      clearCart();
+      // Le panier n'est vidé que si le paiement est réellement approuvé — sinon le
+      // client garde ses articles pour pouvoir réessayer sans tout resaisir.
+      if (paymentStatus === "approved") clearCart();
       navigate("/commande/confirmation", {
         state: { orderId: order.id, total: orderTotal, paymentStatus },
       });
     } catch (err) {
+      paymentWindow?.close();
       setError(extractErrorMessage(err));
     } finally {
+      setWaitingForPayment(false);
       setSubmitting(false);
     }
   };
@@ -388,7 +445,7 @@ export default function Checkout() {
                   disabled={!canPay}
                   className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium disabled:bg-gray-200 disabled:text-gray-400"
                 >
-                  {submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
+                  {waitingForPayment ? "En attente du paiement…" : submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
                 </button>
               </div>
             </>
@@ -491,7 +548,7 @@ export default function Checkout() {
             disabled={!canPay}
             className="w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white disabled:bg-gray-200 disabled:text-gray-400"
           >
-            {submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
+            {waitingForPayment ? "En attente du paiement…" : submitting ? "Traitement…" : `Payer ${formatXof(total)}`}
           </button>
         </div>
       )}
