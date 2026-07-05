@@ -1,14 +1,24 @@
-from rest_framework import generics, permissions, viewsets
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from apps.notifications.services import notify_account_created
+from apps.notifications.services import ResendClient, _render_email_html, notify_account_created
 
 from .models import Address
-from .serializers import AddressSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    AddressSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
 
 
 class AuthTokenObtainPairView(TokenObtainPairView):
@@ -38,6 +48,51 @@ class RegisterView(generics.CreateAPIView):
             },
             status=201,
         )
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.get_user()
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/compte?reset_uid={uid}&reset_token={token}"
+            message = (
+                "Vous avez demandé la réinitialisation de votre mot de passe ANIFOWOCHE. "
+                "Ce lien est temporaire."
+            )
+            html = _render_email_html(
+                title="Réinitialiser votre mot de passe",
+                message=message,
+                cta_label="Choisir un nouveau mot de passe",
+                cta_url=reset_url,
+            )
+            ResendClient().send_email(
+                to_email=user.email,
+                subject="Réinitialisation de votre mot de passe ANIFOWOCHE",
+                html=html,
+            )
+        return Response(
+            {"detail": "Si un compte actif correspond à cet email, un lien de réinitialisation a été envoyé."}
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Mot de passe mis à jour."}, status=status.HTTP_200_OK)
 
 
 class MeView(APIView):

@@ -2,6 +2,10 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APITestCase
 
 from .models import Profile
@@ -10,6 +14,9 @@ User = get_user_model()
 
 
 class AuthApiTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+
     def test_register_returns_tokens_and_user(self):
         payload = {
             "username": "nouveau",
@@ -119,3 +126,39 @@ class AuthApiTests(APITestCase):
         profile = Profile.objects.get(user__username="avecpref")
         self.assertEqual(profile.notification_channel, Profile.NotificationChannel.EMAIL)
         self.assertEqual(profile.phone, "+22991112233")
+
+    @mock.patch("apps.users.views.ResendClient.send_email", return_value="resend-reset-id")
+    def test_password_reset_request_sends_link_without_exposing_account_lookup(self, mock_send_email):
+        User.objects.create_user(username="resetuser", email="reset@example.com", password="OldSecret123!")
+
+        response = self.client.post("/api/auth/password-reset/", {"email": "reset@example.com"}, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_send_email.call_count, 1)
+        self.assertIn("reset_uid=", mock_send_email.call_args.kwargs["html"])
+        self.assertIn("reset_token=", mock_send_email.call_args.kwargs["html"])
+
+        response = self.client.post("/api/auth/password-reset/", {"email": "absent@example.com"}, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_send_email.call_count, 1)
+
+    def test_password_reset_confirm_updates_password(self):
+        user = User.objects.create_user(username="resetconfirm", email="confirm@example.com", password="OldSecret123!")
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        response = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {
+                "uid": uid,
+                "token": token,
+                "password": "NewSecret123!",
+                "password2": "NewSecret123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("NewSecret123!"))
