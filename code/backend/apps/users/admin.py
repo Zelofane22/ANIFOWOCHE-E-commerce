@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.forms import UserChangeForm, UserCreationForm
 
 from apps.notifications.models import Notification
@@ -9,11 +9,47 @@ from apps.notifications.services import notify_account_created
 from .models import Address, AdminUser, Client, Profile
 
 
+class ProfileInline(StackedInline):
+    model = Profile
+    can_delete = False
+    extra = 0
+    verbose_name = "préférences de notification"
+
+
+class AddressInline(TabularInline):
+    model = Address
+    extra = 0
+    verbose_name = "adresse de livraison"
+    verbose_name_plural = "adresses de livraison"
+
+
+@admin.action(description="Envoyer le mail de bienvenue")
+def send_welcome_email(modeladmin, request, queryset):
+    sent, failed = 0, 0
+    for client in queryset:
+        notification = notify_account_created(client)
+        if notification and notification.status == Notification.Status.SENT:
+            sent += 1
+        else:
+            failed += 1
+    if sent:
+        modeladmin.message_user(request, f"{sent} message(s) de bienvenue envoyé(s).", messages.SUCCESS)
+    if failed:
+        modeladmin.message_user(
+            request,
+            f"{failed} envoi(s) en échec (voir l'app Notifications pour le détail de l'erreur).",
+            messages.WARNING,
+        )
+
+
 @admin.register(Client)
 class ClientAdmin(BaseUserAdmin, ModelAdmin):
     """Comptes clients (is_staff=False) — le queryset est filtré par le
     manager du proxy. Pas de bloc permissions : un client n'a jamais accès
-    à l'admin ; pour promouvoir un compte, passer par « Administrateurs »."""
+    à l'admin ; pour promouvoir un compte, passer par « Administrateurs ».
+
+    Le profil (préférences de notification) et les adresses de livraison
+    sont édités directement sur la fiche client via des inlines."""
 
     form = UserChangeForm
     add_form = UserCreationForm
@@ -26,6 +62,14 @@ class ClientAdmin(BaseUserAdmin, ModelAdmin):
         ("Dates importantes", {"fields": ("last_login", "date_joined")}),
     )
     readonly_fields = ["last_login", "date_joined"]
+    actions = [send_welcome_email]
+
+    def get_inlines(self, request, obj=None):
+        # Pas d'inlines sur le formulaire d'ajout : l'utilisateur n'existe
+        # pas encore (flux en deux étapes de UserAdmin).
+        if obj is None:
+            return []
+        return [ProfileInline, AddressInline]
 
 
 @admin.register(AdminUser)
@@ -70,35 +114,3 @@ class AdminUserAdmin(BaseUserAdmin, ModelAdmin):
         return True
 
 
-@admin.action(description="Envoyer le mail de bienvenue")
-def send_welcome_email(modeladmin, request, queryset):
-    sent, failed = 0, 0
-    for profile in queryset:
-        notification = notify_account_created(profile.user)
-        if notification and notification.status == Notification.Status.SENT:
-            sent += 1
-        else:
-            failed += 1
-    if sent:
-        modeladmin.message_user(request, f"{sent} message(s) de bienvenue envoyé(s).", messages.SUCCESS)
-    if failed:
-        modeladmin.message_user(
-            request,
-            f"{failed} envoi(s) en échec (voir l'app Notifications pour le détail de l'erreur).",
-            messages.WARNING,
-        )
-
-
-@admin.register(Address)
-class AddressAdmin(ModelAdmin):
-    list_display = ["id", "user", "label", "zone", "is_default", "created_at"]
-    list_filter = ["zone", "is_default"]
-    search_fields = ["user__username", "full_name", "phone"]
-
-
-@admin.register(Profile)
-class ProfileAdmin(ModelAdmin):
-    list_display = ["user", "notification_channel", "phone"]
-    list_filter = ["notification_channel"]
-    search_fields = ["user__username", "user__email", "phone"]
-    actions = [send_welcome_email]
