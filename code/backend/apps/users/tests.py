@@ -44,6 +44,20 @@ class AuthApiTests(APITestCase):
         response = self.client.post("/api/auth/register/", payload, format="json")
         self.assertEqual(response.status_code, 400)
 
+    def test_register_rejects_phone_longer_than_profile_column(self):
+        payload = {
+            "username": "phoneemail",
+            "email": "phoneemail@example.com",
+            "password": "SuperSecret123!",
+            "password2": "SuperSecret123!",
+            "phone": "fouadechitou@gmail.com",
+            "notification_channel": "email",
+        }
+        response = self.client.post("/api/auth/register/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("phone", response.data)
+        self.assertFalse(User.objects.filter(username="phoneemail").exists())
+
     def test_login_and_me(self):
         User.objects.create_user(username="loginuser", password="SuperSecret123!")
         login_response = self.client.post(
