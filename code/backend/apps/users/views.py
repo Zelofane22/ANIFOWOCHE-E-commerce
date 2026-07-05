@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
@@ -9,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from apps.notifications.services import ResendClient, _render_email_html, notify_account_created
+from apps.notifications.services import NotificationDeliveryError, ResendClient, _render_email_html, notify_account_created
 
 from .models import Address
 from .serializers import (
@@ -19,6 +21,8 @@ from .serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AuthTokenObtainPairView(TokenObtainPairView):
@@ -73,11 +77,14 @@ class PasswordResetRequestView(APIView):
                 cta_label="Choisir un nouveau mot de passe",
                 cta_url=reset_url,
             )
-            ResendClient().send_email(
-                to_email=user.email,
-                subject="Réinitialisation de votre mot de passe ANIFOWOCHE",
-                html=html,
-            )
+            try:
+                ResendClient().send_email(
+                    to_email=user.email,
+                    subject="Réinitialisation de votre mot de passe ANIFOWOCHE",
+                    html=html,
+                )
+            except NotificationDeliveryError:
+                logger.exception("Échec d'envoi du lien de réinitialisation pour l'utilisateur %s", user.pk)
         return Response(
             {"detail": "Si un compte actif correspond à cet email, un lien de réinitialisation a été envoyé."}
         )

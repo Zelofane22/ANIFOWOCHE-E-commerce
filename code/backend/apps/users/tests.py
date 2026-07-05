@@ -8,6 +8,8 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APITestCase
 
+from apps.notifications.services import NotificationDeliveryError
+
 from .models import Profile
 
 User = get_user_model()
@@ -141,6 +143,19 @@ class AuthApiTests(APITestCase):
         response = self.client.post("/api/auth/password-reset/", {"email": "absent@example.com"}, format="json")
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_send_email.call_count, 1)
+
+    @mock.patch(
+        "apps.users.views.ResendClient.send_email",
+        side_effect=NotificationDeliveryError("Resend indisponible"),
+    )
+    def test_password_reset_request_returns_generic_success_when_email_delivery_fails(self, mock_send_email):
+        User.objects.create_user(username="resetfail", email="resetfail@example.com", password="OldSecret123!")
+
+        response = self.client.post("/api/auth/password-reset/", {"email": "resetfail@example.com"}, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Si un compte actif correspond", response.data["detail"])
         self.assertEqual(mock_send_email.call_count, 1)
 
     def test_password_reset_confirm_updates_password(self):
