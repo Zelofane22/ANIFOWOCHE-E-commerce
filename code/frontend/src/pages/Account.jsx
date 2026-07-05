@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
+import { confirmPasswordReset, requestPasswordReset } from "../api/auth.js";
 import { getAddresses } from "../api/addresses.js";
 import { fetchNotificationSettings } from "../api/notifications.js";
 import { getOrders } from "../api/orders.js";
@@ -27,6 +28,7 @@ const emptyRegisterForm = {
   notification_channel: "email",
 };
 const emptyLoginForm = { username: "", password: "" };
+const emptyResetForm = { password: "", password2: "" };
 
 const NOTIFICATION_LABELS = { email: "Email", whatsapp: "WhatsApp", sms: "SMS" };
 
@@ -220,14 +222,20 @@ export default function Account() {
   const { user, loading, isAuthenticated, login, register, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const resetUid = searchParams.get("reset_uid");
+  const resetToken = searchParams.get("reset_token");
   const redirectTo = typeof location.state?.from === "string" ? location.state.from : null;
   const authMessage = typeof location.state?.authMessage === "string" ? location.state.authMessage : null;
   const [mode, setMode] = useState(
-    location.state?.authMode ?? (redirectTo ? "register" : "login"),
+    resetUid && resetToken ? "reset" : location.state?.authMode ?? (redirectTo ? "register" : "login"),
   );
   const [loginForm, setLoginForm] = useState(emptyLoginForm);
   const [registerForm, setRegisterForm] = useState(emptyRegisterForm);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetForm, setResetForm] = useState(emptyResetForm);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState({
     whatsapp_enabled: false,
@@ -247,6 +255,7 @@ export default function Account() {
   const handleLoginSubmit = async (event) => {
     event.preventDefault();
     setError(null);
+    setSuccess(null);
     setSubmitting(true);
     try {
       await login(loginForm);
@@ -261,10 +270,49 @@ export default function Account() {
   const handleRegisterSubmit = async (event) => {
     event.preventDefault();
     setError(null);
+    setSuccess(null);
     setSubmitting(true);
     try {
       await register(registerForm);
       if (redirectTo) navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleForgotSubmit = async (event) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+    try {
+      const data = await requestPasswordReset(resetEmail);
+      setSuccess(data.detail);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResetSubmit = async (event) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+    try {
+      await confirmPasswordReset({
+        uid: resetUid,
+        token: resetToken,
+        password: resetForm.password,
+        password2: resetForm.password2,
+      });
+      setResetForm(emptyResetForm);
+      setSuccess("Votre mot de passe a été mis à jour. Vous pouvez vous connecter.");
+      navigate("/compte", { replace: true });
+      setMode("login");
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -279,7 +327,11 @@ export default function Account() {
         <div className="mb-6 flex gap-4 border-b border-gray-200 text-sm font-medium">
           <button
             type="button"
-            onClick={() => setMode("login")}
+            onClick={() => {
+              setMode("login");
+              setError(null);
+              setSuccess(null);
+            }}
             className={`-mb-px border-b-2 px-1 py-2 ${
               mode === "login" ? "border-brand-dark text-brand-dark" : "border-transparent text-muted"
             }`}
@@ -288,7 +340,11 @@ export default function Account() {
           </button>
           <button
             type="button"
-            onClick={() => setMode("register")}
+            onClick={() => {
+              setMode("register");
+              setError(null);
+              setSuccess(null);
+            }}
             className={`-mb-px border-b-2 px-1 py-2 ${
               mode === "register" ? "border-brand-dark text-brand-dark" : "border-transparent text-muted"
             }`}
@@ -303,9 +359,69 @@ export default function Account() {
           </p>
         )}
 
+        {success && <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
         {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
-        {mode === "login" ? (
+        {mode === "reset" ? (
+          <form onSubmit={handleResetSubmit} className="flex flex-col gap-3">
+            <p className="text-sm text-muted">Choisissez un nouveau mot de passe pour votre compte.</p>
+            <input
+              type="password"
+              placeholder="Nouveau mot de passe"
+              required
+              value={resetForm.password}
+              onChange={(e) => setResetForm({ ...resetForm, password: e.target.value })}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+            />
+            <input
+              type="password"
+              placeholder="Confirmer le nouveau mot de passe"
+              required
+              value={resetForm.password2}
+              onChange={(e) => setResetForm({ ...resetForm, password2: e.target.value })}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium disabled:opacity-60"
+            >
+              {submitting ? "Mise à jour…" : "Mettre à jour le mot de passe"}
+            </button>
+          </form>
+        ) : mode === "forgot" ? (
+          <form onSubmit={handleForgotSubmit} className="flex flex-col gap-3">
+            <p className="text-sm text-muted">
+              Entrez l'email de votre compte. Si un compte actif existe, vous recevrez un lien sécurisé.
+            </p>
+            <input
+              type="email"
+              placeholder="Email"
+              required
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium disabled:opacity-60"
+            >
+              {submitting ? "Envoi…" : "Recevoir le lien"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setError(null);
+                setSuccess(null);
+              }}
+              className="text-sm font-medium text-brand-dark hover:underline"
+            >
+              Retour à la connexion
+            </button>
+          </form>
+        ) : mode === "login" ? (
           <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3">
             <input
               type="text"
@@ -329,6 +445,18 @@ export default function Account() {
               className="mt-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium disabled:opacity-60"
             >
               {submitting ? "Connexion…" : "Se connecter"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setError(null);
+                setSuccess(null);
+                setResetEmail(loginForm.username.includes("@") ? loginForm.username : "");
+              }}
+              className="self-start text-sm font-medium text-brand-dark hover:underline"
+            >
+              Mot de passe oublié ?
             </button>
           </form>
         ) : (
