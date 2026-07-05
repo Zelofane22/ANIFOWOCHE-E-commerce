@@ -12,7 +12,12 @@ from apps.orders.models import Order
 
 from .models import Payment, PaymentSettings
 from .serializers import InitiatePaymentSerializer, PaymentSerializer
-from .services import FedaPayClient, FedaPayError, verify_webhook_signature
+from .services import (
+    FedaPayError,
+    signal_payment_failure,
+    start_fedapay_transaction,
+    verify_webhook_signature,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,25 +88,13 @@ class InitiatePaymentView(APIView):
             amount_xof=order.total_xof,
         )
 
-        client = FedaPayClient()
         try:
-            transaction = client.create_transaction(
-                amount_xof=payment.amount_xof,
-                description=f"Commande ANIFOWOCHE #{order.pk}",
-                callback_url=f"{settings.FRONTEND_BASE_URL}/commande/confirmation?order={order.pk}",
-                customer_phone=order.phone,
-                customer_email=order.email,
-            )
-            transaction_id = transaction.get("id") or transaction.get("v1/transaction", {}).get("id")
-            payment.fedapay_transaction_id = str(transaction_id) if transaction_id else ""
-
-            token_data = client.generate_token(transaction_id) if transaction_id else {}
-            payment.payment_url = token_data.get("url", "")
-            payment.save(update_fields=["fedapay_transaction_id", "payment_url", "updated_at"])
+            start_fedapay_transaction(payment)
         except FedaPayError as exc:
             logger.warning("Initiation FedaPay échouée pour la commande #%s : %s", order.pk, exc)
             payment.status = Payment.Status.FAILED
             payment.save(update_fields=["status", "updated_at"])
+            signal_payment_failure(payment)
             return Response(
                 {"detail": str(exc), "payment": PaymentSerializer(payment).data},
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -151,5 +144,9 @@ class FedaPayWebhookView(APIView):
             order.status = Order.Status.PREPARED
             order.save(update_fields=["status", "updated_at"])
             notify_invoice(payment)
+        elif new_status in (Payment.Status.DECLINED, Payment.Status.CANCELED):
+            # US-34 : l'échec remonte dans la cloche backoffice, d'où l'admin
+            # peut ouvrir le paiement et le relancer.
+            signal_payment_failure(payment)
 
         return Response({"detail": "ok"})

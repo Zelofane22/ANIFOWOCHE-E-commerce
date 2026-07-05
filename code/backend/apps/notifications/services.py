@@ -289,6 +289,26 @@ def notify_delivery_confirmed(delivery):
     )
 
 
+def notify_payment_retry(payment):
+    """Envoie au client le nouveau lien de paiement après relance par l'admin
+    (US-34). Le lien figure aussi dans le corps du message pour les canaux
+    sans bouton (WhatsApp/SMS)."""
+    order = payment.order
+    message = (
+        f"Bonjour {order.full_name}, le paiement de votre commande ANIFOWOCHE #{order.pk} "
+        f"({payment.amount_xof} FCFA) n'a pas abouti. Vous pouvez le reprendre ici : {payment.payment_url}"
+    )
+    return _notify_for_order(
+        event=Notification.Event.PAYMENT_RETRY,
+        order=order,
+        message=message,
+        subject=f"Reprenez le paiement de votre commande ANIFOWOCHE #{order.pk}",
+        title="Votre paiement n'a pas abouti",
+        cta_label="Payer ma commande",
+        cta_url=payment.payment_url,
+    )
+
+
 def notify_invoice(payment):
     order = payment.order
     items_summary = ", ".join(f"{item.quantity}x {item.product.name}" for item in order.items.all())
