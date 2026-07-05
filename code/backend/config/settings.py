@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 import dj_database_url
 from decouple import Csv, config
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import DisallowedHost, ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ON_RENDER = bool(os.environ.get("RENDER"))
@@ -366,7 +366,7 @@ UNFOLD = {
                     {
                         "title": "Clients",
                         "icon": "group",
-                        "link": "/admin/auth/user/?is_staff__exact=0",
+                        "link": reverse_lazy("admin:users_client_changelist"),
                     },
                     {
                         "title": "Avis",
@@ -408,9 +408,9 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
-                        "title": "Utilisateurs",
+                        "title": "Administrateurs",
                         "icon": "manage_accounts",
-                        "link": "/admin/auth/user/?is_staff__exact=1",
+                        "link": reverse_lazy("admin:users_adminuser_changelist"),
                     },
                     {
                         "title": "Activité système",
@@ -439,6 +439,7 @@ if SENTRY_DSN:
         release=os.environ.get("RENDER_GIT_COMMIT", "") or None,
         # 10 % des requêtes tracées pour le monitoring de performance.
         traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        ignore_errors=[DisallowedHost],
         # Ne jamais envoyer les données personnelles (noms, téléphones,
         # adresses des clients) dans les événements.
         send_default_pii=False,

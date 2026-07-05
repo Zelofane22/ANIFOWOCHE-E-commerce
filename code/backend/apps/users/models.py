@@ -1,7 +1,48 @@
 from django.conf import settings
+from django.contrib.auth.models import User, UserManager
 from django.db import models
 
 from apps.delivery.models import DeliveryZone
+
+
+class ClientManager(UserManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_staff=False)
+
+
+class Client(User):
+    """Proxy sur auth.User : les comptes clients (is_staff=False).
+
+    Même table en base que les administrateurs — seule la présentation
+    dans l'admin est séparée, l'auth JWT et les FK restent sur auth.User.
+    """
+
+    objects = ClientManager()
+
+    class Meta:
+        proxy = True
+        verbose_name = "client"
+        verbose_name_plural = "clients"
+
+
+class AdminUserManager(UserManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_staff=True)
+
+
+class AdminUser(User):
+    """Proxy sur auth.User : les comptes administrateurs (is_staff=True).
+
+    Superadmin = is_superuser=True (100 % des droits) ; staff = agent dont
+    les droits sont limités aux permissions/groupes accordés par un superadmin.
+    """
+
+    objects = AdminUserManager()
+
+    class Meta:
+        proxy = True
+        verbose_name = "administrateur"
+        verbose_name_plural = "administrateurs"
 
 
 class Address(models.Model):
