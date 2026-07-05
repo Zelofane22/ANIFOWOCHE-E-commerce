@@ -366,7 +366,7 @@ UNFOLD = {
                     {
                         "title": "Clients",
                         "icon": "group",
-                        "link": "/admin/auth/user/?is_staff__exact=0",
+                        "link": reverse_lazy("admin:users_client_changelist"),
                     },
                     {
                         "title": "Avis",
@@ -408,9 +408,9 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
-                        "title": "Utilisateurs",
+                        "title": "Administrateurs",
                         "icon": "manage_accounts",
-                        "link": "/admin/auth/user/?is_staff__exact=1",
+                        "link": reverse_lazy("admin:users_adminuser_changelist"),
                     },
                     {
                         "title": "Activité système",
