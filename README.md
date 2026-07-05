@@ -29,6 +29,7 @@
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
 | [docs/docker.md](docs/docker.md) | Lancer le projet en local avec Docker |
 | [docs/render.md](docs/render.md) | Déploiement backend sur Render — Blueprint, variables d'environnement, superadmin par défaut |
+| [docs/backups.md](docs/backups.md) | Sauvegardes PostgreSQL (US-37) — workflow GitHub Actions chiffré, restauration, option Render payant |
 
 ---
 

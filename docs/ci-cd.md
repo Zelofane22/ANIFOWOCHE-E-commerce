@@ -9,6 +9,7 @@
 | CI — lint & tests | GitHub Actions | Push ou Pull Request, toute branche |
 | CD — backend | Render (Blueprint GitHub) | Push sur `main` |
 | CD — frontend | Vercel (intégration GitHub native) | Push sur `main` |
+| Sauvegarde BDD (US-37) | GitHub Actions ([db-backup.yml](../.github/workflows/db-backup.yml)) | Cron quotidien 03:00 UTC + manuel — voir [docs/backups.md](backups.md) |
 
 Le déploiement backend et frontend ne passe pas par GitHub Actions : Render et Vercel écoutent directement le repo GitHub via leur propre webhook et redéploient automatiquement à chaque push sur `main`. GitHub Actions est utilisé uniquement pour la CI (lint + tests) sur chaque PR, afin de bloquer une fusion qui casserait le build avant qu'elle n'atteigne `main` et ne déclenche un déploiement.
 
@@ -121,7 +122,7 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 | `SENTRY_DSN` | Render | Monitoring erreurs/performance backend (surcharge le DSN configuré par défaut) |
 | `VITE_SENTRY_DSN` | Vercel (Environment Variables) | Monitoring erreurs/performance frontend (surcharge le DSN configuré par défaut) |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Vercel (env de build) | Upload des source maps vers Sentry au build (plugin Vite inactif sans le token) |
-| Secrets GitHub Actions (si ajoutés plus tard) | GitHub repo → Settings → Secrets | Ex. tokens pour notifications CI |
+| `RENDER_DATABASE_URL`, `BACKUP_PASSPHRASE` | GitHub repo → Settings → Secrets → Actions | Sauvegarde quotidienne chiffrée de la BDD ([db-backup.yml](../.github/workflows/db-backup.yml), voir [docs/backups.md](backups.md)) |
 
 Aucun secret ne doit être committé dans `.env` — `code/backend/.env` et `code/frontend/.env` restent locaux (déjà ignorés via `.dockerignore`/git, à vérifier que `.gitignore` les exclut bien).
 
