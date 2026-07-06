@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from apps.delivery.models import DeliveryZone
 
+from .backends import normalize_phone
 from .models import Address, Profile
 
 User = get_user_model()
@@ -57,6 +58,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         if value and User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("Un compte existe déjà avec cet email.")
         return value
+
+    def validate_phone(self, value):
+        return normalize_phone(value) if value else value
 
     def validate(self, attrs):
         password2 = attrs.pop("password2")
