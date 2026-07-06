@@ -139,6 +139,11 @@ DATABASES = {
     "default": dj_database_url.config(default=_local_db_url, conn_max_age=600)
 }
 
+AUTHENTICATION_BACKENDS = [
+    "apps.users.backends.EmailOrPhoneModelBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},

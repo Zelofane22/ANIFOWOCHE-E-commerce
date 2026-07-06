@@ -1,0 +1,75 @@
+name: DB Backup
+
+# US-37 — Sauvegarde quotidienne de la base PostgreSQL Render.
+# Le plan free Render ne fournit aucune sauvegarde automatique : ce workflow
+# fait un pg_dump via l'URL de connexion externe, chiffre le dump (GPG,
+# AES-256) et le stocke comme artifact GitHub (30 jours de rétention).
+# Secrets requis (repo → Settings → Secrets → Actions) :
+#   - RENDER_DATABASE_URL : "External Database URL" du dashboard Render
+#   - BACKUP_PASSPHRASE   : passphrase de chiffrement des dumps
+# Sans ces secrets, le workflow se termine sans erreur (simple notice) pour
+# ne pas générer un échec quotidien tant que la prod n'est pas branchée.
+# Procédure de restauration : docs/backups.md
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # tous les jours à 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::notice::RENDER_DATABASE_URL ou BACKUP_PASSPHRASE absent — sauvegarde ignorée."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install PostgreSQL client 18
+        if: steps.check.outputs.configured == 'true'
+        # Le client apt d'ubuntu-latest est plus ancien que le serveur (PG 18) :
+        # pg_dump refuse de dumper un serveur plus récent que lui, d'où le dépôt PGDG.
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+
+      - name: Dump database
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          pg_dump "$DATABASE_URL" \
+            --format=custom \
+            --no-owner \
+            --no-privileges \
+            --file="anifowoche-db-$(date -u +%F).dump"
+
+      - name: Encrypt dump
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          DUMP="anifowoche-db-$(date -u +%F).dump"
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "$BACKUP_PASSPHRASE" \
+            --output "$DUMP.gpg" "$DUMP"
+          rm "$DUMP"
+
+      - name: Upload encrypted backup
+        if: steps.check.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: anifowoche-db-backup-${{ github.run_id }}
+          path: "*.dump.gpg"
+          retention-days: 30
+          if-no-files-found: error

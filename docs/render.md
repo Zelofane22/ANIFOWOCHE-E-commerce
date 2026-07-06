@@ -2,6 +2,9 @@
 
 [← Retour au README](../README.md)
 
+> 💾 **Sauvegardes de la base** : le plan free Render n'inclut aucun backup automatique — un workflow
+> GitHub Actions quotidien s'en charge, voir [docs/backups.md](backups.md) (US-37).
+
 ## Configuration du service
 
 Le backend est prêt pour un déploiement Render via le Blueprint [render.yaml](../render.yaml).

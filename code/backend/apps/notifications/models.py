@@ -52,6 +52,7 @@ class Notification(models.Model):
         INVOICE = "invoice", "Facture"
         ACCOUNT_CREATED = "account_created", "Création de compte"
         SETTING_CHANGE_REQUESTED = "setting_change_requested", "Demande de changement de réglage"
+        PAYMENT_RETRY = "payment_retry", "Relance de paiement"
 
     class Status(models.TextChoices):
         PENDING = "pending", "En attente"
@@ -88,6 +89,7 @@ class BackofficeNotification(models.Model):
         PROVIDER_ERROR = "provider_error", "Erreur fournisseur"
         CONFIGURATION = "configuration", "Problème de configuration"
         SYSTEM_ERROR = "system_error", "Erreur système"
+        PAYMENT_FAILED = "payment_failed", "Paiement échoué"
 
     class Severity(models.TextChoices):
         INFO = "info", "Info"
