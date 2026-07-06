@@ -425,7 +425,7 @@ export default function Account() {
           <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3">
             <input
               type="text"
-              placeholder="Nom d'utilisateur"
+              placeholder="Email ou numéro de téléphone"
               required
               value={loginForm.username}
               onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}

@@ -79,6 +79,48 @@ class AuthApiTests(APITestCase):
         self.assertEqual(me_response.status_code, 200)
         self.assertEqual(me_response.data["username"], "loginuser")
 
+    def test_login_with_email(self):
+        User.objects.create_user(
+            username="loginemail", email="loginemail@example.com", password="SuperSecret123!"
+        )
+        login_response = self.client.post(
+            "/api/auth/token/",
+            {"username": "loginemail@example.com", "password": "SuperSecret123!"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200)
+
+    def test_login_with_phone(self):
+        user = User.objects.create_user(username="loginphone", password="SuperSecret123!")
+        Profile.objects.create(user=user, phone="+22991112233")
+        login_response = self.client.post(
+            "/api/auth/token/",
+            {"username": "+22991112233", "password": "SuperSecret123!"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200)
+
+    def test_login_with_phone_ignores_spacing_differences(self):
+        user = User.objects.create_user(username="loginphone2", password="SuperSecret123!")
+        Profile.objects.create(user=user, phone="+22991112233")
+        login_response = self.client.post(
+            "/api/auth/token/",
+            {"username": "+229 91 11 22 33", "password": "SuperSecret123!"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200)
+
+    def test_login_rejects_wrong_password_for_email(self):
+        User.objects.create_user(
+            username="loginemail2", email="loginemail2@example.com", password="SuperSecret123!"
+        )
+        login_response = self.client.post(
+            "/api/auth/token/",
+            {"username": "loginemail2@example.com", "password": "WrongPassword!"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 401)
+
     def test_me_requires_authentication(self):
         response = self.client.get("/api/auth/me/")
         self.assertEqual(response.status_code, 401)
