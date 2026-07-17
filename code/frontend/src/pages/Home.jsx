@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { fetchBanners } from "../api/content.js";
 import { fetchProducts } from "../api/products.js";
 import ProductCard from "../components/ProductCard.jsx";
+import Seo from "../components/Seo.jsx";
 import { optimizedImage } from "../utils/imageUrl.js";
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
 
   return (
     <div>
+      <Seo path="/" />
       <HeroCarousel />
 
       <div className="mx-auto max-w-7xl px-4">

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { fetchCategories, fetchProducts } from "../api/products.js";
 import ProductCard from "../components/ProductCard.jsx";
+import Seo from "../components/Seo.jsx";
 
 export default function Catalogue() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,6 +87,11 @@ export default function Catalogue() {
 
   return (
     <div>
+      <Seo
+        title="Catalogue"
+        description="Parcourez tous les tissus, vêtements et accessoires homme disponibles chez ANIFOWOCHE, avec livraison à Cotonou."
+        path="/catalogue"
+      />
       <section className="bg-brand-pale">
         <div className="mx-auto max-w-7xl px-4 py-8 md:py-10">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-dark">Catalogue</p>
