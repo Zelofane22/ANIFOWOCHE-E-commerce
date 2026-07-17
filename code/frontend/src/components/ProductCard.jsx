@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { formatXof } from "../utils/format.js";
+import { optimizedImage } from "../utils/imageUrl.js";
 
 export default function ProductCard({ product }) {
   const stock = product.stock ?? 0;
@@ -14,7 +15,7 @@ export default function ProductCard({ product }) {
       <div className="relative aspect-square w-full overflow-hidden bg-brand-pale">
         {product.image ? (
           <img
-            src={product.image}
+            src={optimizedImage(product.image, 400)}
             alt={product.name}
             loading="lazy"
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"

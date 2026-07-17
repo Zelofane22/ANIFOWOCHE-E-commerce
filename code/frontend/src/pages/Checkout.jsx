@@ -12,6 +12,7 @@ import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { waitForPaymentApproval } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
+import { optimizedImage } from "../utils/imageUrl.js";
 
 const DEFAULT_STORE_STATUS = {
   online_payment_enabled: true,
@@ -484,7 +485,7 @@ export default function Checkout() {
               {items.map((item) => (
                 <div key={item.slug} className="flex items-center gap-3">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-brand-pale">
-                    {item.image && <img src={item.image} alt={item.name} className="h-full w-full object-cover" />}
+                    {item.image && <img src={optimizedImage(item.image, 120)} alt={item.name} className="h-full w-full object-cover" />}
                     <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-charcoal px-1 text-[10px] font-bold text-white">
                       {item.quantity}
                     </span>

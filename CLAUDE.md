@@ -27,3 +27,9 @@ Directives pour Claude Code sur ce projet (ANIFOWOCHE E-commerce).
 ## Design
 Toujours utiliser ou s'inpirer de la maque figma pour les interfaces frontend.
 /home/zelofane/projets/ANIFOWOCHE-E-commerce/docs/ANIFIWOSHE Mockup Figma
+
+## choix de model et de niveau d'effort
+Avant d'executer une tâche, identifie d'abord le model adapté pour la tâche.
+Sortie attendue : Model : Effort
+Ensuite tu attends ma confirmation que j'ai changé de model avant d'excuter la tâche.
+Cela devrais permettre le gaspillage de tockens.

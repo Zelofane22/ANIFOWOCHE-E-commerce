@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { fetchBanners } from "../api/content.js";
 import { fetchProducts } from "../api/products.js";
 import ProductCard from "../components/ProductCard.jsx";
+import { optimizedImage } from "../utils/imageUrl.js";
 
 export default function Home() {
   const [topProducts, setTopProducts] = useState([]);
@@ -146,7 +147,7 @@ function HeroCarousel() {
     <section className="relative min-h-[430px] overflow-hidden bg-charcoal">
       {banner.image && (
         <img
-          src={banner.image}
+          src={optimizedImage(banner.image, 1600)}
           alt={banner.title}
           className="absolute inset-0 h-full w-full object-cover opacity-50"
         />

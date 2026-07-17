@@ -24,6 +24,7 @@ import {
 } from "../components/icons.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
+import { optimizedImage } from "../utils/imageUrl.js";
 
 const TIMELINE_STEPS = [
   { status: "received", label: "Commande reçue" },
@@ -398,7 +399,7 @@ function OrderDetailContent() {
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-brand-pale">
                     {item.product_image && (
                       <img
-                        src={item.product_image}
+                        src={optimizedImage(item.product_image, 200)}
                         alt={item.product_name}
                         className="h-full w-full object-cover"
                         loading="lazy"
