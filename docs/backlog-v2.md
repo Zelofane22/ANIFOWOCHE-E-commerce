@@ -39,8 +39,9 @@ créer des avis/promotions/bannières/retours, mais rien n'est visible ni action
 | ID | User Story | Priorité | Constat |
 |----|-------------|----------|---------|
 | US-32 | En tant que client, je paie réellement via FedaPay/KkiaPay sandbox puis en production | P1 | `docs/sprints/retro-sprint.md` : intégration codée avec clés placeholder, jamais testée avec de vraies clés |
-| US-33 | En tant que client, je reçois une vraie notification WhatsApp (confirmation, en route) | P1 | Idem, client WhatsApp Cloud codé mais jamais testé avec un vrai token |
 | US-34 | En tant qu'admin, les paiements échoués sont visibles et relançables (panier abandonné) | P3 | ✅ Fait (juillet 2026) : échecs remontés dans la cloche backoffice + action admin « Relancer le paiement » (nouveau lien FedaPay envoyé au client) — test réel conditionné aux clés US-32 |
+
+> US-33 (notifications WhatsApp réelles) déplacée en [E15 — Fonctionnalités futures](#e15--fonctionnalités-futures-reportées) : pas d'actualité pour l'instant, mise en place prévue bien plus tard.
 
 ## E9 — Sécurité & administration (suite de US-20, garde-fou superuser ajouté ce jour)
 
@@ -48,7 +49,7 @@ créer des avis/promotions/bannières/retours, mais rien n'est visible ni action
 |----|-------------|----------|---------|
 | US-35 | En tant que super admin, j'attribue des rôles prédéfinis (ex. "Gestion catalogue", "Gestion commandes", "Support client") avec permissions pré-remplies, au lieu de cocher les permissions une par une | P2 | Seuls les groupes Django génériques existent, pas de rôles métier pré-configurés |
 | US-36 | En tant que super admin, je suis alerté sur des actions sensibles (suppression en masse, changement de permissions) | P3 | `LogEntry` déjà visible dans l'admin (US antérieure), pas d'alerting actif |
-| US-37 | En tant qu'admin, la base de données est sauvegardée automatiquement et les erreurs serveur sont monitorées (Sentry ou équivalent) | P1 | SDK Sentry intégré (backend + frontend) et workflow de backup quotidien chiffré en place ([docs/backups.md](backups.md)) — restent les secrets à saisir dans les dashboards (GitHub : `RENDER_DATABASE_URL`/`BACKUP_PASSPHRASE` ; Vercel : token Sentry pour les source maps) |
+| US-37 | En tant qu'admin, la base de données est sauvegardée automatiquement et les erreurs serveur sont monitorées (Sentry ou équivalent) | P1 | ✅ Fait (juillet 2026) : SDK Sentry intégré (backend + frontend), workflow de backup quotidien chiffré en place et secrets configurés ([docs/backups.md](backups.md)) |
 | US-38 | En tant qu'admin, une revue de sécurité complète est faite avant l'ouverture publique (rate limiting, secrets, HTTPS, dépendances) | P1 | Bases posées (JWT, CORS, throttling) mais pas d'audit formel |
 
 ## E10 — Qualité & CI (dette notée dans `docs/sprints/retro-sprint.md`)
@@ -96,6 +97,15 @@ la logique métier existante.
 | US-52 | En tant qu'admin, je gère les liens de navigation, le footer et les blocs éditoriaux simples sans modifier le code | P3 | `Navbar.jsx` et `Footer.jsx` sont actuellement statiques côté frontend |
 | US-53 | En tant que client, l'interface applique automatiquement la configuration active via une API publique de configuration visuelle | P2 | Aucun endpoint `/api/site-config/` ou équivalent n'existe aujourd'hui |
 | US-54 | En tant que super admin, je peux prévisualiser ou revenir à une configuration précédente avant publication | P3 | Aucun versioning/aperçu des réglages d'apparence n'existe |
+
+## E15 — Fonctionnalités futures (reportées)
+
+Fonctionnalités mises de côté volontairement, sans priorité ni sprint assigné pour l'instant — à
+reprendre bien plus tard.
+
+| ID | User Story | Priorité | Constat |
+|----|-------------|----------|---------|
+| US-33 | En tant que client, je reçois une vraie notification WhatsApp (confirmation, en route) | Reportée | Client WhatsApp Cloud codé mais jamais testé avec un vrai token ; email reste le canal par défaut en attendant — pas d'actualité, mise en place prévue bien plus tard |
 
 ---
 

@@ -6,7 +6,7 @@
 
 | Statut | Durée MVP | Budget/mois | Zone cible |
 |--------|-----------|-------------|------------|
-| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E9) partiel — rôles admin + revue sécurité faits, monitoring Sentry intégré (DSN à renseigner), paiement/WhatsApp réels en attente de clés externes · Espace client refondu (maquette Figma) | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
+| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E8+E9) quasi terminé — rôles admin, revue sécurité, paiements échoués relançables (US-34) et sauvegardes BDD + monitoring Sentry (US-37) faits ; seul le paiement réel (US-32) attend de vraies clés FedaPay/KkiaPay ; WhatsApp (US-33) reporté sans échéance (E15) · US-42 (E11) démarrée — images optimisées Cloudinary + lazy loading des routes · Espace client refondu (maquette Figma) | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
 
 ---
 
@@ -23,7 +23,7 @@
 | [docs/sprints/planning.md](docs/sprints/planning.md) | Planning détaillé des 4 sprints MVP (terminé) |
 | [docs/sprints/planning-v2.md](docs/sprints/planning-v2.md) | Planning v2 (post-MVP) — sprints 5+ par priorité/dépendance, sans capacité horaire fixe |
 | [docs/sprints/sprint5-progress.md](docs/sprints/sprint5-progress.md) | Suivi des tâches Sprint 5 (terminé) |
-| [docs/sprints/sprint6-progress.md](docs/sprints/sprint6-progress.md) | Suivi des tâches Sprint 6 (partiel — rôles admin + sécurité faits, reste en attente de clés externes) |
+| [docs/sprints/sprint6-progress.md](docs/sprints/sprint6-progress.md) | Suivi des tâches Sprint 6 (quasi terminé — seul US-32 attend de vraies clés FedaPay, US-33 reporté) |
 | [docs/security-review.md](docs/security-review.md) | Revue de sécurité Sprint 6 (US-38) — rate limiting, secrets, HTTPS, dépendances |
 | [docs/sprints/retro-sprint.md](docs/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
 | [docs/risques.md](docs/risques.md) | Analyse des risques et mitigations |
@@ -113,4 +113,4 @@ Toutes les tâches sont suivies via **[GitHub Projects](../../projects)**.
 
 ---
 
-*Document mis à jour le 3 juillet 2026 — ANIFOWOCHE E-Commerce · Confidentiel*
+*Document mis à jour le 17 juillet 2026 — ANIFOWOCHE E-Commerce · Confidentiel*
