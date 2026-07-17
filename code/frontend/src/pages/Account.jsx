@@ -18,6 +18,7 @@ import {
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
+import { optimizedImage } from "../utils/imageUrl.js";
 
 const emptyRegisterForm = {
   username: "",
@@ -186,7 +187,7 @@ function AccountHub({ user, logout }) {
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-brand-pale">
                   {firstItem?.product_image && (
                     <img
-                      src={firstItem.product_image}
+                      src={optimizedImage(firstItem.product_image, 120)}
                       alt=""
                       className="h-full w-full object-cover"
                       loading="lazy"

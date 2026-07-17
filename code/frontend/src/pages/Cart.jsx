@@ -3,6 +3,7 @@ import QuantityStepper from "../components/QuantityStepper.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
+import { optimizedImage } from "../utils/imageUrl.js";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, subtotal } = useCart();
@@ -55,7 +56,7 @@ export default function Cart() {
             <li key={item.slug} className="flex gap-4 rounded-xl border border-black/10 bg-white p-4">
               <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-pale sm:h-28 sm:w-28">
                 {item.image && (
-                  <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                  <img src={optimizedImage(item.image, 200)} alt={item.name} className="h-full w-full object-cover" />
                 )}
               </div>
               <div className="min-w-0 flex-1">

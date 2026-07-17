@@ -82,6 +82,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # GZip en tête : compresse les réponses API (JSON) ; les statiques sont
+    # déjà pré-compressés par WhiteNoise et ne sont pas re-compressés.
+    "django.middleware.gzip.GZipMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
