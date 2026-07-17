@@ -4,11 +4,13 @@ import { fetchProductBySlug } from "../api/products.js";
 import { createReview, fetchProductReviews } from "../api/reviews.js";
 import { addToWishlist, fetchWishlistStatus, removeFromWishlist } from "../api/wishlist.js";
 import QuantityStepper from "../components/QuantityStepper.jsx";
+import Seo from "../components/Seo.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import { optimizedImage } from "../utils/imageUrl.js";
+import { absoluteUrl } from "../utils/siteUrl.js";
 
 export default function Product() {
   const { slug } = useParams();
@@ -119,8 +121,38 @@ function ProductView({ slug }) {
   const stockLabel = outOfStock ? "Rupture de stock" : lowStock ? `Plus que ${stock} en stock` : "En stock";
   const stockColorClass = outOfStock ? "text-red-700" : lowStock ? "text-amber-700" : "text-green-700";
 
+  const productDescription =
+    product.description?.trim() || `${product.name} — ${badge ?? "ANIFOWOCHE"}, livraison à Cotonou.`;
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: productDescription,
+    image: product.image ? [optimizedImage(product.image, 800)] : undefined,
+    sku: String(product.id),
+    category: product.category?.name,
+    offers: {
+      "@type": "Offer",
+      url: absoluteUrl(`/produits/${slug}`),
+      priceCurrency: "XOF",
+      price: product.price_xof,
+      availability: outOfStock
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+    },
+  };
+
   return (
     <article className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
+      <Seo
+        title={product.name}
+        description={productDescription}
+        path={`/produits/${slug}`}
+        image={product.image ? optimizedImage(product.image, 800) : undefined}
+        type="product"
+        jsonLd={productJsonLd}
+      />
       <div className="mb-5 flex items-center gap-2 text-xs text-muted">
         <button type="button" onClick={() => navigate("/catalogue")} className="transition hover:text-brand-dark">
           Catalogue

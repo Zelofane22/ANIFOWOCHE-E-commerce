@@ -20,19 +20,24 @@ committée. Aucun push pendant la boucle — commits locaux uniquement.
   échec/refusé/annulé, FedaPay seulement, refus si la commande a déjà un paiement approuvé ou si le
   moyen de paiement est désactivé. Le test réel de bout en bout reste conditionné aux clés FedaPay (US-32).
 
+- [x] 4. US-37 — Sauvegardes automatiques PostgreSQL (Render) + monitoring erreurs (Sentry). SDK Sentry
+  intégré backend (`settings.py`) et frontend (`main.jsx` + error boundary + source maps Vite) ; workflow
+  de sauvegarde quotidienne chiffrée [db-backup.yml](../../.github/workflows/db-backup.yml) en place
+  (pg_dump + GPG + artifact 30 jours — voir [docs/backups.md](../backups.md)) ; secrets GitHub
+  (`RENDER_DATABASE_URL`, `BACKUP_PASSPHRASE`) et Vercel (`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
+  `SENTRY_PROJECT`) configurés — validé le 17 juillet 2026.
+
 ## Hors boucle — en attente de l'utilisateur
 
 - [ ] US-32 — Vraies clés FedaPay/KkiaPay sandbox → test paiement réel → clés prod
-- [ ] US-33 — Vraies clés WhatsApp Business API → test notification réelle
-- [ ] US-37 — Sauvegardes automatiques PostgreSQL (Render) + monitoring erreurs (Sentry ou équivalent).
-  **Partie code faite (juillet 2026)** : SDK Sentry intégré backend (`settings.py`) et frontend
-  (`main.jsx` + error boundary + source maps Vite) avec DSN configurés ; workflow de sauvegarde
-  quotidienne chiffrée [db-backup.yml](../../.github/workflows/db-backup.yml) en place (pg_dump +
-  GPG + artifact 30 jours — le plan free Render n'a pas de backups managés, voir
-  [docs/backups.md](../backups.md)). **Reste (actions manuelles dashboards)** : ajouter les secrets
-  GitHub `RENDER_DATABASE_URL` + `BACKUP_PASSPHRASE`, et `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
-  `SENTRY_PROJECT` côté Vercel pour l'upload des source maps (voir [ci-cd.md](../ci-cd.md)).
 
-**Livrable partiel Sprint 6** (boucle auto) : rôles admin métier prêts à l'emploi + audit de sécurité
-documenté et failles corrigeables sans clés externes corrigées + relance des paiements échoués (US-34)
-+ sauvegardes BDD automatisées côté code (US-37).
+## Reportée (pas de sprint assigné)
+
+- US-33 — Vraies clés WhatsApp Business API → test notification réelle. Pas d'actualité pour l'instant ;
+  déplacée en [E15 — Fonctionnalités futures](../backlog-v2.md#e15--fonctionnalités-futures-reportées)
+  du backlog v2, à reprendre bien plus tard. Email reste le canal de notification par défaut d'ici là.
+
+**Livrable Sprint 6** (boucle auto) : rôles admin métier prêts à l'emploi + audit de sécurité documenté
+et failles corrigeables sans clés externes corrigées + relance des paiements échoués (US-34) +
+sauvegardes BDD automatisées et monitoring Sentry opérationnels (US-37). Seule US-32 reste bloquée sur
+de vraies clés FedaPay/KkiaPay ; US-33 est reportée sans échéance.

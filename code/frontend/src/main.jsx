@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router";
 import App from "./App.jsx";
 import ErrorFallback from "./components/ErrorFallback.jsx";
@@ -23,9 +24,11 @@ if (sentryDsn) {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <HelmetProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </HelmetProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );
