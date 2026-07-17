@@ -5,4 +5,4 @@
 
 # Tunnel ngrok pour tester les webhooks externes (FedaPay...) en local —
 # voir apps/core/management/commands/start_ngrok.py.
-pyngrok>=7.0
+pyngrok>=8.1.2
