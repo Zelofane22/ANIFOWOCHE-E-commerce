@@ -77,7 +77,7 @@ export default function Home() {
                 className="group relative min-h-56 overflow-hidden rounded-lg bg-charcoal"
               >
                 <img
-                  src={category.image}
+                  src={optimizedImage(category.image, 600)}
                   alt={category.title}
                   className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-300 group-hover:scale-105"
                 />

@@ -64,7 +64,7 @@ créer des avis/promotions/bannières/retours, mais rien n'est visible ni action
 
 | ID | User Story | Priorité | Constat |
 |----|-------------|----------|---------|
-| US-42 | Images produit optimisées (WebP/transformations Cloudinary, lazy loading) | P3 | Cloudinary déjà branché en storage, pas de transformations/format optimisé |
+| US-42 | Images produit optimisées (WebP/transformations Cloudinary, lazy loading) | P3 | ✅ Fait (juillet 2026) : `optimizedImage()` wraps tous les produits/catégories/bannières (ProductCard, Product, Cart, Checkout, OrderDetail, Wishlist, Home) ; lazy loading des routes via code-splitting (App.jsx) ; Cloudinary f_auto (format), q_auto (compression), width constraints (c_limit) |
 | US-43 | SEO : meta tags dynamiques par produit, sitemap.xml, Open Graph pour le partage | P2 | Rien en place, impacte l'acquisition organique |
 | US-44 | Cache Redis sur les endpoints catalogue à fort trafic | P3 | Déjà noté "Phase 2" dans `docs/stack-technique.md` — à réévaluer selon trafic réel post-lancement |
 

@@ -6,7 +6,7 @@
 
 | Statut | Durée MVP | Budget/mois | Zone cible |
 |--------|-----------|-------------|------------|
-| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E8+E9) quasi terminé — rôles admin, revue sécurité, paiements échoués relançables (US-34) et sauvegardes BDD + monitoring Sentry (US-37) faits ; seul le paiement réel (US-32) attend de vraies clés FedaPay/KkiaPay ; WhatsApp (US-33) reporté sans échéance (E15) · US-42 (E11) démarrée — images optimisées Cloudinary + lazy loading des routes · Espace client refondu (maquette Figma) | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
+| MVP terminé (Sprints 1-4) · Sprint 5 (E6+E7) terminé · Sprint 6 (E8+E9) quasi terminé — rôles admin, revue sécurité, paiements échoués relançables (US-34) et sauvegardes BDD + monitoring Sentry (US-37) faits ; seul le paiement réel (US-32) attend de vraies clés FedaPay/KkiaPay ; WhatsApp (US-33) reporté (E15) · E11 partiel : US-42 (images optimisées + lazy loading) et US-43 (meta tags dynamiques, sitemap.xml, OG) terminées ; US-44 (Redis cache) Phase 2 · Espace client refondu (maquette Figma) | ~3 mois (4 sprints MVP) | 0 € (Render gratuit) | Cotonou, Bénin |
 
 ---
 
@@ -113,4 +113,4 @@ Toutes les tâches sont suivies via **[GitHub Projects](../../projects)**.
 
 ---
 
-*Document mis à jour le 17 juillet 2026 — ANIFOWOCHE E-Commerce · Confidentiel*
+*Document mis à jour le 18 juillet 2026 — ANIFOWOCHE E-Commerce · Confidentiel*
