@@ -92,10 +92,10 @@ la logique métier existante.
 
 | ID | User Story | Priorité | Constat |
 |----|-------------|----------|---------|
-| US-50 | En tant qu'admin, je modifie le logo, les couleurs principales, les textes courts et les images clés du site depuis l'admin | P2 | Aujourd'hui, l'apparence est codée dans le frontend/Tailwind et les assets statiques |
-| US-51 | En tant qu'admin, j'active, désactive et ordonne des sections prédéfinies de la page d'accueil (hero, bannières, catégories, produits mis en avant, arguments de confiance) | P2 | `apps/content.Banner` existe, mais il n'y a pas de configuration globale de page ni de sections pilotables |
+| US-50 | En tant qu'admin, je modifie le logo, les couleurs principales, les textes courts et les images clés du site depuis l'admin | P2 | ✅ Fait (juillet 2026) : app `apps/appearance`, modèle singleton `SiteTheme` (logo, 5 couleurs de marque, eyebrow/titre/sous-titre du hero, arguments de confiance) éditable via l'admin Unfold |
+| US-51 | En tant qu'admin, j'active, désactive et ordonne des sections prédéfinies de la page d'accueil (hero, bannières, catégories, produits mis en avant, arguments de confiance) | P2 | ✅ Fait (juillet 2026) : modèle `HomeSection` (4 sections prédéfinies hero/trust/categories/featured) avec `is_enabled` + `order` éditables en ligne dans l'admin, appliqués dynamiquement sur `Home.jsx` |
 | US-52 | En tant qu'admin, je gère les liens de navigation, le footer et les blocs éditoriaux simples sans modifier le code | P3 | `Navbar.jsx` et `Footer.jsx` sont actuellement statiques côté frontend |
-| US-53 | En tant que client, l'interface applique automatiquement la configuration active via une API publique de configuration visuelle | P2 | Aucun endpoint `/api/site-config/` ou équivalent n'existe aujourd'hui |
+| US-53 | En tant que client, l'interface applique automatiquement la configuration active via une API publique de configuration visuelle | P2 | ✅ Fait (juillet 2026) : endpoint public `/api/site-config/` (thème + sections) consommé par `SiteConfigProvider` ; couleurs appliquées via surcharge des variables CSS `--color-brand*`, logo/nom/textes/sections câblés (Navbar + Home) avec fallback si l'API échoue |
 | US-54 | En tant que super admin, je peux prévisualiser ou revenir à une configuration précédente avant publication | P3 | Aucun versioning/aperçu des réglages d'apparence n'existe |
 
 ## E15 — Fonctionnalités futures (reportées)

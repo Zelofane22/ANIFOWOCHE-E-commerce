@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "apps.returns",
     "apps.reviews",
     "apps.wishlist",
+    "apps.appearance",
 ]
 
 MIDDLEWARE = [
@@ -396,6 +397,16 @@ UNFOLD = {
                         "title": "Contenu",
                         "icon": "article",
                         "link": reverse_lazy("admin:content_banner_changelist"),
+                    },
+                    {
+                        "title": "Apparence du site",
+                        "icon": "palette",
+                        "link": reverse_lazy("admin:appearance_sitetheme_changelist"),
+                    },
+                    {
+                        "title": "Sections d'accueil",
+                        "icon": "view_quilt",
+                        "link": reverse_lazy("admin:appearance_homesection_changelist"),
                     },
                 ],
             },

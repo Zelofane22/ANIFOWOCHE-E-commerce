@@ -52,7 +52,7 @@ avant d'accumuler encore plus de code non couvert.
 
 - SEO : meta tags dynamiques produit, sitemap.xml, Open Graph (US-43)
 - Images optimisées (WebP/Cloudinary transforms, lazy loading) (US-42)
-- Socle CMS d'apparence : modèles Django `SiteTheme` / sections accueil, endpoint public de configuration visuelle, application frontend via variables CSS et composants prédéfinis (US-50, US-51, US-53)
+- ✅ Socle CMS d'apparence (fait juillet 2026) : app `apps/appearance` — modèles Django `SiteTheme` (singleton) + `HomeSection`, endpoint public `/api/site-config/`, application frontend via surcharge des variables CSS et sections prédéfinies pilotables (US-50, US-51, US-53)
 - Alerting sur actions admin sensibles (US-36)
 - Cache Redis catalogue — seulement si le trafic réel post-lancement le justifie (US-44)
 

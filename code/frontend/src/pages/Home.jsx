@@ -4,10 +4,29 @@ import { fetchBanners } from "../api/content.js";
 import { fetchProducts } from "../api/products.js";
 import ProductCard from "../components/ProductCard.jsx";
 import Seo from "../components/Seo.jsx";
+import { useSiteConfig } from "../context/useSiteConfig.js";
 import { optimizedImage } from "../utils/imageUrl.js";
+
+// Textes du hero par défaut (fallback si la config n'expose rien / API en échec).
+const DEFAULT_HERO_EYEBROW = "Collection Cotonou";
+const DEFAULT_HERO_TITLE = "Tissus, vêtements & accessoires";
+const DEFAULT_HERO_SUBTITLE =
+  "Des pièces sélectionnées pour le quotidien, les cérémonies et les sorties, avec paiement mobile money et livraison à domicile sur Cotonou.";
+
+// Arguments de confiance par défaut (fallback si theme.trust_arguments est vide).
+const DEFAULT_TRUST_ARGUMENTS = [
+  "Livraison sous 48h",
+  "Paiement MTN, Moov, Visa",
+  "Produits vérifiés",
+  "Support WhatsApp",
+];
+
+// Ordre par défaut appliqué quand l'API /site-config/ n'a rien renvoyé.
+const DEFAULT_SECTION_ORDER = ["hero", "trust", "categories", "featured"];
 
 export default function Home() {
   const [topProducts, setTopProducts] = useState([]);
+  const { orderedSections } = useSiteConfig();
 
   useEffect(() => {
     fetchProducts()
@@ -18,110 +37,171 @@ export default function Home() {
       .catch(() => setTopProducts([]));
   }, []);
 
+  // Liste des types de sections à rendre, dans l'ordre.
+  // Si l'API a renvoyé des sections -> on ne garde que celles activées, déjà triées.
+  // Sinon (config indispo / échec) -> ordre par défaut, tout affiché.
+  const sectionTypes = orderedSections
+    ? orderedSections.filter((section) => section.enabled).map((section) => section.type)
+    : DEFAULT_SECTION_ORDER;
+
+  // Choix de layout : chaque section est rendue dans l'ordre. Le hero est
+  // pleine largeur (il gère lui-même son conteneur interne max-w-7xl), les
+  // autres sections sont chacune enveloppées dans un conteneur max-w-7xl.
+  // Ainsi l'ordre reste 100% pilotable (y compris un hero au milieu) sans
+  // casser l'alignement horizontal des sections non-hero.
+  const renderSection = (type) => {
+    switch (type) {
+      case "hero":
+        return <HeroSection key="hero" />;
+      case "trust":
+        return (
+          <div key="trust" className="mx-auto max-w-7xl px-4">
+            <TrustSection />
+          </div>
+        );
+      case "categories":
+        return (
+          <div key="categories" className="mx-auto max-w-7xl px-4">
+            <CategoriesSection />
+          </div>
+        );
+      case "featured":
+        return (
+          <div key="featured" className="mx-auto max-w-7xl px-4">
+            <FeaturedSection products={topProducts} />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div>
       <Seo path="/" />
-      <HeroCarousel />
-
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="grid gap-3 border-b border-black/10 py-4 text-sm font-medium text-ink sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            "Livraison sous 48h",
-            "Paiement MTN, Moov, Visa",
-            "Produits vérifiés",
-            "Support WhatsApp",
-          ].map((label) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-light text-brand-dark">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
-                </svg>
-              </span>
-              {label}
-            </div>
-          ))}
-        </div>
-
-        <section className="py-10">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-ink">Acheter par catégorie</h2>
-              <div className="mt-1 h-0.5 w-12 rounded-full bg-brand" />
-            </div>
-            <Link to="/catalogue" className="text-sm font-semibold text-brand-dark hover:underline">
-              Tout voir
-            </Link>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {[
-              {
-                title: "Tissus",
-                desc: "Wax, bazin, googluck",
-                image: "https://images.unsplash.com/photo-1552710307-537199cd41c0?w=700&h=520&fit=crop&auto=format",
-              },
-              {
-                title: "Vêtements",
-                desc: "Chemises, pantalons, dessous",
-                image: "https://images.unsplash.com/photo-1687052093309-7a14efa58ecb?w=700&h=520&fit=crop&auto=format",
-              },
-              {
-                title: "Accessoires",
-                desc: "Montres, ceintures, chaussures",
-                image: "https://images.unsplash.com/photo-1534413340928-7bd74b65196f?w=700&h=520&fit=crop&auto=format",
-              },
-            ].map((category) => (
-              <Link
-                key={category.title}
-                to="/catalogue"
-                className="group relative min-h-56 overflow-hidden rounded-lg bg-charcoal"
-              >
-                <img
-                  src={optimizedImage(category.image, 600)}
-                  alt={category.title}
-                  className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-charcoal/25 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-5">
-                  <h3 className="text-xl font-bold text-white">{category.title}</h3>
-                  <p className="mt-1 text-sm text-white/75">{category.desc}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {topProducts.length > 0 && (
-          <section className="py-10">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-ink">Top produits</h2>
-                <div className="mt-1 h-0.5 w-12 rounded-full bg-brand" />
-              </div>
-              <Link to="/catalogue" className="text-sm font-semibold text-brand-dark hover:underline">
-                Tout voir
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {topProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      {sectionTypes.map((type) => renderSection(type))}
     </div>
   );
 }
+
+// --- Sections ---------------------------------------------------------------
+
+function HeroSection() {
+  return <HeroCarousel />;
+}
+
+function TrustSection() {
+  const { theme } = useSiteConfig();
+  const trustArguments =
+    theme?.trust_arguments && theme.trust_arguments.length > 0
+      ? theme.trust_arguments
+      : DEFAULT_TRUST_ARGUMENTS;
+
+  return (
+    <div className="grid gap-3 border-b border-black/10 py-4 text-sm font-medium text-ink sm:grid-cols-2 lg:grid-cols-4">
+      {trustArguments.map((label) => (
+        <div key={label} className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-light text-brand-dark">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+            </svg>
+          </span>
+          {label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CategoriesSection() {
+  return (
+    <section className="py-10">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-ink">Acheter par catégorie</h2>
+          <div className="mt-1 h-0.5 w-12 rounded-full bg-brand" />
+        </div>
+        <Link to="/catalogue" className="text-sm font-semibold text-brand-dark hover:underline">
+          Tout voir
+        </Link>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {[
+          {
+            title: "Tissus",
+            desc: "Wax, bazin, googluck",
+            image: "https://images.unsplash.com/photo-1552710307-537199cd41c0?w=700&h=520&fit=crop&auto=format",
+          },
+          {
+            title: "Vêtements",
+            desc: "Chemises, pantalons, dessous",
+            image: "https://images.unsplash.com/photo-1687052093309-7a14efa58ecb?w=700&h=520&fit=crop&auto=format",
+          },
+          {
+            title: "Accessoires",
+            desc: "Montres, ceintures, chaussures",
+            image: "https://images.unsplash.com/photo-1534413340928-7bd74b65196f?w=700&h=520&fit=crop&auto=format",
+          },
+        ].map((category) => (
+          <Link
+            key={category.title}
+            to="/catalogue"
+            className="group relative min-h-56 overflow-hidden rounded-lg bg-charcoal"
+          >
+            <img
+              src={optimizedImage(category.image, 600)}
+              alt={category.title}
+              className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-charcoal/25 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-5">
+              <h3 className="text-xl font-bold text-white">{category.title}</h3>
+              <p className="mt-1 text-sm text-white/75">{category.desc}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FeaturedSection({ products }) {
+  if (products.length === 0) return null;
+
+  return (
+    <section className="py-10">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-ink">Top produits</h2>
+          <div className="mt-1 h-0.5 w-12 rounded-full bg-brand" />
+        </div>
+        <Link to="/catalogue" className="text-sm font-semibold text-brand-dark hover:underline">
+          Tout voir
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// --- Hero -------------------------------------------------------------------
 
 const FALLBACK_HERO_IMAGE =
   "https://images.unsplash.com/photo-1768212565426-58b089b6386d?w=1600&h=900&fit=crop&auto=format";
 
 function HeroCarousel() {
+  const { theme } = useSiteConfig();
   const [banners, setBanners] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [index, setIndex] = useState(0);
+
+  const eyebrow = theme?.hero_eyebrow || DEFAULT_HERO_EYEBROW;
 
   useEffect(() => {
     fetchBanners()
@@ -157,7 +237,7 @@ function HeroCarousel() {
       <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/70 to-transparent" />
       <div className="relative mx-auto flex min-h-[430px] max-w-7xl items-center px-4 py-14">
         <div className="max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">Collection Cotonou</p>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">{eyebrow}</p>
           <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">{banner.title}</h1>
           {banner.subtitle && (
             <p className="mt-4 max-w-xl text-base leading-7 text-white/75">{banner.subtitle}</p>
@@ -213,6 +293,11 @@ function HeroCarousel() {
 }
 
 function StaticHero() {
+  const { theme } = useSiteConfig();
+  const eyebrow = theme?.hero_eyebrow || DEFAULT_HERO_EYEBROW;
+  const title = theme?.hero_title || DEFAULT_HERO_TITLE;
+  const subtitle = theme?.hero_subtitle || DEFAULT_HERO_SUBTITLE;
+
   return (
     <section className="relative min-h-[430px] overflow-hidden bg-charcoal">
       <img
@@ -223,13 +308,9 @@ function StaticHero() {
       <div className="absolute inset-0 bg-gradient-to-r from-charcoal via-charcoal/70 to-transparent" />
       <div className="relative mx-auto flex min-h-[430px] max-w-7xl items-center px-4 py-14">
         <div className="max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">Collection Cotonou</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">
-            Tissus, vêtements & accessoires
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
-            Des pièces sélectionnées pour le quotidien, les cérémonies et les sorties, avec paiement mobile money et livraison à domicile sur Cotonou.
-          </p>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand">{eyebrow}</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight text-white md:text-6xl">{title}</h1>
+          <p className="mt-4 max-w-xl text-base leading-7 text-white/75">{subtitle}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/catalogue"
