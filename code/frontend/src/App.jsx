@@ -5,6 +5,7 @@ import Footer from "./components/Footer.jsx";
 import Navbar from "./components/Navbar.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
+import { SiteConfigProvider } from "./context/SiteConfigContext.jsx";
 import Home from "./pages/Home.jsx";
 
 // Code-splitting : seule la page d'accueil est dans le bundle initial, les
@@ -32,31 +33,33 @@ function PageViewTracker() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <div className="min-h-screen bg-white text-ink">
-          <PageViewTracker />
-          <Navbar />
-          <main>
-            <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/catalogue" element={<Catalogue />} />
-                <Route path="/produits/:slug" element={<Product />} />
-                <Route path="/panier" element={<Cart />} />
-                <Route path="/commande" element={<Checkout />} />
-                <Route path="/commande/confirmation" element={<OrderConfirmation />} />
-                <Route path="/compte" element={<Account />} />
-                <Route path="/compte/commandes" element={<Orders />} />
-                <Route path="/compte/commandes/:id" element={<OrderDetail />} />
-                <Route path="/compte/adresses" element={<Addresses />} />
-                <Route path="/compte/favoris" element={<Wishlist />} />
-              </Routes>
-            </Suspense>
-          </main>
-          <Footer />
-        </div>
-      </CartProvider>
-    </AuthProvider>
+    <SiteConfigProvider>
+      <AuthProvider>
+        <CartProvider>
+          <div className="min-h-screen bg-white text-ink">
+            <PageViewTracker />
+            <Navbar />
+            <main>
+              <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/catalogue" element={<Catalogue />} />
+                  <Route path="/produits/:slug" element={<Product />} />
+                  <Route path="/panier" element={<Cart />} />
+                  <Route path="/commande" element={<Checkout />} />
+                  <Route path="/commande/confirmation" element={<OrderConfirmation />} />
+                  <Route path="/compte" element={<Account />} />
+                  <Route path="/compte/commandes" element={<Orders />} />
+                  <Route path="/compte/commandes/:id" element={<OrderDetail />} />
+                  <Route path="/compte/adresses" element={<Addresses />} />
+                  <Route path="/compte/favoris" element={<Wishlist />} />
+                </Routes>
+              </Suspense>
+            </main>
+            <Footer />
+          </div>
+        </CartProvider>
+      </AuthProvider>
+    </SiteConfigProvider>
   );
 }

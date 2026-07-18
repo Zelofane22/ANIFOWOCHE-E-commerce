@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { fetchCategories } from "../api/products.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
+import { useSiteConfig } from "../context/useSiteConfig.js";
 import { ADMIN_URL } from "../utils/adminUrl.js";
 import { ChevronDownIcon, MenuIcon, UserIcon } from "./icons.jsx";
 
@@ -12,7 +13,12 @@ export default function Navbar() {
   const [categories, setCategories] = useState([]);
   const { itemCount } = useCart();
   const { user } = useAuth();
+  const { theme } = useSiteConfig();
   const navigate = useNavigate();
+
+  // Logo et nom du site pilotables depuis la config, avec fallback en dur.
+  const logoSrc = theme?.logo || "/anifowoche-logo.png";
+  const siteName = theme?.site_name || "ANIFOWOCHE";
 
   useEffect(() => {
     fetchCategories()
@@ -42,12 +48,12 @@ export default function Navbar() {
           </button>
           <Link to="/" className="flex items-center justify-between gap-3 overflow-hidden transition">
             <img
-              src="/anifowoche-logo.png"
-              alt="ANIFOWOCHE"
+              src={logoSrc}
+              alt={siteName}
               className="h-11 w-36 object-cover object-center sm:w-40"
             />
             <span className="flex-shrink-0 text-lg font-bold tracking-tight text-white transition-colors hover:text-brand">
-              ANIFOWOCHE
+              {siteName}
             </span>
           </Link>
         </div>
