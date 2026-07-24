@@ -8,6 +8,8 @@ Organiser le développement d'ANIF Seller avec une méthode Agile légère, adap
 
 Le but n'est pas d'appliquer Scrum de façon lourde. Le but est de livrer vite, tester avec de vrais vendeurs, apprendre, puis ajuster le produit avant de construire trop de fonctionnalités.
 
+L'application sera développée avec l'aide de l'IA. La méthode doit donc produire des entrées courtes et exploitables par l'IA : user stories précises, règles métier, maquettes, critères d'acceptation et prompts de génération.
+
 ## Approche recommandée
 
 ANIF Seller doit utiliser une méthode **Scrum léger + Lean Startup** :
@@ -196,16 +198,17 @@ Questions :
 
 ## Plan de sprints MVP
 
-### Sprint 0 — Validation et cadrage
+### Sprint 0 — Recherche IA et cadrage sans interviews
 
-Objectif : comprendre les vendeurs avant de construire.
+Objectif : cadrer le produit à partir de recherches internet, de benchmarks concurrents et d'hypothèses documentées, sans organiser d'interviews au démarrage.
 
 Livrables :
 
-- 5 interviews vendeurs ;
-- liste des douleurs prioritaires ;
-- promesse produit validée ;
-- backlog initial ;
+- synthèse de recherche marché et social commerce ;
+- benchmark WhatsApp Business, Shopify Starter, Flutterwave Store, Bumpa et outils proches ;
+- hypothèses prioritaires à vérifier plus tard par l'usage réel ;
+- promesse produit provisoire ;
+- backlog initial adapté au développement assisté par IA ;
 - choix du périmètre MVP.
 
 ### Sprint 1 — Base vendeur et boutique
@@ -294,4 +297,3 @@ Mesures à suivre à chaque sprint :
 | À reporter | Intéressant, mais pas nécessaire pour vendre le MVP |
 
 Cette règle aide à éviter de construire un produit trop large avant d'avoir des utilisateurs actifs.
-

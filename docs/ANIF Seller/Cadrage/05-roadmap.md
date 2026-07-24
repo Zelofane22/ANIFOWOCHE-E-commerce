@@ -2,26 +2,29 @@
 
 [← Retour](README.md)
 
-## Phase 0 — Validation terrain
+## Phase 0 — Recherche IA et cadrage
 
 Durée indicative : 1 à 2 semaines.
 
-Objectif : confirmer que le problème est réel avant de développer trop loin.
+Objectif : cadrer le problème avant de développer trop loin, sans organiser d'interviews au démarrage.
 
 Actions :
 
-- interviewer 5 à 10 vendeurs ;
-- observer comment ils gèrent actuellement les commandes ;
-- identifier leurs outils actuels : WhatsApp, carnet, Excel, Instagram ;
-- tester la phrase de vente ;
-- demander combien ils accepteraient de payer.
+- rechercher les données publiques sur le digital, le social commerce et le mobile money ;
+- benchmarker WhatsApp Business, Shopify Starter, Flutterwave Store, Bumpa et outils proches ;
+- identifier les outils probables des vendeurs : WhatsApp, carnet, Excel, Instagram ;
+- formuler les douleurs vendeurs comme hypothèses provisoires ;
+- définir une promesse produit provisoire ;
+- préparer un brief IA pour le MVP.
 
 Livrables :
 
-- liste des douleurs récurrentes ;
+- synthèse de recherche sourcée ;
+- benchmark concurrentiel ;
+- liste d'hypothèses produit ;
 - liste des fonctionnalités indispensables ;
-- prix psychologique acceptable ;
-- sélection de vendeurs pilotes.
+- première hypothèse tarifaire ;
+- brief IA du MVP.
 
 ## Phase 1 — MVP utilisable
 
@@ -112,7 +115,7 @@ Pistes :
 
 | Semaine | Objectif |
 |---------|----------|
-| S1 | Interviews vendeurs et validation du concept |
+| S1 | Recherches internet, benchmark et cadrage IA |
 | S2 | Maquette simple du parcours vendeur |
 | S3 | Auth vendeur + profil boutique |
 | S4 | Produits + boutique publique |
@@ -120,4 +123,3 @@ Pistes :
 | S6 | WhatsApp assisté + tests pilotes |
 | S7 | Corrections terrain |
 | S8 | Première offre payante |
-

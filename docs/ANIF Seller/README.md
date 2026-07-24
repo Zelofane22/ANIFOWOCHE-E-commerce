@@ -12,6 +12,16 @@ L'idée n'est pas de remplacer WhatsApp. L'idée est de transformer les conversa
 
 > Aider un vendeur à passer de "je note les commandes dans WhatsApp" à "je pilote mes ventes dans un vrai tableau de bord".
 
+## Accès public cible
+
+Le SaaS ANIF Seller doit être accessible depuis le sous-domaine :
+
+```text
+https://sell.anifowoche.com
+```
+
+Ce sous-domaine doit pointer vers le frontend ANIF Seller déployé sur Vercel. Le backend Django reste exposé via son URL API Render ou un domaine API dédié, mais il doit autoriser `https://sell.anifowoche.com` dans les variables `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` et `FRONTEND_BASE_URL`.
+
 ## Cible prioritaire
 
 - Vendeurs de vêtements, tissus, chaussures, accessoires, cosmétiques ou repas
@@ -31,6 +41,7 @@ L'idée n'est pas de remplacer WhatsApp. L'idée est de transformer les conversa
 | [06-reutilisation-anifowoche.md](06-reutilisation-anifowoche.md) | Comment réutiliser le projet ANIFOWOCHE existant |
 | [07-methode-agile.md](07-methode-agile.md) | Organisation Agile adaptée au produit SaaS |
 | [08-backlog-agile.md](08-backlog-agile.md) | Épics, user stories, priorités et estimation initiale |
+| [09-sprint-0-recherche-ia.md](09-sprint-0-recherche-ia.md) | Sprint 0 sans interviews : recherches internet, benchmark et cadrage IA |
 
 ## Positionnement simple
 
@@ -44,3 +55,7 @@ ANIF Seller peut être présenté comme :
 ## Objectif business
 
 Construire un outil suffisamment simple pour être adopté par des vendeurs non techniques, puis le monétiser avec un abonnement mensuel accessible et des options premium.
+
+## Mode de développement
+
+L'application sera développée avec l'aide de l'IA. Les premiers sprints doivent donc privilégier des livrables très concrets : briefs courts, maquettes, user stories testables, prompts de génération, prototypes vérifiables et décisions documentées.

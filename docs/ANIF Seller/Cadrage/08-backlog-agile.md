@@ -6,14 +6,16 @@ Priorités : **P1** critique, **P2** haute, **P3** normale, **P4** future.
 
 Estimations : **1 pt** très simple, **2 pts** simple, **3 pts** moyen, **5 pts** complexe, **8 pts** à découper si possible.
 
-## E0 — Validation terrain
+## E0 — Recherche IA et cadrage sans interviews
 
 | ID | User Story | Priorité | Points |
 |----|------------|----------|--------|
-| US-001 | En tant que fondateur, je veux interviewer des vendeurs WhatsApp afin d'identifier leurs vrais problèmes de gestion de commandes | P1 | 2 |
-| US-002 | En tant que fondateur, je veux lister les outils utilisés par les vendeurs afin de comprendre leurs habitudes actuelles | P1 | 1 |
-| US-003 | En tant que fondateur, je veux tester la phrase de vente afin de vérifier si la promesse est claire | P1 | 1 |
-| US-004 | En tant que fondateur, je veux demander le prix acceptable afin de préparer une offre réaliste | P2 | 1 |
+| US-001 | En tant que fondateur, je veux rechercher les tendances social commerce, WhatsApp Business et mobile money afin de cadrer le marché sans interviews | P1 | 2 |
+| US-002 | En tant que fondateur, je veux benchmarker WhatsApp Business, Shopify Starter, Flutterwave Store, Bumpa et outils proches afin d'identifier les standards produit | P1 | 2 |
+| US-003 | En tant que fondateur, je veux formuler les douleurs vendeurs sous forme d'hypothèses afin de guider le MVP sans prétendre les avoir validées terrain | P1 | 1 |
+| US-004 | En tant que fondateur, je veux définir une promesse produit provisoire afin de guider les maquettes et les prompts IA | P1 | 1 |
+| US-005 | En tant que fondateur, je veux produire un brief IA du MVP afin d'accélérer le développement assisté par IA | P1 | 2 |
+| US-006 | En tant que fondateur, je veux estimer une première grille tarifaire à partir des concurrents afin de préparer les hypothèses business | P2 | 1 |
 
 ## E1 — Compte vendeur et boutique
 
@@ -97,10 +99,11 @@ Estimations : **1 pt** très simple, **2 pts** simple, **3 pts** moyen, **5 pts*
 
 | Story | Objectif |
 |-------|----------|
-| US-001 | Comprendre les douleurs vendeurs |
-| US-002 | Identifier les habitudes actuelles |
-| US-003 | Tester la promesse produit |
-| US-004 | Vérifier le prix acceptable |
+| US-001 | Rechercher le marché et les usages |
+| US-002 | Benchmarker les outils concurrents |
+| US-003 | Poser les douleurs sous forme d'hypothèses |
+| US-004 | Écrire la promesse provisoire |
+| US-005 | Produire le brief IA du MVP |
 
 ## Backlog Sprint 1 recommandé
 
@@ -151,4 +154,3 @@ Le MVP peut être considéré validé si :
 - au moins 3 vendeurs utilisent le dashboard plusieurs fois ;
 - au moins 2 vendeurs acceptent de payer ou de tester une offre payante ;
 - les vendeurs disent que l'outil est plus simple que leur suivi manuel actuel.
-
