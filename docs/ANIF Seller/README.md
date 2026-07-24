@@ -29,6 +29,8 @@ L'idée n'est pas de remplacer WhatsApp. L'idée est de transformer les conversa
 | [04-modele-economique.md](04-modele-economique.md) | Tarification, sources de revenus, stratégie commerciale |
 | [05-roadmap.md](05-roadmap.md) | Roadmap progressive du MVP jusqu'au SaaS complet |
 | [06-reutilisation-anifowoche.md](06-reutilisation-anifowoche.md) | Comment réutiliser le projet ANIFOWOCHE existant |
+| [07-methode-agile.md](07-methode-agile.md) | Organisation Agile adaptée au produit SaaS |
+| [08-backlog-agile.md](08-backlog-agile.md) | Épics, user stories, priorités et estimation initiale |
 
 ## Positionnement simple
 
@@ -42,4 +44,3 @@ ANIF Seller peut être présenté comme :
 ## Objectif business
 
 Construire un outil suffisamment simple pour être adopté par des vendeurs non techniques, puis le monétiser avec un abonnement mensuel accessible et des options premium.
-
