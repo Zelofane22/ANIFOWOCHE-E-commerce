@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import slugify
 
 
 class Category(models.Model):
@@ -25,9 +26,16 @@ class Product(models.Model):
         PIECE = "piece", "Pièce"
         METRE = "metre", "Mètre"
 
+    seller = models.ForeignKey(
+        "sellers.SellerProfile",
+        on_delete=models.CASCADE,
+        related_name="products",
+        blank=True,
+        null=True,
+    )
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     name = models.CharField(max_length=150)
-    slug = models.SlugField(max_length=180, unique=True)
+    slug = models.SlugField(max_length=180, unique=True, blank=True)
     description = models.TextField(blank=True)
     price_xof = models.PositiveIntegerField(help_text="Prix en francs CFA (XOF)")
     unit = models.CharField(
@@ -53,7 +61,19 @@ class Product(models.Model):
         # Un produit vendu au mètre n'a pas de taille (S/M/L n'a pas de sens pour un tissu).
         if self.unit == self.Unit.METRE:
             self.size = self.Size.UNIQUE
+        if not self.slug:
+            self.slug = self._build_unique_slug(self.name)
         super().save(*args, **kwargs)
+
+    @classmethod
+    def _build_unique_slug(cls, name):
+        base = slugify(name)[:160] or "produit"
+        slug = base
+        suffix = 2
+        while cls.objects.filter(slug=slug).exists():
+            slug = f"{base}-{suffix}"
+            suffix += 1
+        return slug
 
 
 class ProductImage(models.Model):

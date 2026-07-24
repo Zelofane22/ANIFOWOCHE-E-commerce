@@ -57,7 +57,7 @@ class SellerDashboardView(APIView):
             {
                 "seller": SellerProfileSerializer(seller).data,
                 "metrics": {
-                    "products": 0,
+                    "products": seller.products.filter(is_active=True).count(),
                     "orders_today": 0,
                     "pending_orders": 0,
                 },

@@ -18,8 +18,8 @@ class ProductImageInline(TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
-    list_display = ["name", "category", "price_xof", "unit", "stock", "is_active"]
-    list_filter = ["category", "is_active", "unit", "size"]
-    search_fields = ["name", "description"]
+    list_display = ["name", "seller", "category", "price_xof", "unit", "stock", "is_active"]
+    list_filter = ["category", "seller", "is_active", "unit", "size"]
+    search_fields = ["name", "description", "seller__display_name"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductImageInline]

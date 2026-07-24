@@ -64,19 +64,26 @@ export default function SellerDashboard() {
     <SellerShell title="Tableau de bord" seller={seller}>
       <section className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-          <p className="text-sm font-semibold text-brand-dark">Sprint 1</p>
+          <p className="text-sm font-semibold text-brand-dark">ANIF Seller</p>
           <h2 className="mt-2 text-2xl font-bold text-ink">Bienvenue, {seller.display_name}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Votre base vendeur est prête. Le prochain sprint ajoutera les produits, puis les commandes
-            pourront être rattachées à cette boutique.
+            Votre boutique est prête à recevoir des produits. Ajoutez vos articles, gardez le stock à jour
+            et partagez le lien public quand le catalogue est publié.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              to="/seller/settings"
+              to="/seller/products"
               className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium"
             >
+              <PackageIcon size={15} />
+              Gérer les produits
+            </Link>
+            <Link
+              to="/seller/settings"
+              className="inline-flex items-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+            >
               <SettingsIcon size={15} />
-              Compléter la boutique
+              Paramètres boutique
             </Link>
             <a
               href={publicUrl}
@@ -112,10 +119,13 @@ export default function SellerDashboard() {
 
       <section className="mt-5 rounded-xl border border-dashed border-black/15 bg-white p-6 text-center">
         <PackageIcon size={34} className="mx-auto text-muted" />
-        <h2 className="mt-3 text-base font-bold text-ink">Catalogue à venir au Sprint 2</h2>
+        <h2 className="mt-3 text-base font-bold text-ink">
+          {metrics.products > 0 ? "Catalogue publié" : "Premier produit à ajouter"}
+        </h2>
         <p className="mx-auto mt-1 max-w-xl text-sm leading-6 text-muted">
-          La structure vendeur est en place. Les produits, stocks et images pourront maintenant être
-          ajoutés sans reprendre l'authentification ou le profil boutique.
+          {metrics.products > 0
+            ? "Vos produits actifs apparaissent dans la boutique publique. Continuez à tenir les prix et les stocks à jour."
+            : "Créez un produit avec image, prix, stock et catégorie pour transformer la boutique en catalogue vendable."}
         </p>
       </section>
     </SellerShell>

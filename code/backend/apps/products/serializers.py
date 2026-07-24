@@ -17,6 +17,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    seller_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
     )
@@ -30,6 +31,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id",
+            "seller_id",
             "name",
             "slug",
             "description",
@@ -60,3 +62,8 @@ class ProductSerializer(serializers.ModelSerializer):
         if not percent:
             return None
         return round(product.price_xof * (100 - percent) / 100)
+
+
+class SellerProductSerializer(ProductSerializer):
+    class Meta(ProductSerializer.Meta):
+        read_only_fields = ["slug", "created_at", "updated_at"]

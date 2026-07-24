@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
+from apps.products.models import Category, Product
+
 from .models import SellerProfile, Shop
 
 User = get_user_model()
@@ -93,6 +95,44 @@ class SellerApiTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["name"], "Afi Wax")
+
+    def test_public_shop_returns_only_active_seller_products(self):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        user = User.objects.create_user(username="vendeuse", password="pass1234")
+        seller = SellerProfile.objects.create(user=user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        other_user = User.objects.create_user(username="autre", password="pass1234")
+        other_seller = SellerProfile.objects.create(user=other_user, display_name="Autre", phone="+22991000000")
+        Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne publié",
+            slug="pagne-publie",
+            price_xof=5000,
+            stock=5,
+        )
+        Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne archivé",
+            slug="pagne-archive",
+            price_xof=4000,
+            stock=0,
+            is_active=False,
+        )
+        Product.objects.create(
+            seller=other_seller,
+            category=category,
+            name="Produit autre",
+            slug="produit-autre",
+            price_xof=6000,
+            stock=5,
+        )
+
+        response = self.client.get("/api/public/shops/afi-wax/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([product["slug"] for product in response.data["products"]], ["pagne-publie"])
 
     def test_dashboard_requires_authenticated_seller(self):
         response = self.client.get("/api/seller/dashboard/")

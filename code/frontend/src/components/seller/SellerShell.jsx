@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router";
 import {
   LayoutDashboardIcon,
   LogOutIcon,
+  PackageIcon,
   SettingsIcon,
   StoreIcon,
 } from "../icons.jsx";
@@ -12,6 +13,7 @@ export default function SellerShell({ children, title, seller }) {
   const navigate = useNavigate();
   const navItems = [
     { to: "/seller/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
+    { to: "/seller/products", label: "Produits", Icon: PackageIcon },
     { to: "/seller/settings", label: "Paramètres", Icon: SettingsIcon },
   ];
 

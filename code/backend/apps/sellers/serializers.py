@@ -6,6 +6,8 @@ from rest_framework import serializers
 
 from apps.users.backends import normalize_phone
 from apps.users.serializers import UserSerializer
+from apps.products.models import Product
+from apps.products.serializers import ProductSerializer
 
 from .models import SellerProfile, Shop
 
@@ -141,7 +143,17 @@ class SellerDashboardSerializer(serializers.Serializer):
 
 class PublicShopSerializer(serializers.ModelSerializer):
     public_path = serializers.CharField(read_only=True)
+    products = serializers.SerializerMethodField()
 
     class Meta:
         model = Shop
-        fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "public_path"]
+        fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "public_path", "products"]
+
+    def get_products(self, shop):
+        products = (
+            Product.objects.filter(seller=shop.seller, is_active=True)
+            .select_related("category")
+            .prefetch_related("images")
+            .order_by("-updated_at")
+        )
+        return ProductSerializer(products, many=True, context=self.context).data

@@ -212,3 +212,41 @@ export const LogOutIcon = (props) => (
     <path d="M21 12H9" />
   </Icon>
 );
+
+export const PlusIcon = (props) => (
+  <Icon {...props}>
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </Icon>
+);
+
+export const EditIcon = (props) => (
+  <Icon {...props}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </Icon>
+);
+
+export const ImageIcon = (props) => (
+  <Icon {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="9" cy="9" r="2" />
+    <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+  </Icon>
+);
+
+export const EyeIcon = (props) => (
+  <Icon {...props}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+);
+
+export const EyeOffIcon = (props) => (
+  <Icon {...props}>
+    <path d="m2 2 20 20" />
+    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+    <path d="M8.5 5.6A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2 3" />
+    <path d="M6.1 6.8C3.5 8.6 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 4.2-.9" />
+  </Icon>
+);
