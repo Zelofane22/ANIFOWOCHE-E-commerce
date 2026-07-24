@@ -36,8 +36,6 @@ Directives pour Codex sur ce projet ANIFOWOCHE E-commerce.
 
 ## Frontend et design
 
-- Toujours utiliser ou s'inspirer de la maquette Figma exportée pour les interfaces frontend :
-  `/home/zelofane/projets/ANIFOWOCHE-E-commerce/docs/ANIFIWOSHE Mockup Figma`
 - Conserver la logique métier existante : appels API, panier, auth, checkout, dashboard.
 - Améliorer l'UI sans casser les routes existantes.
 - Vérifier les interfaces sur mobile et desktop quand l'environnement permet de lancer Docker.

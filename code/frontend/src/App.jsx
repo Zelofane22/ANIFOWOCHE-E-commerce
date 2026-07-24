@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Route, Routes, useLocation } from "react-router";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import { pingPageView } from "./api/analytics.js";
 import Footer from "./components/Footer.jsx";
 import Navbar from "./components/Navbar.jsx";
@@ -19,6 +19,10 @@ const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation.jsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.jsx"));
 const Orders = lazy(() => import("./pages/Orders.jsx"));
 const Product = lazy(() => import("./pages/Product.jsx"));
+const PublicShop = lazy(() => import("./pages/PublicShop.jsx"));
+const SellerAuth = lazy(() => import("./pages/SellerAuth.jsx"));
+const SellerDashboard = lazy(() => import("./pages/SellerDashboard.jsx"));
+const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
 const Wishlist = lazy(() => import("./pages/Wishlist.jsx"));
 
 function PageViewTracker() {
@@ -32,13 +36,16 @@ function PageViewTracker() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isSellerSurface = location.pathname.startsWith("/seller") || location.pathname.startsWith("/shop/");
+
   return (
     <SiteConfigProvider>
       <AuthProvider>
         <CartProvider>
           <div className="min-h-screen bg-white text-ink">
             <PageViewTracker />
-            <Navbar />
+            {!isSellerSurface && <Navbar />}
             <main>
               <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
                 <Routes>
@@ -53,10 +60,16 @@ export default function App() {
                   <Route path="/compte/commandes/:id" element={<OrderDetail />} />
                   <Route path="/compte/adresses" element={<Addresses />} />
                   <Route path="/compte/favoris" element={<Wishlist />} />
+                  <Route path="/seller" element={<Navigate to="/seller/dashboard" replace />} />
+                  <Route path="/seller/login" element={<SellerAuth />} />
+                  <Route path="/seller/register" element={<SellerAuth />} />
+                  <Route path="/seller/dashboard" element={<SellerDashboard />} />
+                  <Route path="/seller/settings" element={<SellerSettings />} />
+                  <Route path="/shop/:slug" element={<PublicShop />} />
                 </Routes>
               </Suspense>
             </main>
-            <Footer />
+            {!isSellerSurface && <Footer />}
           </div>
         </CartProvider>
       </AuthProvider>

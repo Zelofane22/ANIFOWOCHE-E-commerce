@@ -24,10 +24,6 @@ Directives pour Claude Code sur ce projet (ANIFOWOCHE E-commerce).
 
 - Le déploiement se fait automatiquement sur push vers `main` (Render pour le backend + DB, Vercel pour le frontend). Ne jamais essayer de déployer manuellement ou de simuler un déploiement en local.
 
-## Design
-Toujours utiliser ou s'inpirer de la maque figma pour les interfaces frontend.
-/home/zelofane/projets/ANIFOWOCHE-E-commerce/docs/ANIFIWOSHE Mockup Figma
-
 ## choix de model et de niveau d'effort
 Avant d'executer une tâche, identifie d'abord le model adapté pour la tâche.
 Sortie attendue : Model : Effort

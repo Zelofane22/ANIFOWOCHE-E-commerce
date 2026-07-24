@@ -23,6 +23,7 @@ class EmailOrPhoneModelBackend(ModelBackend):
             UserModel._default_manager.filter(username__iexact=username).first()
             or UserModel._default_manager.filter(email__iexact=username).first()
             or UserModel._default_manager.filter(profile__phone=normalize_phone(username)).first()
+            or UserModel._default_manager.filter(seller_profile__phone=normalize_phone(username)).first()
         )
         if user is None:
             # Calcule quand même un hash pour limiter les attaques par mesure de temps.

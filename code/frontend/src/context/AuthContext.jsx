@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { useEffect, useState } from "react";
 import { fetchMe, loginUser, registerUser } from "../api/auth.js";
+import { registerSeller as registerSellerApi } from "../api/seller.js";
 import { clearTokens, getAccessToken, setTokens } from "../utils/tokenStorage.js";
 import { AuthContextValue } from "./authContextValue.js";
 
@@ -40,12 +41,19 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const registerSeller = async (payload) => {
+    const data = await registerSellerApi(payload);
+    setTokens(data);
+    applyUser(data.user);
+    return data;
+  };
+
   const logout = () => {
     clearTokens();
     applyUser(null);
   };
 
-  const value = { user, loading, isAuthenticated: Boolean(user), login, register, logout };
+  const value = { user, loading, isAuthenticated: Boolean(user), login, register, registerSeller, logout };
 
   return <AuthContextValue.Provider value={value}>{children}</AuthContextValue.Provider>;
 }
