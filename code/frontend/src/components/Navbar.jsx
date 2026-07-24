@@ -143,6 +143,12 @@ export default function Navbar() {
             <MenuIcon size={16} />
             Toutes les catégories
           </Link>
+          <Link
+            to="/commande/public"
+            className="rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
+          >
+            Commander
+          </Link>
           {categories.length > 0 && <div className="mx-1 h-5 w-px bg-white/20" />}
           {categories.map((category) => (
             <Link
@@ -207,6 +213,13 @@ export default function Navbar() {
               className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
             >
               Catalogue
+            </Link>
+            <Link
+              to="/commande/public"
+              onClick={() => setMenuOpen(false)}
+              className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
+            >
+              Commander
             </Link>
             {categories.map((category) => (
               <Link

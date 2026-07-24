@@ -19,6 +19,7 @@ const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation.jsx"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail.jsx"));
 const Orders = lazy(() => import("./pages/Orders.jsx"));
 const Product = lazy(() => import("./pages/Product.jsx"));
+const PublicOrder = lazy(() => import("./pages/PublicOrder.jsx"));
 const PublicShop = lazy(() => import("./pages/PublicShop.jsx"));
 const SellerAuth = lazy(() => import("./pages/SellerAuth.jsx"));
 const SellerDashboard = lazy(() => import("./pages/SellerDashboard.jsx"));
@@ -55,6 +56,7 @@ export default function App() {
                   <Route path="/produits/:slug" element={<Product />} />
                   <Route path="/panier" element={<Cart />} />
                   <Route path="/commande" element={<Checkout />} />
+                  <Route path="/commande/public" element={<PublicOrder />} />
                   <Route path="/commande/confirmation" element={<OrderConfirmation />} />
                   <Route path="/compte" element={<Account />} />
                   <Route path="/compte/commandes" element={<Orders />} />

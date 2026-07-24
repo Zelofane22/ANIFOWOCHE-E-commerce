@@ -18,7 +18,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == "create":
-            return [permissions.IsAuthenticated()]
+            return [permissions.AllowAny()]
         if self.action in ("update", "partial_update", "destroy"):
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]

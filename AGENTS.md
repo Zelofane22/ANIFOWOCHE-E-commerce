@@ -5,7 +5,7 @@ Directives pour Codex sur ce projet ANIFOWOCHE E-commerce.
 ## Environnement d'exécution
 
 - Ne jamais lancer l'application en local hors Docker. Pas de `python manage.py runserver`, `npm run dev`, `npm start`, installation locale Python/Node/PostgreSQL, etc.
-- Tout passe par Docker Compose, voir [docs/docker.md](docs/docker.md).
+- Tout passe par Docker Compose
 - Le fichier `docker-compose.yml` vit dans `code/`.
 - Le code source est sous `code/backend/` et `code/frontend/`.
 - Depuis la racine du repo, utiliser `docker compose -f code/docker-compose.yml ...`.
@@ -32,7 +32,7 @@ Directives pour Codex sur ce projet ANIFOWOCHE E-commerce.
 - Le déploiement se fait automatiquement sur push vers `main`.
 - Render héberge le backend Django et PostgreSQL.
 - Vercel héberge le frontend React/Vite.
-- Ne pas tenter de déployer manuellement ou de simuler un déploiement en local sans demande explicite.
+- Test de déploiement uniquement sur docker
 
 ## Frontend et design
 
