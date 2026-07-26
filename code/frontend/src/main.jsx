@@ -17,7 +17,7 @@ if (sentryDsn) {
     environment: import.meta.env.MODE,
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.httpClientIntegration(),
+      Sentry.httpClientIntegration({ failedRequestStatusCodes: [[400, 599]] }),
       Sentry.reportingObserverIntegration(),
     ],
     tracesSampleRate: 0.1,
