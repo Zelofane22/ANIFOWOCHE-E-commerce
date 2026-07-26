@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router";
+import { Route, Routes, useLocation } from "react-router";
 import { pingPageView } from "./api/analytics.js";
 import Footer from "./components/Footer.jsx";
 import Navbar from "./components/Navbar.jsx";
@@ -26,6 +26,7 @@ const SellerDashboard = lazy(() => import("./pages/SellerDashboard.jsx"));
 const SellerOrderDetail = lazy(() => import("./pages/SellerOrderDetail.jsx"));
 const SellerOrders = lazy(() => import("./pages/SellerOrders.jsx"));
 const SellerProducts = lazy(() => import("./pages/SellerProducts.jsx"));
+const SellerLanding = lazy(() => import("./pages/SellerLanding.jsx"));
 const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
 const Wishlist = lazy(() => import("./pages/Wishlist.jsx"));
 
@@ -41,7 +42,7 @@ function PageViewTracker() {
 
 export default function App() {
   const location = useLocation();
-  const isSellerSurface = location.pathname.startsWith("/seller") || location.pathname.startsWith("/shop/");
+  const isSellerSurface = (location.pathname !== "/seller" && location.pathname.startsWith("/seller")) || location.pathname.startsWith("/shop/");
 
   return (
     <SiteConfigProvider>
@@ -65,7 +66,7 @@ export default function App() {
                   <Route path="/compte/commandes/:id" element={<OrderDetail />} />
                   <Route path="/compte/adresses" element={<Addresses />} />
                   <Route path="/compte/favoris" element={<Wishlist />} />
-                  <Route path="/seller" element={<Navigate to="/seller/dashboard" replace />} />
+                  <Route path="/seller" element={<SellerLanding />} />
                   <Route path="/seller/login" element={<SellerAuth />} />
                   <Route path="/seller/register" element={<SellerAuth />} />
                   <Route path="/seller/dashboard" element={<SellerDashboard />} />
