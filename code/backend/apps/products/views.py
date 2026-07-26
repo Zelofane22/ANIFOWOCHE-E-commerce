@@ -89,7 +89,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return (
             Product.objects.filter(seller=self._seller())
-            .select_related("category")
+        .select_related("category", "seller")
             .prefetch_related(
                 Prefetch(
                     "images",

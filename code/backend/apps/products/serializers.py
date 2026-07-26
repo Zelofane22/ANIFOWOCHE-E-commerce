@@ -21,6 +21,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     seller_id = serializers.IntegerField(read_only=True)
+    seller_name = serializers.CharField(source="seller.display_name", read_only=True, allow_null=True)
     shop_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
@@ -36,6 +37,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "seller_id",
+            "seller_name",
             "shop_id",
             "name",
             "slug",

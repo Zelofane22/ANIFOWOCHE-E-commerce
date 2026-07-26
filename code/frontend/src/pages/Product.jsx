@@ -265,6 +265,16 @@ function ProductView({ slug }) {
             )}
           </div>
 
+          {product.seller_name && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-muted">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="8" r="5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" />
+              </svg>
+              Vendu par <span className="font-medium text-ink">{product.seller_name}</span>
+            </div>
+          )}
+
           <div className="mt-5">
             <div className="flex flex-wrap items-baseline gap-3">
               {product.discount_percent > 0 ? (
