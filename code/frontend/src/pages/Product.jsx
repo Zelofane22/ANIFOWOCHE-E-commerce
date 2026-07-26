@@ -28,6 +28,7 @@ function ProductView({ slug }) {
   const [wishlisted, setWishlisted] = useState(false);
   const [shared, setShared] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedColor, setSelectedColor] = useState(null);
 
   useEffect(() => {
     fetchProductBySlug(slug)
@@ -47,7 +48,13 @@ function ProductView({ slug }) {
 
   const handleAddToCart = () => {
     if (product.stock <= 0) return;
-    addItem(product, quantity);
+    const selectedColorData = selectedColor
+      ? product.colors.find((c) => c.name === selectedColor)
+      : null;
+    addItem(
+      { ...product, selectedColor: selectedColorData || null },
+      quantity
+    );
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
   };
@@ -102,20 +109,29 @@ function ProductView({ slug }) {
   const badge = isFabric ? "Meilleure vente" : product.category?.name;
 
   const galleryImages = [
-    ...(product.image ? [{ id: "cover", image: product.image }] : []),
+    ...(product.image ? [{ id: "cover", image: product.image, color_name: "" }] : []),
     ...(product.images ?? []),
   ];
-  const hasGallery = galleryImages.length > 1;
-  const currentImage = galleryImages[activeImageIndex] ?? galleryImages[0];
+
+  const filteredGalleryImages = selectedColor
+    ? galleryImages.filter((img) => !img.color_name || img.color_name === selectedColor)
+    : galleryImages;
+
+  const displayImages = filteredGalleryImages.length > 0 ? filteredGalleryImages : galleryImages;
+  const hasGallery = displayImages.length > 1;
+  const currentImage = displayImages[activeImageIndex] ?? displayImages[0];
 
   const showPreviousImage = () => {
-    setActiveImageIndex((index) => (index - 1 + galleryImages.length) % galleryImages.length);
+    setActiveImageIndex((index) => (index - 1 + displayImages.length) % displayImages.length);
   };
   const showNextImage = () => {
-    setActiveImageIndex((index) => (index + 1) % galleryImages.length);
+    setActiveImageIndex((index) => (index + 1) % displayImages.length);
   };
 
-  const stock = product.stock ?? 0;
+  const selectedColorData = selectedColor
+    ? product.colors?.find((c) => c.name === selectedColor)
+    : null;
+  const stock = selectedColorData ? (selectedColorData.stock ?? 0) : (product.stock ?? 0);
   const outOfStock = stock <= 0;
   const lowStock = !outOfStock && stock <= 5;
   const stockLabel = outOfStock ? "Rupture de stock" : lowStock ? `Plus que ${stock} en stock` : "En stock";
@@ -225,7 +241,7 @@ function ProductView({ slug }) {
             </div>
             {hasGallery && (
               <div className="mt-2 flex justify-center gap-1.5 sm:hidden">
-                {galleryImages.map((img, index) => (
+                {displayImages.map((img, index) => (
                   <button
                     key={img.id}
                     type="button"
@@ -294,6 +310,40 @@ function ProductView({ slug }) {
               <p className="mt-2 text-sm text-ink">
                 Taille : <span className="font-semibold">{product.size}</span>
               </p>
+            )}
+            {product.colors && product.colors.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-2 text-sm font-semibold text-ink">
+                  Couleur{selectedColor ? ` : ${selectedColor}` : ""}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => {
+                    const colorStock = color.stock ?? 0;
+                    const isSelected = selectedColor === color.name;
+                    const isOutOfStock = colorStock <= 0;
+                    return (
+                      <button
+                        key={color.name}
+                        type="button"
+                        onClick={() => setSelectedColor(isSelected ? null : color.name)}
+                        disabled={isOutOfStock}
+                        title={`${color.name}${isOutOfStock ? " (rupture)" : ` — ${colorStock} en stock`}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition ${
+                          isSelected
+                            ? "border-brand bg-brand-light text-brand-dark"
+                            : "border-black/10 bg-white text-ink hover:border-black/25"
+                        } ${isOutOfStock ? "cursor-not-allowed opacity-40" : ""}`}
+                      >
+                        <span
+                          className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/10"
+                          style={{ backgroundColor: color.hex }}
+                        />
+                        {color.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
 
@@ -378,6 +428,37 @@ function ProductView({ slug }) {
               <p className="text-2xl font-bold text-ink">{formatXof(product.price_xof)}</p>
             )}
             {unit && <p className="mt-1 text-sm text-muted">par {unit}</p>}
+            {product.colors && product.colors.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-xs font-semibold text-ink">Couleur</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {product.colors.map((color) => {
+                    const isSelected = selectedColor === color.name;
+                    const isOutOfStock = (color.stock ?? 0) <= 0;
+                    return (
+                      <button
+                        key={color.name}
+                        type="button"
+                        onClick={() => setSelectedColor(isSelected ? null : color.name)}
+                        disabled={isOutOfStock}
+                        title={`${color.name}${isOutOfStock ? " (rupture)" : ""}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${
+                          isSelected
+                            ? "border-brand bg-brand-light text-brand-dark"
+                            : "border-black/10 bg-white text-ink hover:border-black/25"
+                        } ${isOutOfStock ? "cursor-not-allowed opacity-40" : ""}`}
+                      >
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full border border-black/10"
+                          style={{ backgroundColor: color.hex }}
+                        />
+                        {color.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="mt-4 space-y-2 text-sm">
               <div className={`flex items-center gap-2 font-medium ${stockColorClass}`}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

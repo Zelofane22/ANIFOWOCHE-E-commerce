@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { getSellerOrder, getSellerProfile, relaunchSellerPayment, updateSellerOrderStatus } from "../api/seller.js";
+import { getSellerOrder, getSellerProfile, relaunchSellerPayment, confirmSellerPayment, updateSellerOrderStatus } from "../api/seller.js";
 import { OrderStatusBadge } from "../components/account/common.jsx";
 import { formatDate, ORDER_STATUS, orderRef } from "../components/account/orderHelpers.js";
 import {
@@ -56,6 +56,8 @@ export default function SellerOrderDetail() {
   const [cancelReason, setCancelReason] = useState("");
   const [relaunching, setRelaunching] = useState(false);
   const [relaunchResult, setRelaunchResult] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmResult, setConfirmResult] = useState(null);
 
   useEffect(() => {
     if (loading) return;
@@ -117,6 +119,21 @@ export default function SellerOrderDetail() {
       setRelaunchResult({ success: false, message: extractErrorMessage(error) });
     } finally {
       setRelaunching(false);
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    setConfirming(true);
+    setConfirmResult(null);
+    try {
+      const result = await confirmSellerPayment(order.id);
+      setConfirmResult({ success: true });
+      setOrder((prev) => prev ? { ...prev, payment_info: result, status: "prepared" } : prev);
+      setStatusSelection("prepared");
+    } catch (error) {
+      setConfirmResult({ success: false, message: extractErrorMessage(error) });
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -191,6 +208,15 @@ export default function SellerOrderDetail() {
                           <p className="mt-1 text-sm text-muted">
                             Qté {item.quantity} · Prix unitaire {formatXof(item.unit_price_xof)}
                           </p>
+                          {item.color_name && (
+                            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+                              <span
+                                className="inline-block h-3 w-3 rounded-full border border-black/10"
+                                style={{ backgroundColor: item.color_hex }}
+                              />
+                              {item.color_name}
+                            </p>
+                          )}
                         </div>
                         <p className="text-sm font-semibold text-ink">{formatXof(item.subtotal_xof)}</p>
                       </div>
@@ -271,6 +297,37 @@ export default function SellerOrderDetail() {
                       <span className="text-muted">Mode</span>
                       <span className="font-semibold text-ink">{PAYMENT_METHOD_LABEL[order.payment_info.method] ?? order.payment_info.method}</span>
                     </div>
+                    {order.payment_info.status === "pending" ? (
+                      <div className="mt-3 space-y-2">
+                        <button
+                          type="button"
+                          onClick={handleConfirmPayment}
+                          disabled={confirming}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {confirming ? "Confirmation en cours..." : "Confirmer le paiement reçu"}
+                        </button>
+                        {confirmResult ? (
+                          confirmResult.success ? (
+                            <p className="text-sm text-green-700">Paiement confirmé et commande mise en préparation.</p>
+                          ) : (
+                            <p className="text-sm text-red-600">{confirmResult.message || "Échec de la confirmation."}</p>
+                          )
+                        ) : null}
+                        <a
+                          href={whatsappUrl(
+                            order.phone,
+                            `Bonjour ${order.full_name}, le paiement de votre commande ANIFOWOCHE #${order.id} (${formatXof(order.total_xof)}) n'a pas encore été confirmé. Pouvez-vous finaliser le paiement ? Merci !`
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                        >
+                          <SendIcon size={15} />
+                          Relancer le paiement (WhatsApp)
+                        </a>
+                      </div>
+                    ) : null}
                     {order.payment_info.status === "failed" || order.payment_info.status === "declined" || order.payment_info.status === "canceled" ? (
                       <div className="mt-3 space-y-2">
                         <button
@@ -321,7 +378,7 @@ export default function SellerOrderDetail() {
                     <SendIcon size={15} />
                     Confirmer la commande
                   </a>
-                  {order.payment_info && order.payment_info.status !== "approved" ? (
+                  {order.payment_info && order.payment_info.status !== "approved" && order.payment_info.status !== "pending" ? (
                     <a
                       href={whatsappUrl(
                         order.phone,

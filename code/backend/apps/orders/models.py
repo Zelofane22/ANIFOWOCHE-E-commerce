@@ -56,6 +56,13 @@ class Order(models.Model):
             )
         from django.utils import timezone
         for item in self.items.all():
+            if item.color_name and item.product.colors:
+                colors = item.product.colors
+                for color in colors:
+                    if color["name"] == item.color_name:
+                        color["stock"] = color.get("stock", 0) + item.quantity
+                        break
+                Product.objects.filter(pk=item.product_id).update(colors=colors)
             Product.objects.filter(pk=item.product_id).update(
                 stock=models.F("stock") + item.quantity
             )
@@ -70,6 +77,8 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="order_items")
     quantity = models.PositiveIntegerField(default=1)
     unit_price_xof = models.PositiveIntegerField(help_text="Prix unitaire au moment de la commande")
+    color_name = models.CharField(max_length=50, blank=True, default="")
+    color_hex = models.CharField(max_length=7, blank=True, default="")
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"

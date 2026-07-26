@@ -56,6 +56,11 @@ class Product(models.Model):
     )
     size = models.CharField(max_length=10, choices=Size.choices, default=Size.UNIQUE)
     stock = models.PositiveIntegerField(default=0)
+    colors = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='[{"name": "Rouge", "hex": "#FF0000", "stock": 10}, ...]',
+    )
     image = models.ImageField(upload_to="products/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -94,6 +99,10 @@ class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to="products/gallery/")
     alt_text = models.CharField(max_length=255, blank=True, default="")
+    color_name = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="Couleur associée (doit correspondre à un nom dans Product.colors)",
+    )
     order = models.PositiveIntegerField(default=0)
     is_cover = models.BooleanField(default=False, help_text="Image principale de la galerie.")
     is_active = models.BooleanField(default=True)

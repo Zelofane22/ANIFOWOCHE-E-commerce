@@ -14,7 +14,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "alt_text", "order", "is_cover", "is_active", "created_at", "updated_at"]
+        fields = ["id", "image", "alt_text", "color_name", "order", "is_cover", "is_active", "created_at", "updated_at"]
         read_only_fields = ["is_active", "created_at", "updated_at"]
 
 
@@ -46,6 +46,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "unit",
             "size",
             "stock",
+            "colors",
             "image",
             "images",
             "is_active",

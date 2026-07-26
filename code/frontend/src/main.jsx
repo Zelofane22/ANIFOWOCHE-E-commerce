@@ -15,7 +15,11 @@ if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     environment: import.meta.env.MODE,
-    integrations: [Sentry.browserTracingIntegration()],
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.httpClientIntegration({ failedRequestStatusCodes: [[400, 599]] }),
+      Sentry.reportingObserverIntegration(),
+    ],
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
   });

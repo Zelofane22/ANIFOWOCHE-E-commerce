@@ -34,6 +34,7 @@ const emptyForm = {
   is_active: true,
   imageFile: null,
   imagePreview: "",
+  colors: [],
 };
 
 const inputClass =
@@ -58,8 +59,69 @@ function buildProductPayload(form) {
   payload.append("unit", form.unit);
   payload.append("size", form.unit === "metre" ? "UNIQUE" : form.size);
   payload.append("is_active", form.is_active ? "true" : "false");
+  if (form.colors.length > 0) {
+    payload.append("colors", JSON.stringify(form.colors));
+  }
   if (form.imageFile) payload.append("image", form.imageFile);
   return payload;
+}
+
+function AddColorForm({ onAdd }) {
+  const [name, setName] = useState("");
+  const [hex, setHex] = useState("#000000");
+  const [stock, setStock] = useState("");
+
+  const handleAdd = () => {
+    if (!name.trim() || !stock) return;
+    onAdd({ name: name.trim(), hex, stock: parseInt(stock, 10) || 0 });
+    setName("");
+    setHex("#000000");
+    setStock("");
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2">
+      <label className="block text-xs font-medium text-ink">
+        Couleur
+        <input
+          type="color"
+          value={hex}
+          onChange={(event) => setHex(event.target.value)}
+          className="mt-1 h-8 w-8 cursor-pointer rounded border border-black/10 p-0"
+        />
+      </label>
+      <label className="block text-xs font-medium text-ink">
+        Nom
+        <input
+          type="text"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Rouge, Bleu..."
+          className="mt-1 w-28 rounded-lg border border-black/15 px-2 py-1.5 text-xs outline-none focus:border-brand"
+        />
+      </label>
+      <label className="block text-xs font-medium text-ink">
+        Stock
+        <input
+          type="number"
+          min="0"
+          value={stock}
+          onChange={(event) => setStock(event.target.value)}
+          placeholder="0"
+          className="mt-1 w-16 rounded-lg border border-black/15 px-2 py-1.5 text-xs outline-none focus:border-brand"
+        />
+      </label>
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={!name.trim() || !stock}
+        className="inline-flex items-center gap-1 rounded-lg bg-brand-light px-2.5 py-1.5 text-xs font-bold text-brand-dark transition hover:bg-brand/20 disabled:opacity-50"
+      >
+        <PlusIcon size={12} />
+        Ajouter
+      </button>
+    </div>
+  );
 }
 
 function ProductStatus({ product }) {
@@ -146,6 +208,7 @@ export default function SellerProducts() {
       is_active: product.is_active,
       imageFile: null,
       imagePreview: product.image || "",
+      colors: product.colors || [],
     });
     window.scrollTo({ top: 0 });
   };
@@ -330,6 +393,42 @@ export default function SellerProducts() {
                   </select>
                 </Field>
               )}
+            </div>
+            <div className="rounded-lg border border-black/10 p-3">
+              <p className="text-sm font-semibold text-ink">Couleurs disponibles</p>
+              <p className="mt-1 text-xs text-muted">
+                Ajoutez les couleurs si votre produit en propose (ex : vêtements, tissus).
+              </p>
+              {form.colors.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {form.colors.map((color, index) => (
+                    <div key={index} className="flex items-center gap-2 rounded-lg bg-[#fbfaf7] px-3 py-2">
+                      <span
+                        className="h-5 w-5 shrink-0 rounded-full border border-black/10"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                      <span className="min-w-0 flex-1 text-sm font-medium text-ink">{color.name}</span>
+                      <span className="text-xs text-muted">{color.stock} en stock</span>
+                      <button
+                        type="button"
+                        onClick={() => setForm((current) => ({
+                          ...current,
+                          colors: current.colors.filter((_, i) => i !== index),
+                        }))}
+                        className="shrink-0 text-red-500 transition hover:text-red-700"
+                      >
+                        <TrashIcon size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <AddColorForm
+                onAdd={(newColor) => setForm((current) => ({
+                  ...current,
+                  colors: [...current.colors, newColor],
+                }))}
+              />
             </div>
             <label className="flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-medium text-ink">
               <input

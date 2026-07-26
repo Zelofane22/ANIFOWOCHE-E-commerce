@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from apps.products.views import ProductImageDetailView, ProductImageListCreateView, SellerProductViewSet
 from .views import (
     PublicShopView,
+    SellerConfirmPaymentView,
     SellerDashboardView,
     SellerPaymentRelaunchView,
     SellerProfileView,
@@ -23,5 +24,6 @@ urlpatterns = [
     path("seller/profile/", SellerProfileView.as_view(), name="seller-profile"),
     path("seller/dashboard/", SellerDashboardView.as_view(), name="seller-dashboard"),
     path("seller/orders/<int:order_id>/relance-paiement/", SellerPaymentRelaunchView.as_view(), name="seller-payment-relaunch"),
+    path("seller/orders/<int:order_id>/confirmer-paiement/", SellerConfirmPaymentView.as_view(), name="seller-confirm-payment"),
     path("public/shops/<slug:slug>/", PublicShopView.as_view(), name="public-shop-detail"),
 ]
