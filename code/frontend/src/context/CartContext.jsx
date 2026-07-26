@@ -18,53 +18,56 @@ export function CartProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
+  const itemKey = (item) => {
+    const color = item.colorName || "";
+    const opts = item.selectedOptions ? JSON.stringify(item.selectedOptions.map((o) => o.option_id)) : "";
+    return `${item.slug}|${color}|${opts}`;
+  };
+
   const addItem = (product, quantity = 1) => {
     setItems((current) => {
-      const colorKey = product.selectedColor ? product.selectedColor.name : "";
-      const existing = current.find(
-        (item) => item.slug === product.slug && item.colorName === colorKey
-      );
+      const newItem = {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        price_xof: product.price_xof,
+        unit: product.unit,
+        size: product.size,
+        image: product.image,
+        colorName: product.selectedColor ? product.selectedColor.name : "",
+        colorHex: product.selectedColor?.hex || "",
+        selectedOptions: product.selectedOptions || [],
+        quantity,
+      };
+      const key = itemKey(newItem);
+      const existing = current.find((item) => itemKey(item) === key);
       if (existing) {
         return current.map((item) =>
-          item.slug === product.slug && item.colorName === colorKey
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+          itemKey(item) === key ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [
-        ...current,
-        {
-          id: product.id,
-          slug: product.slug,
-          name: product.name,
-          price_xof: product.price_xof,
-          unit: product.unit,
-          size: product.size,
-          image: product.image,
-          colorName: colorKey,
-          colorHex: product.selectedColor?.hex || "",
-          quantity,
-        },
-      ];
+      return [...current, newItem];
     });
   };
 
-  const updateQuantity = (slug, quantity, colorName = "") => {
+  const updateQuantity = (slug, quantity, colorName = "", selectedOptions = []) => {
     if (quantity < 1) return;
     setItems((current) =>
-      current.map((item) =>
-        item.slug === slug && (item.colorName || "") === (colorName || "")
-          ? { ...item, quantity }
-          : item
-      )
+      current.map((item) => {
+        const opts = selectedOptions ? JSON.stringify(selectedOptions.map((o) => o.option_id)) : "";
+        const key = `${slug}|${colorName || ""}|${opts}`;
+        return itemKey(item) === key ? { ...item, quantity } : item;
+      })
     );
   };
 
-  const removeItem = (slug, colorName = "") => {
+  const removeItem = (slug, colorName = "", selectedOptions = []) => {
     setItems((current) =>
-      current.filter(
-        (item) => item.slug !== slug || (item.colorName || "") !== (colorName || "")
-      )
+      current.filter((item) => {
+        const opts = selectedOptions ? JSON.stringify(selectedOptions.map((o) => o.option_id)) : "";
+        const key = `${slug}|${colorName || ""}|${opts}`;
+        return itemKey(item) !== key;
+      })
     );
   };
 
@@ -76,7 +79,11 @@ export function CartProvider({ children }) {
   );
 
   const subtotal = useMemo(
-    () => items.reduce((total, item) => total + item.price_xof * item.quantity, 0),
+    () =>
+      items.reduce((total, item) => {
+        const optionsExtra = (item.selectedOptions || []).reduce((sum, opt) => sum + (opt.price_xof || 0), 0);
+        return total + (item.price_xof + optionsExtra) * item.quantity;
+      }, 0),
     [items]
   );
 

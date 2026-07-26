@@ -8,3 +8,6 @@ export const fetchProductBySlug = (slug) =>
 
 export const fetchCategories = () =>
   apiClient.get("/products/categories/").then((res) => res.data);
+
+export const fetchProductOptionGroups = (slug) =>
+  apiClient.get(`/seller/products/${slug}/option-groups/`).then((res) => res.data);

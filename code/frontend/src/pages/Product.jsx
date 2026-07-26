@@ -30,6 +30,7 @@ function ProductView({ slug }) {
   const [shared, setShared] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState({});
 
   useEffect(() => {
     fetchProductBySlug(slug)
@@ -73,12 +74,49 @@ function ProductView({ slug }) {
     const selectedColorData = selectedColor
       ? product.colors.find((c) => c.name === selectedColor)
       : null;
+    const optionsPayload = [];
+    for (const [groupId, optionIds] of Object.entries(selectedOptions)) {
+      const group = product.option_groups?.find((g) => String(g.id) === groupId);
+      if (!group) continue;
+      for (const optId of optionIds) {
+        const opt = group.options.find((o) => String(o.id) === String(optId));
+        if (opt) {
+          optionsPayload.push({
+            group_id: group.id,
+            group_name: group.name,
+            option_id: opt.id,
+            option_name: opt.name,
+            price_xof: opt.price_xof,
+          });
+        }
+      }
+    }
     addItem(
-      { ...product, selectedColor: selectedColorData || null },
+      { ...product, selectedColor: selectedColorData || null, selectedOptions: optionsPayload },
       quantity
     );
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleOptionToggle = (groupId, optionId, maxSelections) => {
+    setSelectedOptions((prev) => {
+      const current = prev[groupId] || [];
+      if (current.includes(String(optionId))) {
+        return { ...prev, [groupId]: current.filter((id) => id !== String(optionId)) };
+      }
+      if (maxSelections === 1) {
+        return { ...prev, [groupId]: [String(optionId)] };
+      }
+      if (maxSelections > 0 && current.length >= maxSelections) {
+        return prev;
+      }
+      return { ...prev, [groupId]: [...current, String(optionId)] };
+    });
+  };
+
+  const isOptionSelected = (groupId, optionId) => {
+    return (selectedOptions[groupId] || []).includes(String(optionId));
   };
 
   const handleToggleWishlist = async () => {
@@ -367,6 +405,70 @@ function ProductView({ slug }) {
                 </div>
               </div>
             )}
+
+            {product.option_groups && product.option_groups.length > 0 && (
+              <div className="mt-5 space-y-4">
+                {product.option_groups.map((group) => (
+                  <div key={group.id}>
+                    <p className="mb-2 text-sm font-semibold text-ink">
+                      {group.name}
+                      {group.is_required && (
+                        <span className="ml-1.5 text-[10px] font-normal text-red-500">Obligatoire</span>
+                      )}
+                      {group.max_selections > 1 && (
+                        <span className="ml-1.5 text-[10px] font-normal text-muted">
+                          ({group.min_selections || 0}-{group.max_selections || "∞"} choix)
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map((opt) => {
+                        const selected = isOptionSelected(group.id, opt.id);
+                        const isRadio = group.max_selections === 1;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleOptionToggle(group.id, opt.id, group.max_selections)}
+                            className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition ${
+                              selected
+                                ? "border-brand bg-brand-light text-brand-dark"
+                                : "border-black/10 bg-white text-ink hover:border-black/25"
+                            }`}
+                          >
+                            {isRadio ? (
+                              <span
+                                className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border ${
+                                  selected ? "border-brand" : "border-black/20"
+                                }`}
+                              >
+                                {selected && <span className="h-2 w-2 rounded-full bg-brand" />}
+                              </span>
+                            ) : (
+                              <span
+                                className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
+                                  selected ? "border-brand bg-brand" : "border-black/20"
+                                }`}
+                              >
+                                {selected && (
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                                  </svg>
+                                )}
+                              </span>
+                            )}
+                            {opt.name}
+                            {opt.price_xof > 0 && (
+                              <span className="text-muted">+{formatXof(opt.price_xof)}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {unit && (
@@ -479,6 +581,38 @@ function ProductView({ slug }) {
                     );
                   })}
                 </div>
+              </div>
+            )}
+            {product.option_groups && product.option_groups.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {product.option_groups.map((group) => (
+                  <div key={group.id}>
+                    <p className="mb-1.5 text-xs font-semibold text-ink">
+                      {group.name}
+                      {group.is_required && <span className="ml-1 text-[10px] text-red-500">*</span>}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.options.map((opt) => {
+                        const selected = isOptionSelected(group.id, opt.id);
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleOptionToggle(group.id, opt.id, group.max_selections)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${
+                              selected
+                                ? "border-brand bg-brand-light text-brand-dark"
+                                : "border-black/10 bg-white text-ink hover:border-black/25"
+                            }`}
+                          >
+                            {opt.name}
+                            {opt.price_xof > 0 && <span className="text-muted">+{formatXof(opt.price_xof)}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             <div className="mt-4 space-y-2 text-sm">

@@ -91,6 +91,36 @@ class Product(models.Model):
         return slug
 
 
+class OptionGroup(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="option_groups")
+    name = models.CharField(max_length=100)
+    is_required = models.BooleanField(default=False)
+    min_selections = models.PositiveIntegerField(default=1)
+    max_selections = models.PositiveIntegerField(default=1, help_text="0 = illimité")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order"]
+        unique_together = ("product", "name")
+
+    def __str__(self):
+        return f"{self.name} — {self.product.name}"
+
+
+class Option(models.Model):
+    group = models.ForeignKey(OptionGroup, on_delete=models.CASCADE, related_name="options")
+    name = models.CharField(max_length=100)
+    price_xof = models.PositiveIntegerField(default=0, help_text="Supplément de prix en CFA")
+    is_default = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.name} (+{self.price_xof})"
+
+
 class ProductImage(models.Model):
     """Photos additionnelles de la galerie produit, en complément de
     Product.image (utilisée comme couverture partout ailleurs : cartes,

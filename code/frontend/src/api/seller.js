@@ -54,3 +54,24 @@ export const relaunchSellerPayment = (orderId) =>
 
 export const confirmSellerPayment = (orderId) =>
   apiClient.post(`/seller/orders/${orderId}/confirmer-paiement/`).then((res) => res.data);
+
+export const getProductOptionGroups = (slug) =>
+  apiClient.get(`/seller/products/${slug}/option-groups/`).then((res) => res.data);
+
+export const createOptionGroup = (slug, data) =>
+  apiClient.post(`/seller/products/${slug}/option-groups/`, data).then((res) => res.data);
+
+export const updateOptionGroup = (slug, id, data) =>
+  apiClient.patch(`/seller/products/${slug}/option-groups/${id}/`, data).then((res) => res.data);
+
+export const deleteOptionGroup = (slug, id) =>
+  apiClient.delete(`/seller/products/${slug}/option-groups/${id}/`).then((res) => res.data);
+
+export const createOption = (slug, groupId, data) =>
+  apiClient.post(`/seller/products/${slug}/option-groups/${groupId}/options/`, data).then((res) => res.data);
+
+export const updateOption = (slug, groupId, id, data) =>
+  apiClient.patch(`/seller/products/${slug}/option-groups/${groupId}/options/${id}/`, data).then((res) => res.data);
+
+export const deleteOption = (slug, groupId, id) =>
+  apiClient.delete(`/seller/products/${slug}/option-groups/${groupId}/options/${id}/`).then((res) => res.data);
