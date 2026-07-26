@@ -10,7 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@sentry/react": "^10.66.0",
+    "@sentry/react": "^10.67.0",
     "axios": "^1.18.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -20,13 +20,13 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@sentry/vite-plugin": "^5.4.0",
-    "@tailwindcss/vite": "^4.3.2",
+    "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^10.7.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
-    "tailwindcss": "^4.3.2",
+    "tailwindcss": "^4.3.3",
     "vite": "^8.1.5"
   }
 }
