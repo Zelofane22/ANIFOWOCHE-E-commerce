@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils.text import slugify
 
+from apps.sellers.models import SellerProfile, Shop
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -27,11 +29,19 @@ class Product(models.Model):
         METRE = "metre", "Mètre"
 
     seller = models.ForeignKey(
-        "sellers.SellerProfile",
+        SellerProfile,
         on_delete=models.CASCADE,
         related_name="products",
         blank=True,
         null=True,
+    )
+    shop = models.ForeignKey(
+        Shop,
+        on_delete=models.SET_NULL,
+        related_name="products",
+        blank=True,
+        null=True,
+        help_text="Boutique publique à laquelle le produit est associé.",
     )
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     name = models.CharField(max_length=150)
@@ -83,8 +93,12 @@ class ProductImage(models.Model):
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to="products/gallery/")
+    alt_text = models.CharField(max_length=255, blank=True, default="")
     order = models.PositiveIntegerField(default=0)
+    is_cover = models.BooleanField(default=False, help_text="Image principale de la galerie.")
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["order", "created_at"]

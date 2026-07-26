@@ -2,11 +2,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+from django.db.models import Prefetch, Q
 from rest_framework import serializers
 
 from apps.users.backends import normalize_phone
 from apps.users.serializers import UserSerializer
-from apps.products.models import Product
+from apps.products.models import Product, ProductImage
 from apps.products.serializers import ProductSerializer
 
 from .models import SellerProfile, Shop
@@ -151,9 +152,17 @@ class PublicShopSerializer(serializers.ModelSerializer):
 
     def get_products(self, shop):
         products = (
-            Product.objects.filter(seller=shop.seller, is_active=True)
+            Product.objects.filter(
+                Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
+                is_active=True,
+            )
             .select_related("category")
-            .prefetch_related("images")
+            .prefetch_related(
+                Prefetch(
+                    "images",
+                    queryset=ProductImage.objects.filter(is_active=True).order_by("order", "created_at"),
+                )
+            )
             .order_by("-updated_at")
         )
         return ProductSerializer(products, many=True, context=self.context).data

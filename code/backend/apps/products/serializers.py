@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.sellers.models import Shop
+
 from .models import Category, Product, ProductImage
 
 
@@ -12,12 +14,14 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "order"]
+        fields = ["id", "image", "alt_text", "order", "is_cover", "is_active", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     seller_id = serializers.IntegerField(read_only=True)
+    shop_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
     )
@@ -32,6 +36,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "seller_id",
+            "shop_id",
             "name",
             "slug",
             "description",
@@ -65,5 +70,20 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class SellerProductSerializer(ProductSerializer):
+    shop_id = serializers.PrimaryKeyRelatedField(source="shop", queryset=Shop.objects.all(), write_only=True, required=False)
+
     class Meta(ProductSerializer.Meta):
         read_only_fields = ["slug", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        shop = attrs.get("shop")
+        seller = self.context.get("seller")
+        if shop and seller and shop.seller != seller:
+            raise serializers.ValidationError({"shop_id": "Ce shop ne vous appartient pas."})
+        return attrs
+
+    def create(self, validated_data):
+        seller = self.context.get("seller")
+        if seller and "shop" not in validated_data and seller.shop:
+            validated_data["shop"] = seller.shop
+        return super().create(validated_data)

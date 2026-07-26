@@ -43,6 +43,25 @@ Ce sous-domaine doit pointer vers le frontend ANIF Seller déployé sur Vercel. 
 | [08-backlog-agile.md](08-backlog-agile.md) | Épics, user stories, priorités et estimation initiale |
 | [09-sprint-0-recherche-ia.md](09-sprint-0-recherche-ia.md) | Sprint 0 sans interviews : recherches internet, benchmark et cadrage IA |
 
+## État d'avancement du projet
+
+### Sprint en cours — Sprint 3 : Commandes vendeur
+
+| User Story | Statut |
+|---|---|
+| US-302 — Détail produit public | ✅ Terminé |
+| US-401 — Passage commande sans compte | ✅ Terminé |
+| US-402 — Saisie infos client (nom, téléphone, adresse) | ✅ Terminé |
+| US-403 — Liste des commandes reçues (côté vendeur) | 🔄 En cours |
+| US-405 — Changement de statut commande | 🔄 En cours |
+| US-404 — Détail d'une commande (côté vendeur) | ❌ À faire |
+| US-406 — Annulation de commande | ❌ À faire |
+
+### Sprints précédents
+
+- **Sprint 1** — Compte vendeur et boutique ✅ _(inscription, connexion, profil, lien public, dashboard)_
+- **Sprint 2** — Catalogue produits ✅ _(CRUD produit, image principale, galerie, stock, catégorie, boutique publique)_
+
 ## Positionnement simple
 
 ANIF Seller peut être présenté comme :
