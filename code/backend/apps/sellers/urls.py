@@ -5,6 +5,7 @@ from apps.products.views import ProductImageDetailView, ProductImageListCreateVi
 from .views import (
     PublicShopView,
     SellerDashboardView,
+    SellerPaymentRelaunchView,
     SellerProfileView,
     SellerRegisterView,
     SellerOrderViewSet,
@@ -21,5 +22,6 @@ urlpatterns = [
     path("seller/register/", SellerRegisterView.as_view(), name="seller-register"),
     path("seller/profile/", SellerProfileView.as_view(), name="seller-profile"),
     path("seller/dashboard/", SellerDashboardView.as_view(), name="seller-dashboard"),
+    path("seller/orders/<int:order_id>/relance-paiement/", SellerPaymentRelaunchView.as_view(), name="seller-payment-relaunch"),
     path("public/shops/<slug:slug>/", PublicShopView.as_view(), name="public-shop-detail"),
 ]

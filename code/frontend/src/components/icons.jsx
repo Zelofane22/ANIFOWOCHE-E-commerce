@@ -250,3 +250,26 @@ export const EyeOffIcon = (props) => (
     <path d="M6.1 6.8C3.5 8.6 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 4.2-.9" />
   </Icon>
 );
+
+export const MessageSquareIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 21V9a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4H6Z" />
+    <path d="M21 21l-3-3" />
+  </Icon>
+);
+
+export const SendIcon = (props) => (
+  <Icon {...props}>
+    <path d="m22 2-7 20-4-9-9-4Z" />
+    <path d="M22 2 11 13" />
+  </Icon>
+);
+
+export const RefreshCwIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M3 21v-5h5" />
+  </Icon>
+);

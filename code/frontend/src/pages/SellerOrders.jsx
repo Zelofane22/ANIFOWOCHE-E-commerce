@@ -6,7 +6,12 @@ import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { formatDate, ORDER_STATUS } from "../components/account/orderHelpers.js";
 import { formatXof } from "../utils/format.js";
-import { AlertCircleIcon, PackageIcon, SearchIcon } from "../components/icons.jsx";
+import { AlertCircleIcon, MessageSquareIcon, PackageIcon, SearchIcon } from "../components/icons.jsx";
+
+function whatsappUrl(phone, message) {
+  const clean = phone.replace(/[^0-9]/g, "");
+  return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+}
 
 export default function SellerOrders() {
   const navigate = useNavigate();
@@ -192,6 +197,18 @@ export default function SellerOrders() {
                       </select>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={whatsappUrl(
+                          order.phone,
+                          `Bonjour ${order.full_name}, je vous confirme la bonne réception de votre commande. Je reviens vers vous rapidement.`
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50"
+                        title="Contacter sur WhatsApp"
+                      >
+                        <MessageSquareIcon size={16} />
+                      </a>
                       <Link
                         to={`/seller/orders/${order.id}`}
                         className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"

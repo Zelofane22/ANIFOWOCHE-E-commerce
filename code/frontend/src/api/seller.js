@@ -32,3 +32,6 @@ export const updateSellerProduct = (slug, data) =>
 
 export const archiveSellerProduct = (slug) =>
   apiClient.delete(`/seller/products/${slug}/`).then((res) => res.data);
+
+export const relaunchSellerPayment = (orderId) =>
+  apiClient.post(`/seller/orders/${orderId}/relance-paiement/`).then((res) => res.data);

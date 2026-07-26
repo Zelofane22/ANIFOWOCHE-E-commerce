@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.notifications.services import notify_order_confirmation
+from apps.payments.serializers import PaymentSerializer
 from apps.products.models import Product
 from apps.promotions.models import Coupon
 
@@ -34,6 +35,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     coupon_code = serializers.CharField(required=False, allow_blank=True, default="")
+    payment_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -49,12 +51,19 @@ class OrderSerializer(serializers.ModelSerializer):
             "discount_xof",
             "total_xof",
             "items",
+            "payment_info",
             "cancelled_at",
             "cancellation_reason",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["discount_xof", "total_xof", "cancelled_at", "cancellation_reason", "created_at", "updated_at"]
+
+    def get_payment_info(self, obj):
+        latest = obj.payments.order_by("-created_at").first()
+        if not latest:
+            return None
+        return PaymentSerializer(latest).data
 
     def validate_items(self, items):
         if not items:

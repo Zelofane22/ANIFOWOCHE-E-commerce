@@ -248,17 +248,28 @@ Livrables :
 - détail commande ;
 - changement de statut.
 
-### Sprint 4 — WhatsApp assisté et tests pilotes
+### Sprint 4 — WhatsApp assisté et tests pilotes ✅
 
 Objectif : connecter l'outil au comportement réel des vendeurs.
 
+Statut : **Terminé** (juillet 2026).
+
 Livrables :
 
-- bouton message WhatsApp ;
-- modèles de messages ;
-- relance paiement ;
-- confirmation commande ;
-- tests avec 3 à 5 vendeurs pilotes.
+- ✅ bouton message WhatsApp — ouverture directe `wa.me` avec message pré-rempli depuis le détail commande et la liste des commandes ;
+- ✅ modèles de messages — 3 modèles (confirmation, relance paiement, rupture stock) accessibles depuis le détail commande ;
+- ✅ relance paiement — endpoint API vendeur `POST /seller/orders/<id>/relance-paiement/` + bouton dans l'interface avec lien de paiement ;
+- ✅ confirmation commande — message pré-rempli WhatsApp avec les détails de la commande ;
+- ⏳ tests avec 3 à 5 vendeurs pilotes — infrastructure de base en place, recrutement à lancer.
+
+User stories couvertes :
+
+| ID | Story | Statut |
+|----|-------|--------|
+| US-501 | Message WhatsApp de confirmation | ✅ |
+| US-504 | Ouverture directe WhatsApp | ✅ |
+| US-502 | Relance paiement (vendeur) | ✅ |
+| US-503 | Message rupture/disponibilité | ✅ |
 
 ### Sprint 5 — Beta payante
 

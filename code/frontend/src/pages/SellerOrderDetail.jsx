@@ -1,20 +1,45 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { getSellerOrder, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
+import { getSellerOrder, getSellerProfile, relaunchSellerPayment, updateSellerOrderStatus } from "../api/seller.js";
 import { OrderStatusBadge } from "../components/account/common.jsx";
 import { formatDate, ORDER_STATUS, orderRef } from "../components/account/orderHelpers.js";
 import {
   AlertCircleIcon,
   ChevronLeftIcon,
+  CreditCardIcon,
+  ExternalLinkIcon,
   FileTextIcon,
   MapPinIcon,
+  MessageSquareIcon,
   PackageIcon,
+  RefreshCwIcon,
+  SendIcon,
   TruckIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
+
+const PAYMENT_STATUS_LABEL = {
+  pending: "En attente",
+  approved: "Approuvé",
+  declined: "Refusé",
+  canceled: "Annulé",
+  failed: "Échec",
+};
+
+const PAYMENT_METHOD_LABEL = {
+  mtn: "MTN Mobile Money",
+  moov: "Moov Money",
+  card: "Carte bancaire",
+  cash_on_delivery: "Paiement à la livraison",
+};
+
+function whatsappUrl(phone, message) {
+  const clean = phone.replace(/[^0-9]/g, "");
+  return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+}
 
 export default function SellerOrderDetail() {
   const navigate = useNavigate();
@@ -29,6 +54,8 @@ export default function SellerOrderDetail() {
   const [pageLoading, setPageLoading] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [relaunching, setRelaunching] = useState(false);
+  const [relaunchResult, setRelaunchResult] = useState(null);
 
   useEffect(() => {
     if (loading) return;
@@ -78,6 +105,19 @@ export default function SellerOrderDetail() {
     setShowCancelModal(false);
     await handleUpdateStatus(cancelReason);
     setCancelReason("");
+  };
+
+  const handleRelaunchPayment = async () => {
+    setRelaunching(true);
+    setRelaunchResult(null);
+    try {
+      const result = await relaunchSellerPayment(order.id);
+      setRelaunchResult({ success: true, payment_url: result.payment_url });
+    } catch (error) {
+      setRelaunchResult({ success: false, message: extractErrorMessage(error) });
+    } finally {
+      setRelaunching(false);
+    }
   };
 
   if (loading || pageLoading || !seller || !order) {
@@ -211,6 +251,102 @@ export default function SellerOrderDetail() {
                   {order.email ? <p>{order.email}</p> : null}
                   <p>{order.address}</p>
                   <p>{order.city}</p>
+                </div>
+              </div>
+
+              {order.payment_info ? (
+                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                    <CreditCardIcon size={15} className="text-brand-dark" />
+                    Paiement
+                  </div>
+                  <div className="mt-4 space-y-2 text-sm">
+                    <div className="flex items-center justify-between rounded-xl bg-[#fbfaf7] px-3 py-2">
+                      <span className="text-muted">Statut</span>
+                      <span className={`font-semibold ${order.payment_info.status === "approved" ? "text-green-700" : order.payment_info.status === "failed" || order.payment_info.status === "declined" || order.payment_info.status === "canceled" ? "text-red-600" : ""}`}>
+                        {PAYMENT_STATUS_LABEL[order.payment_info.status] ?? order.payment_info.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl bg-[#fbfaf7] px-3 py-2">
+                      <span className="text-muted">Mode</span>
+                      <span className="font-semibold text-ink">{PAYMENT_METHOD_LABEL[order.payment_info.method] ?? order.payment_info.method}</span>
+                    </div>
+                    {order.payment_info.status === "failed" || order.payment_info.status === "declined" || order.payment_info.status === "canceled" ? (
+                      <div className="mt-3 space-y-2">
+                        <button
+                          type="button"
+                          onClick={handleRelaunchPayment}
+                          disabled={relaunching}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <RefreshCwIcon size={15} />
+                          {relaunching ? "Relance en cours..." : "Relancer le paiement"}
+                        </button>
+                        {relaunchResult ? (
+                          relaunchResult.success && relaunchResult.payment_url ? (
+                            <a
+                              href={relaunchResult.payment_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
+                            >
+                              <ExternalLinkIcon size={15} />
+                              Nouveau lien de paiement
+                            </a>
+                          ) : (
+                            <p className="text-sm text-red-600">{relaunchResult.message || "Échec de la relance."}</p>
+                          )
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="rounded-2xl border border-black/10 bg-white p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <MessageSquareIcon size={15} className="text-brand-dark" />
+                  Contacter le client
+                </div>
+                <div className="mt-4 space-y-3">
+                  <a
+                    href={whatsappUrl(
+                      order.phone,
+                      `Bonjour ${order.full_name}, je confirme la réception de votre commande ANIFOWOCHE #${order.id}. Je vous tiens au courant dès qu'elle sera prête.`
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                  >
+                    <SendIcon size={15} />
+                    Confirmer la commande
+                  </a>
+                  {order.payment_info && order.payment_info.status !== "approved" ? (
+                    <a
+                      href={whatsappUrl(
+                        order.phone,
+                        `Bonjour ${order.full_name}, le paiement de votre commande ANIFOWOCHE #${order.id} (${formatXof(order.total_xof)}) n'a pas encore abouti. Pourrez-vous finaliser le paiement ? Merci !`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                    >
+                      <SendIcon size={15} />
+                      Relancer le paiement (WhatsApp)
+                    </a>
+                  ) : null}
+                  <a
+                    href={whatsappUrl(
+                      order.phone,
+                      `Bonjour ${order.full_name}, concernant votre commande ANIFOWOCHE #${order.id}, un article est malheureusement en rupture de stock. Je vous contacte rapidement pour trouver une solution.`
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                  >
+                    <SendIcon size={15} />
+                    Rupture de stock
+                  </a>
                 </div>
               </div>
             </div>
