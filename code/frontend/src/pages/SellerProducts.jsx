@@ -37,11 +37,11 @@ import { formatXof } from "../utils/format.js";
 import { optimizedImage } from "../utils/imageUrl.js";
 
 const CATEGORY_FIELD_CONFIG = {
-  restauration: { stock: false, unit: false, size: false },
-  electronique: { stock: true, unit: false, size: false },
+  restauration: { stock: false, unit: false, size: false, colors: false },
+  electronique: { stock: true, unit: false, size: false, colors: true },
 };
 
-const DEFAULT_FIELD_CONFIG = { stock: true, unit: true, size: true };
+const DEFAULT_FIELD_CONFIG = { stock: true, unit: true, size: true, colors: true };
 
 const emptyForm = {
   name: "",
@@ -844,6 +844,7 @@ export default function SellerProducts() {
                 </Field>
               )}
             </div>
+            {fieldConfig.colors && (
             <div className="rounded-lg border border-black/10 p-3">
               <p className="text-sm font-semibold text-ink">Couleurs disponibles</p>
               <p className="mt-1 text-xs text-muted">
@@ -880,6 +881,7 @@ export default function SellerProducts() {
                 }))}
               />
             </div>
+            )}
             <label className="flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-medium text-ink">
               <input
                 type="checkbox"
