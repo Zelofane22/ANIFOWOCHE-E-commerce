@@ -273,3 +273,47 @@ export const RefreshCwIcon = (props) => (
     <path d="M3 21v-5h5" />
   </Icon>
 );
+
+export const TrendingUpIcon = (props) => (
+  <Icon {...props}>
+    <path d="M22 7 14.5 15 9 11 2 18" />
+    <path d="M16 7h6v6" />
+  </Icon>
+);
+
+export const TrendingDownIcon = (props) => (
+  <Icon {...props}>
+    <path d="M22 17 14.5 9 9 13.5 2 7" />
+    <path d="M16 17h6v-6" />
+  </Icon>
+);
+
+export const DollarSignIcon = (props) => (
+  <Icon {...props}>
+    <path d="M12 2v20" />
+    <path d="M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7" />
+  </Icon>
+);
+
+export const BarChartIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 3v18h18" />
+    <path d="M7 16V8" />
+    <path d="M12 16v-6" />
+    <path d="M17 16v-2" />
+  </Icon>
+);
+
+export const ArrowUpIcon = (props) => (
+  <Icon {...props}>
+    <path d="m5 12 7-7 7 7" />
+    <path d="M12 19V5" />
+  </Icon>
+);
+
+export const ArrowDownIcon = (props) => (
+  <Icon {...props}>
+    <path d="m5 12 7 7 7-7" />
+    <path d="M12 5v14" />
+  </Icon>
+);
