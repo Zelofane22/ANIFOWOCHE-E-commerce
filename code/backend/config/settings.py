@@ -447,16 +447,13 @@ UNFOLD = {
 
 # ─── Sentry (monitoring d'erreurs et de performance) ─────────────────────────
 # Peut être surchargé via SENTRY_DSN (Render) si le projet Sentry change.
-SENTRY_DSN = (
-    os.environ.get("SENTRY_DSN")
-    or "https://a6d8174a428bcbb4068726f522042875@o4511675639922688.ingest.us.sentry.io/4511675836661760"
-)
-if SENTRY_DSN:
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if ON_RENDER and SENTRY_DSN:
     import sentry_sdk
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        environment="production" if ON_RENDER else "development",
+        environment="production",
         release=os.environ.get("RENDER_GIT_COMMIT", "") or None,
         # 10 % des requêtes tracées pour le monitoring de performance.
         traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
