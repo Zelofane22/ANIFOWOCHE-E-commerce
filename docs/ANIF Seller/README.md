@@ -45,22 +45,40 @@ Ce sous-domaine doit pointer vers le frontend ANIF Seller déployé sur Vercel. 
 
 ## État d'avancement du projet
 
-### Sprint en cours — Sprint 3 : Commandes vendeur
+### Sprint en cours — Sprint 5 : Beta payante
 
 | User Story | Statut |
 |---|---|
-| US-302 — Détail produit public | ✅ Terminé |
-| US-401 — Passage commande sans compte | ✅ Terminé |
-| US-402 — Saisie infos client (nom, téléphone, adresse) | ✅ Terminé |
-| US-403 — Liste des commandes reçues (côté vendeur) | ✅ Terminé |
-| US-405 — Changement de statut commande | ✅ Terminé |
-| US-404 — Détail d'une commande (côté vendeur) | ✅ Terminé |
-| US-406 — Annulation de commande | ✅ Terminé |
+| US-701 — Afficher les plans disponibles | ✅ Terminé (landing pricing) |
+| US-702 — Limiter le plan gratuit | ⚠️ Modèle uniquement (pas d'enforcement) |
+| US-703 — Afficher les limites produit/commande | ❌ Non implémenté |
+| US-704 — Suivre les vendeurs actifs | ❌ Non implémenté |
 
-### Sprints précédents
+### Sprints terminés
 
+- **Sprint 4** — WhatsApp assisté ✅ _(confirmation commande, relance paiement, rupture de stock, liens wa.me)_
+- **Sprint 3** — Commandes vendeur ✅ _(commande publique, liste commandes, changement statut, annulation, détail commande)_
+- **Sprint 2** — Catalogue produits ✅ _(CRUD produit, image principale, galerie, stock, catégorie, boutique publique, couleurs)_
 - **Sprint 1** — Compte vendeur et boutique ✅ _(inscription, connexion, profil, lien public, dashboard)_
-- **Sprint 2** — Catalogue produits ✅ _(CRUD produit, image principale, galerie, stock, catégorie, boutique publique)_
+
+### Fonctionnalités bonus livrées
+
+| Fonctionnalité | Statut |
+|---|---|
+| Dashboard vendeur avec KPIs (chiffre d'affaires, graphiques, top produits, alertes stock) | ✅ |
+| Confirmation de paiement vendeur | ✅ |
+| Relance de paiement (FedaPay) depuis le seller | ✅ |
+| Page de landing marketing ANIF Seller | ✅ |
+| Shell SaaS dédié (sidebar, navigation séparée) | ✅ |
+| Filtres catégorie sur boutique publique | ✅ |
+
+### Pas encore implémenté
+
+- Gestion des clients vendeur
+- Système d'abonnement/billing
+- Logo boutique par vendeur
+- Export CSV des commandes
+- Analytics avancés, rôles d'équipe, domaine personnalisé
 
 ## Positionnement simple
 
@@ -79,7 +97,7 @@ Construire un outil suffisamment simple pour être adopté par des vendeurs non 
 
 L'application sera développée avec l'aide de l'IA. Les premiers sprints doivent donc privilégier des livrables très concrets : briefs courts, maquettes, user stories testables, prompts de génération, prototypes vérifiables et décisions documentées.
 
-# compte de test
+# compte de test local
 username: testvendeur1785062520
 email:   testvendeur1785062520@example.com
 password: TestVendeur123!
