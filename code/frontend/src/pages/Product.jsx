@@ -23,6 +23,7 @@ function ProductView({ slug }) {
   const { isAuthenticated } = useAuth();
   const [product, setProduct] = useState(null);
   const [error, setError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
@@ -33,7 +34,13 @@ function ProductView({ slug }) {
   useEffect(() => {
     fetchProductBySlug(slug)
       .then(setProduct)
-      .catch((err) => setError(err.message));
+      .catch((err) => {
+        if (err?.response?.status === 404) {
+          setNotFound(true);
+        } else {
+          setError(err.message);
+        }
+      });
   }, [slug]);
 
   useEffect(() => {
@@ -43,6 +50,21 @@ function ProductView({ slug }) {
       .catch(() => setWishlisted(false));
   }, [isAuthenticated, product]);
 
+  if (notFound) {
+    return (
+      <div className="px-4 py-16 text-center">
+        <p className="text-lg font-semibold text-ink">Produit introuvable</p>
+        <p className="mt-2 text-sm text-muted">Ce produit n&apos;existe plus ou n&apos;est pas disponible.</p>
+        <button
+          type="button"
+          onClick={() => navigate("/catalogue")}
+          className="mt-6 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+        >
+          Retour au catalogue
+        </button>
+      </div>
+    );
+  }
   if (error) return <p className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 

@@ -15,11 +15,18 @@ if (import.meta.env.PROD && sentryDsn) {
     environment: import.meta.env.MODE,
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.httpClientIntegration({ failedRequestStatusCodes: [[400, 599]] }),
+      Sentry.httpClientIntegration({ failedRequestStatusCodes: [[400, 403], [405, 599]] }),
       Sentry.reportingObserverIntegration(),
     ],
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
+    beforeSend(event) {
+      if (event?.exception?.values?.[0]?.mechanism?.type === "auto.http.client.xhr") {
+        const status = event?.contexts?.response?.status;
+        if (status === 404) return null;
+      }
+      return event;
+    },
   });
 }
 

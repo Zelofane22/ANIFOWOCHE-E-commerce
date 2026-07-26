@@ -38,7 +38,6 @@ def _active_discount_subquery():
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = (
         Product.objects.filter(
-            Q(seller__isnull=True) | Q(seller__plan=SellerProfile.Plan.PAID),
             is_active=True,
         )
         .select_related("category", "seller")
