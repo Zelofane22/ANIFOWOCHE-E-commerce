@@ -78,3 +78,9 @@ Construire un outil suffisamment simple pour être adopté par des vendeurs non 
 ## Mode de développement
 
 L'application sera développée avec l'aide de l'IA. Les premiers sprints doivent donc privilégier des livrables très concrets : briefs courts, maquettes, user stories testables, prompts de génération, prototypes vérifiables et décisions documentées.
+
+# compte de test
+username: testvendeur1785062520
+email:   testvendeur1785062520@example.com
+password: TestVendeur123!
+shop:    Boutique Test → /shop/boutique-test-1785062520
