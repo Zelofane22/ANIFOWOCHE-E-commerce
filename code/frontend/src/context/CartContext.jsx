@@ -20,10 +20,13 @@ export function CartProvider({ children }) {
 
   const addItem = (product, quantity = 1) => {
     setItems((current) => {
-      const existing = current.find((item) => item.slug === product.slug);
+      const colorKey = product.selectedColor ? product.selectedColor.name : "";
+      const existing = current.find(
+        (item) => item.slug === product.slug && item.colorName === colorKey
+      );
       if (existing) {
         return current.map((item) =>
-          item.slug === product.slug
+          item.slug === product.slug && item.colorName === colorKey
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
@@ -38,21 +41,31 @@ export function CartProvider({ children }) {
           unit: product.unit,
           size: product.size,
           image: product.image,
+          colorName: colorKey,
+          colorHex: product.selectedColor?.hex || "",
           quantity,
         },
       ];
     });
   };
 
-  const updateQuantity = (slug, quantity) => {
+  const updateQuantity = (slug, quantity, colorName = "") => {
     if (quantity < 1) return;
     setItems((current) =>
-      current.map((item) => (item.slug === slug ? { ...item, quantity } : item))
+      current.map((item) =>
+        item.slug === slug && (item.colorName || "") === (colorName || "")
+          ? { ...item, quantity }
+          : item
+      )
     );
   };
 
-  const removeItem = (slug) => {
-    setItems((current) => current.filter((item) => item.slug !== slug));
+  const removeItem = (slug, colorName = "") => {
+    setItems((current) =>
+      current.filter(
+        (item) => item.slug !== slug || (item.colorName || "") !== (colorName || "")
+      )
+    );
   };
 
   const clearCart = () => setItems([]);

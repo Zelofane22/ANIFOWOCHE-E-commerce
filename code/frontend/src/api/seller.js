@@ -35,3 +35,6 @@ export const archiveSellerProduct = (slug) =>
 
 export const relaunchSellerPayment = (orderId) =>
   apiClient.post(`/seller/orders/${orderId}/relance-paiement/`).then((res) => res.data);
+
+export const confirmSellerPayment = (orderId) =>
+  apiClient.post(`/seller/orders/${orderId}/confirmer-paiement/`).then((res) => res.data);

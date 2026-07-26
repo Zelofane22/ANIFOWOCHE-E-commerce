@@ -199,7 +199,12 @@ export default function Checkout() {
         address,
         city: "Cotonou",
         coupon_code: appliedCoupon?.code ?? "",
-        items: items.map((item) => ({ product_id: item.id, quantity: item.quantity })),
+        items: items.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          color_name: item.colorName || "",
+          color_hex: item.colorHex || "",
+        })),
       });
 
       let orderTotal = order.total_xof;
@@ -493,6 +498,15 @@ export default function Checkout() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-ink">{item.name}</p>
                     {item.size && item.size !== "UNIQUE" && <p className="text-xs text-muted">Taille {item.size}</p>}
+                    {item.colorName && (
+                      <p className="flex items-center gap-1 text-xs text-muted">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
+                          style={{ backgroundColor: item.colorHex }}
+                        />
+                        {item.colorName}
+                      </p>
+                    )}
                   </div>
                   <span className="shrink-0 text-sm font-semibold text-ink">
                     {formatXof(item.price_xof * item.quantity)}

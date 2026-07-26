@@ -53,7 +53,7 @@ export default function Cart() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
         <ul className="flex flex-col gap-4">
           {items.map((item) => (
-            <li key={item.slug} className="flex gap-4 rounded-xl border border-black/10 bg-white p-4">
+            <li key={`${item.slug}-${item.colorName || ""}`} className="flex gap-4 rounded-xl border border-black/10 bg-white p-4">
               <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-pale sm:h-28 sm:w-28">
                 {item.image && (
                   <img src={optimizedImage(item.image, 200)} alt={item.name} className="h-full w-full object-cover" />
@@ -68,6 +68,15 @@ export default function Cart() {
                         Taille : {item.size}
                       </span>
                     )}
+                    {item.colorName && (
+                      <span className="mt-1 inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-muted">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
+                          style={{ backgroundColor: item.colorHex }}
+                        />
+                        {item.colorName}
+                      </span>
+                    )}
                     <div className="mt-2 flex items-center gap-1 text-xs text-green-700">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
@@ -77,7 +86,7 @@ export default function Cart() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeItem(item.slug)}
+                    onClick={() => removeItem(item.slug, item.colorName)}
                     aria-label="Retirer l'article"
                     className="rounded p-1 text-muted transition hover:bg-red-50 hover:text-red-600"
                   >
@@ -93,7 +102,7 @@ export default function Cart() {
                     {item.unit === "metre" && <span className="text-xs text-muted">mètres :</span>}
                     <QuantityStepper
                       quantity={item.quantity}
-                      onChange={(quantity) => updateQuantity(item.slug, quantity)}
+                      onChange={(quantity) => updateQuantity(item.slug, quantity, item.colorName)}
                     />
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import serializers
 
 from apps.notifications.services import notify_order_confirmation
@@ -28,6 +29,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "quantity",
             "unit_price_xof",
             "subtotal_xof",
+            "color_name",
+            "color_hex",
         ]
         read_only_fields = ["unit_price_xof"]
 
@@ -92,13 +95,29 @@ class OrderSerializer(serializers.ModelSerializer):
             product = item_data["product"]
             quantity = item_data["quantity"]
             unit_price = product.price_xof
+            color_name = item_data.get("color_name", "")
+            color_hex = item_data.get("color_hex", "")
             OrderItem.objects.create(
                 order=order,
                 product=product,
                 quantity=quantity,
                 unit_price_xof=unit_price,
+                color_name=color_name,
+                color_hex=color_hex,
             )
             total += quantity * unit_price
+
+            if color_name and product.colors:
+                colors = product.colors
+                for color in colors:
+                    if color["name"] == color_name:
+                        color["stock"] = max(color.get("stock", 0) - quantity, 0)
+                        break
+                Product.objects.filter(pk=product.pk).update(colors=colors)
+
+            Product.objects.filter(pk=product.pk).update(
+                stock=models.F("stock") - quantity
+            )
 
         discount = 0
         coupon = Coupon.objects.filter(code__iexact=coupon_code).first() if coupon_code else None
