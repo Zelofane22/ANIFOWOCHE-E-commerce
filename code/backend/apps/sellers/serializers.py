@@ -67,8 +67,8 @@ class SellerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SellerProfile
-        fields = ["id", "display_name", "phone", "city", "shop", "created_at", "updated_at"]
-        read_only_fields = ["created_at", "updated_at"]
+        fields = ["id", "display_name", "phone", "city", "plan", "shop", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at", "plan"]
 
     def validate_phone(self, value):
         return normalize_phone(value) if value else value
