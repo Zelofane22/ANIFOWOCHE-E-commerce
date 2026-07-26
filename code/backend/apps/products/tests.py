@@ -1,5 +1,8 @@
+from io import BytesIO
+
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from rest_framework.test import APITestCase
 
 from apps.sellers.models import SellerProfile, Shop
@@ -249,7 +252,11 @@ class SellerProductApiTests(APITestCase):
             price_xof=4500,
             stock=2,
         )
-        image = SimpleUploadedFile("cover.jpg", b"image-bytes", content_type="image/jpeg")
+
+        buffer = BytesIO()
+        Image.new("RGB", (1, 1), color="white").save(buffer, format="PNG")
+        buffer.seek(0)
+        image = SimpleUploadedFile("cover.png", buffer.read(), content_type="image/png")
 
         create_response = self.client.post(
             f"/api/seller/products/{product.slug}/images/",
