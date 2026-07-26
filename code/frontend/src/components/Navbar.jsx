@@ -126,11 +126,28 @@ export default function Navbar() {
       <div className="hidden bg-coal px-4 md:block">
         <div className="mx-auto flex h-10 max-w-7xl items-center gap-1 text-sm">
           <Link
+            to="/seller"
+            className="flex items-center gap-1.5 rounded bg-brand px-4 py-1.5 font-semibold text-white transition hover:bg-brand-medium"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            Vendre
+          </Link>
+          <div className="mx-1 h-5 w-px bg-white/20" />
+          <Link
             to="/catalogue"
             className="flex items-center gap-1.5 rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
           >
             <MenuIcon size={16} />
             Toutes les catégories
+          </Link>
+          <Link
+            to="/commande/public"
+            className="rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
+          >
+            Commander
           </Link>
           {categories.length > 0 && <div className="mx-1 h-5 w-px bg-white/20" />}
           {categories.map((category) => (
@@ -172,6 +189,17 @@ export default function Navbar() {
           </form>
           <div className="flex flex-col gap-1 text-sm font-medium">
             <Link
+              to="/seller"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 border-b border-white/10 bg-brand px-3 py-3 font-bold text-white transition hover:bg-brand-medium"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              Vendre
+            </Link>
+            <Link
               to="/compte"
               onClick={() => setMenuOpen(false)}
               className="flex items-center gap-2 border-b border-white/10 py-2.5 font-semibold text-white transition hover:text-brand"
@@ -185,6 +213,13 @@ export default function Navbar() {
               className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
             >
               Catalogue
+            </Link>
+            <Link
+              to="/commande/public"
+              onClick={() => setMenuOpen(false)}
+              className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
+            >
+              Commander
             </Link>
             {categories.map((category) => (
               <Link

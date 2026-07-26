@@ -38,7 +38,8 @@ class OrderApiTests(APITestCase):
         self.assertEqual(Order.objects.count(), 1)
         self.assertEqual(Order.objects.get().customer, self.regular_user)
 
-    def test_anonymous_cannot_create_order(self):
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_anonymous_can_create_public_order(self, mock_post):
         payload = {
             "full_name": "Jean Client",
             "phone": "+22990000000",
@@ -46,12 +47,12 @@ class OrderApiTests(APITestCase):
             "items": [{"product_id": self.product.id, "quantity": 1}],
         }
         response = self.client.post("/api/orders/", payload, format="json")
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Order.objects.count(), 1)
+        self.assertIsNone(Order.objects.get().customer)
 
     def test_create_order_blocked_during_maintenance_mode(self):
         StoreSettings.objects.update_or_create(pk=1, defaults={"maintenance_mode": True})
-        self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
             "phone": "+22990000000",

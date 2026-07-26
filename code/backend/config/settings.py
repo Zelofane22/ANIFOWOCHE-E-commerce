@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "apps.reviews",
     "apps.wishlist",
     "apps.appearance",
+    "apps.sellers",
 ]
 
 MIDDLEWARE = [
@@ -224,6 +225,7 @@ FEDAPAY_BASE_URL = config("FEDAPAY_BASE_URL", default="https://sandbox-api.fedap
 FEDAPAY_SECRET_KEY = config("FEDAPAY_SECRET_KEY", default="sk_sandbox_placeholder")
 FEDAPAY_WEBHOOK_SECRET = config("FEDAPAY_WEBHOOK_SECRET", default="whsec_placeholder")
 FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
+SELLER_FRONTEND_BASE_URL = config("SELLER_FRONTEND_BASE_URL", default=FRONTEND_BASE_URL)
 
 # Notifications WhatsApp Business Cloud API (Meta). Valeurs placeholder tant
 # que le vrai token et le phone_number_id ne sont pas fournis — voir

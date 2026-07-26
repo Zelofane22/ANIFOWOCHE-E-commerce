@@ -47,6 +47,7 @@ class Notification(models.Model):
 
     class Event(models.TextChoices):
         ORDER_CONFIRMATION = "order_confirmation", "Confirmation de commande"
+        ORDER_CANCELLED = "order_cancelled", "Annulation de commande"
         DELIVERY_IN_TRANSIT = "delivery_in_transit", "Commande en route"
         DELIVERY_CONFIRMED = "delivery_confirmed", "Livraison confirmée"
         INVOICE = "invoice", "Facture"

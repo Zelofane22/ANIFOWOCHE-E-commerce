@@ -13,6 +13,7 @@ const API_BASE_URL = process.env.VITE_API_BASE_URL || "http://localhost:8000/api
 const STATIC_PATHS = [
   { path: "/", changefreq: "daily", priority: "1.0" },
   { path: "/catalogue", changefreq: "daily", priority: "0.9" },
+  { path: "/commande/public", changefreq: "weekly", priority: "0.7" },
 ];
 
 async function fetchAllProductSlugs() {

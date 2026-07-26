@@ -1,5 +1,11 @@
+from io import BytesIO
+
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from rest_framework.test import APITestCase
+
+from apps.sellers.models import SellerProfile, Shop
 
 from .models import Category, Product, ProductImage
 
@@ -105,3 +111,171 @@ class ProductApiTests(APITestCase):
     def test_product_without_gallery_images_has_empty_list(self):
         response = self.client.get("/api/products/pagne-wax/")
         self.assertEqual(response.data["images"], [])
+
+
+class SellerProductApiTests(APITestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="Tissus", slug="tissus")
+        self.user = User.objects.create_user(username="vendeuse", password="pass1234")
+        self.seller = SellerProfile.objects.create(
+            user=self.user,
+            display_name="Afi Boutique",
+            phone="+22990000000",
+        )
+        Shop.objects.create(
+            seller=self.seller,
+            name="Afi Wax",
+            slug="afi-wax",
+            whatsapp_phone="+22990000000",
+        )
+        self.other_user = User.objects.create_user(username="autre", password="pass1234")
+        self.other_seller = SellerProfile.objects.create(
+            user=self.other_user,
+            display_name="Autre Boutique",
+            phone="+22991000000",
+        )
+        Shop.objects.create(
+            seller=self.other_seller,
+            name="Autre Shop",
+            slug="autre-shop",
+            whatsapp_phone="+22991000000",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_seller_can_create_product_with_core_catalog_fields(self):
+        response = self.client.post(
+            "/api/seller/products/",
+            {
+                "name": "Pagne vendeur",
+                "description": "Wax premium",
+                "price_xof": 7000,
+                "stock": 8,
+                "category_id": self.category.id,
+                "unit": "piece",
+                "size": "UNIQUE",
+                "is_active": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        product = Product.objects.get(slug="pagne-vendeur")
+        self.assertEqual(product.seller, self.seller)
+        self.assertEqual(response.data["category"]["slug"], "tissus")
+
+    def test_seller_products_are_scoped_to_authenticated_seller(self):
+        Product.objects.create(
+            seller=self.seller,
+            category=self.category,
+            name="Produit Afi",
+            slug="produit-afi",
+            price_xof=5000,
+            stock=4,
+        )
+        Product.objects.create(
+            seller=self.other_seller,
+            category=self.category,
+            name="Produit autre",
+            slug="produit-autre",
+            price_xof=6000,
+            stock=4,
+        )
+
+        response = self.client.get("/api/seller/products/")
+
+        self.assertEqual(response.status_code, 200)
+        slugs = [item["slug"] for item in response.data["results"]]
+        self.assertEqual(slugs, ["produit-afi"])
+
+    def test_seller_can_update_own_product(self):
+        product = Product.objects.create(
+            seller=self.seller,
+            category=self.category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=3,
+        )
+
+        response = self.client.patch(
+            f"/api/seller/products/{product.slug}/",
+            {"price_xof": 6500, "stock": 12},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        product.refresh_from_db()
+        self.assertEqual(product.price_xof, 6500)
+        self.assertEqual(product.stock, 12)
+
+    def test_seller_delete_archives_product(self):
+        product = Product.objects.create(
+            seller=self.seller,
+            category=self.category,
+            name="Ancien pagne",
+            slug="ancien-pagne",
+            price_xof=5000,
+            stock=3,
+        )
+
+        response = self.client.delete(f"/api/seller/products/{product.slug}/")
+
+        self.assertEqual(response.status_code, 204)
+        product.refresh_from_db()
+        self.assertFalse(product.is_active)
+
+    def test_seller_can_assign_product_to_its_shop(self):
+        response = self.client.post(
+            "/api/seller/products/",
+            {
+                "name": "Pagne boutique",
+                "description": "Produit associé au shop",
+                "price_xof": 8000,
+                "stock": 4,
+                "category_id": self.category.id,
+                "shop_id": self.seller.shop.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        product = Product.objects.get(slug="pagne-boutique")
+        self.assertEqual(product.shop, self.seller.shop)
+
+    def test_seller_can_manage_product_gallery_images(self):
+        product = Product.objects.create(
+            seller=self.seller,
+            shop=self.seller.shop,
+            category=self.category,
+            name="Produit avec galerie",
+            slug="produit-avec-galerie",
+            price_xof=4500,
+            stock=2,
+        )
+
+        buffer = BytesIO()
+        Image.new("RGB", (1, 1), color="white").save(buffer, format="PNG")
+        buffer.seek(0)
+        image = SimpleUploadedFile("cover.png", buffer.read(), content_type="image/png")
+
+        create_response = self.client.post(
+            f"/api/seller/products/{product.slug}/images/",
+            {"image": image, "alt_text": "Photo couverture", "order": 1, "is_cover": True},
+            format="multipart",
+        )
+
+        self.assertEqual(create_response.status_code, 201)
+        self.assertEqual(create_response.data["alt_text"], "Photo couverture")
+        image_id = create_response.data["id"]
+
+        update_response = self.client.patch(
+            f"/api/seller/products/{product.slug}/images/{image_id}/",
+            {"alt_text": "Nouvelle légende", "is_cover": False},
+            format="json",
+        )
+
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.data["alt_text"], "Nouvelle légende")
+
+        delete_response = self.client.delete(f"/api/seller/products/{product.slug}/images/{image_id}/")
+        self.assertEqual(delete_response.status_code, 204)
