@@ -52,10 +52,10 @@ class PublicProductVisibilityTests(APITestCase):
         slugs = [item["slug"] for item in response.data["results"]]
         self.assertIn("produit-entreprise", slugs)
 
-    def test_free_seller_product_hidden_from_public_list(self):
+    def test_free_seller_product_visible_in_public_list(self):
         response = self.client.get("/api/products/")
         slugs = [item["slug"] for item in response.data["results"]]
-        self.assertNotIn("produit-gratuit", slugs)
+        self.assertIn("produit-gratuit", slugs)
 
     def test_paid_seller_product_visible_in_public_list(self):
         response = self.client.get("/api/products/")
