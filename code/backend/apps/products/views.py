@@ -8,11 +8,16 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_204_NO_CONTENT
 
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+
 from apps.promotions.models import Promotion
 from apps.sellers.models import SellerProfile
 
-from .models import Category, Product, ProductImage
-from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, SellerProductSerializer
+from .models import Category, Option, OptionGroup, Product, ProductImage
+from .serializers import (CategorySerializer, OptionGroupSerializer,
+                          OptionSerializer, ProductImageSerializer,
+                          ProductSerializer, SellerProductSerializer)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -162,3 +167,49 @@ class ProductImageDetailView(RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=HTTP_204_NO_CONTENT)
+
+
+def _seller_from_request(request):
+    try:
+        return request.user.seller_profile
+    except SellerProfile.DoesNotExist:
+        raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+
+def _seller_product(slug, seller):
+    return get_object_or_404(Product, slug=slug, seller=seller)
+
+
+class OptionGroupViewSet(viewsets.ModelViewSet):
+    serializer_class = OptionGroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _seller(self):
+        return _seller_from_request(self.request)
+
+    def _product(self):
+        return _seller_product(self.kwargs["product_slug"], self._seller())
+
+    def get_queryset(self):
+        return OptionGroup.objects.filter(product=self._product()).prefetch_related("options")
+
+    def perform_create(self, serializer):
+        serializer.save(product=self._product())
+
+
+class OptionViewSet(viewsets.ModelViewSet):
+    serializer_class = OptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _seller(self):
+        return _seller_from_request(self.request)
+
+    def _group(self):
+        product = _seller_product(self.kwargs["product_slug"], self._seller())
+        return get_object_or_404(OptionGroup, pk=self.kwargs["group_pk"], product=product)
+
+    def get_queryset(self):
+        return Option.objects.filter(group=self._group())
+
+    def perform_create(self, serializer):
+        serializer.save(group=self._group())

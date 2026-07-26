@@ -53,6 +53,26 @@ Workflow `.github/workflows/ci.yml` — 3 jobs parallèles :
 Déploiement auto sur push vers `main` : Render (backend + DB), Vercel (frontend).
 Le frontend build inclut la génération du sitemap : `node scripts/generate-sitemap.mjs && vite build`.
 
+## Investigation prod (Render MCP)
+
+En cas de problème en production, **utiliser les outils Render MCP** pour investiguer avant de toucher au code. Ne jamais supposer l'origine d'un bug sans vérifier les logs/métriques en prod.
+
+Actions disponibles via MCP Render :
+- **Logs** : `render_list_logs` avec filtres (service, level, path, statusCode) pour retrouver les erreurs.
+- **Métriques** : `render_get_metrics` (CPU, mémoire, instances, requêtes HTTP, latence, bandwidth).
+- **Déploys** : `render_list_deploys` / `render_get_deploy` pour vérifier l'état du dernier déploiement.
+- **Services** : `render_list_services` / `render_get_service` pour l'état général.
+- **Base de données** : `render_query_render_postgres` pour des requêtes SQL read-only directes.
+- **Variables d'env** : `render_get_service` pour inspecter la config.
+
+Workflow d'investigation :
+1. `render_list_logs` avec `level: ["error"]` pour le service concerné
+2. `render_get_metrics` pour les 24h/7 derniers jours
+3. `render_list_deploys` pour vérifier si un déploiement récent a introduit le problème
+4. Si besoin, query SQL via `render_query_render_postgres`
+
+Workspace Render : `tea-d4neu37gi27c738i7vh0` (My Workspace).
+
 ## Tests
 
 - **Backend** : `docker compose -f code/docker-compose.yml exec backend python manage.py test` (77 tests, appels externes mockés).

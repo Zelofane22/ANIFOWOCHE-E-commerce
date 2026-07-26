@@ -204,6 +204,7 @@ export default function Checkout() {
           quantity: item.quantity,
           color_name: item.colorName || "",
           color_hex: item.colorHex || "",
+          selected_options: item.selectedOptions || [],
         })),
       });
 
@@ -506,6 +507,16 @@ export default function Checkout() {
                         />
                         {item.colorName}
                       </p>
+                    )}
+                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                      <div className="mt-0.5 space-y-0.5">
+                        {item.selectedOptions.map((opt) => (
+                          <p key={opt.option_id} className="text-[10px] text-muted">
+                            {opt.group_name} : {opt.option_name}
+                            {opt.price_xof > 0 && <span className="text-muted"> +{formatXof(opt.price_xof)}</span>}
+                          </p>
+                        ))}
+                      </div>
                     )}
                   </div>
                   <span className="shrink-0 text-sm font-semibold text-ink">

@@ -79,10 +79,16 @@ class OrderItem(models.Model):
     unit_price_xof = models.PositiveIntegerField(help_text="Prix unitaire au moment de la commande")
     color_name = models.CharField(max_length=50, blank=True, default="")
     color_hex = models.CharField(max_length=7, blank=True, default="")
+    selected_options = models.JSONField(
+        default=list, blank=True,
+        help_text='[{"group_id": 1, "group_name": "Accompagnement", "option_id": 5, "option_name": "Frites", "price_xof": 500}, ...]',
+    )
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
 
     @property
     def subtotal_xof(self):
-        return self.quantity * self.unit_price_xof
+        base = self.quantity * self.unit_price_xof
+        options_total = sum(opt.get("price_xof", 0) for opt in self.selected_options) * self.quantity
+        return base + options_total

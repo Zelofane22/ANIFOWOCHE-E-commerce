@@ -31,6 +31,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "subtotal_xof",
             "color_name",
             "color_hex",
+            "selected_options",
         ]
         read_only_fields = ["unit_price_xof"]
 
@@ -97,6 +98,8 @@ class OrderSerializer(serializers.ModelSerializer):
             unit_price = product.price_xof
             color_name = item_data.get("color_name", "")
             color_hex = item_data.get("color_hex", "")
+            selected_options = item_data.get("selected_options", [])
+            options_total = sum(opt.get("price_xof", 0) for opt in selected_options)
             OrderItem.objects.create(
                 order=order,
                 product=product,
@@ -104,8 +107,9 @@ class OrderSerializer(serializers.ModelSerializer):
                 unit_price_xof=unit_price,
                 color_name=color_name,
                 color_hex=color_hex,
+                selected_options=selected_options,
             )
-            total += quantity * unit_price
+            total += quantity * (unit_price + options_total)
 
             if color_name and product.colors:
                 colors = product.colors

@@ -2,7 +2,7 @@ from unfold.admin import ModelAdmin, TabularInline
 
 from django.contrib import admin
 
-from .models import Category, Product, ProductImage
+from .models import Category, Option, OptionGroup, Product, ProductImage
 
 
 @admin.register(Category)
@@ -23,3 +23,16 @@ class ProductAdmin(ModelAdmin):
     search_fields = ["name", "description", "seller__display_name", "shop__name"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductImageInline]
+
+
+class OptionInline(TabularInline):
+    model = Option
+    extra = 1
+
+
+@admin.register(OptionGroup)
+class OptionGroupAdmin(ModelAdmin):
+    list_display = ["name", "product", "is_required", "min_selections", "max_selections"]
+    list_filter = ["is_required", "product__seller"]
+    search_fields = ["name", "product__name"]
+    inlines = [OptionInline]

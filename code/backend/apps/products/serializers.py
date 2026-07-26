@@ -2,13 +2,56 @@ from rest_framework import serializers
 
 from apps.sellers.models import Shop
 
-from .models import Category, Product, ProductImage
+from .models import Category, Option, OptionGroup, Product, ProductImage
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ["id", "name", "slug"]
+
+
+class OptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Option
+        fields = ["id", "name", "price_xof", "is_default", "order"]
+
+
+class OptionGroupSerializer(serializers.ModelSerializer):
+    options = OptionSerializer(many=True, read_only=False)
+
+    class Meta:
+        model = OptionGroup
+        fields = ["id", "name", "is_required", "min_selections", "max_selections", "order", "options"]
+
+    def create(self, validated_data):
+        options_data = validated_data.pop("options", [])
+        group = OptionGroup.objects.create(**validated_data)
+        for option_data in options_data:
+            Option.objects.create(group=group, **option_data)
+        return group
+
+    def update(self, instance, validated_data):
+        options_data = validated_data.pop("options", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if options_data is not None:
+            kept_ids = []
+            for option_data in options_data:
+                option_id = option_data.pop("id", None)
+                if option_id:
+                    option = Option.objects.filter(pk=option_id, group=instance).first()
+                    if option:
+                        for attr, value in option_data.items():
+                            setattr(option, attr, value)
+                        option.save()
+                        kept_ids.append(option.pk)
+                else:
+                    option = Option.objects.create(group=instance, **option_data)
+                    kept_ids.append(option.pk)
+            instance.options.exclude(pk__in=kept_ids).delete()
+        return instance
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -31,6 +74,7 @@ class ProductSerializer(serializers.ModelSerializer):
     discount_percent = serializers.IntegerField(read_only=True, allow_null=True, default=None)
     discounted_price_xof = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
+    option_groups = OptionGroupSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -49,6 +93,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "colors",
             "image",
             "images",
+            "option_groups",
             "is_active",
             "category",
             "category_id",

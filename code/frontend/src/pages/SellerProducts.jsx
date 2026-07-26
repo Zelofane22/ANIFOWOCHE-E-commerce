@@ -1,14 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { fetchCategories } from "../api/products.js";
 import {
   archiveSellerProduct,
+  createOption,
+  createOptionGroup,
   createSellerProduct,
+  createSellerProductImage,
+  deleteOption,
+  deleteOptionGroup,
+  deleteSellerProductImage,
+  getProductOptionGroups,
+  getSellerProductImages,
   getSellerProducts,
   getSellerProfile,
+  updateOption,
+  updateOptionGroup,
   updateSellerProduct,
+  updateSellerProductImage,
 } from "../api/seller.js";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   EditIcon,
   EyeIcon,
   EyeOffIcon,
@@ -22,6 +35,13 @@ import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import { optimizedImage } from "../utils/imageUrl.js";
+
+const CATEGORY_FIELD_CONFIG = {
+  restauration: { stock: false, unit: false, size: false },
+  electronique: { stock: true, unit: false, size: false },
+};
+
+const DEFAULT_FIELD_CONFIG = { stock: true, unit: true, size: true };
 
 const emptyForm = {
   name: "",
@@ -49,15 +69,15 @@ function Field({ label, children }) {
   );
 }
 
-function buildProductPayload(form) {
+function buildProductPayload(form, fieldConfig) {
   const payload = new FormData();
   payload.append("name", form.name.trim());
   payload.append("description", form.description.trim());
   payload.append("price_xof", form.price_xof);
-  payload.append("stock", form.stock);
+  if (fieldConfig.stock) payload.append("stock", form.stock);
   payload.append("category_id", form.category_id);
-  payload.append("unit", form.unit);
-  payload.append("size", form.unit === "metre" ? "UNIQUE" : form.size);
+  if (fieldConfig.unit) payload.append("unit", form.unit);
+  if (fieldConfig.size) payload.append("size", form.unit === "metre" ? "UNIQUE" : form.size);
   payload.append("is_active", form.is_active ? "true" : "false");
   if (form.colors.length > 0) {
     payload.append("colors", JSON.stringify(form.colors));
@@ -147,6 +167,425 @@ function ProductStatus({ product }) {
   );
 }
 
+function ProductGallery({ slug, colors }) {
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchImages = useCallback(() => {
+    if (!slug) return;
+    getSellerProductImages(slug)
+      .then((data) => setImages(data.results ?? data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
+
+  const handleUpload = async (event) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("image", file);
+        fd.append("order", String(images.length));
+        await createSellerProductImage(slug, fd);
+      }
+      fetchImages();
+    } catch {
+      setError("Erreur lors de l'ajout des images.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleDelete = async (imageId) => {
+    setError(null);
+    try {
+      await deleteSellerProductImage(slug, imageId);
+      setImages((prev) => prev.filter((img) => img.id !== imageId));
+    } catch {
+      setError("Erreur lors de la suppression.");
+    }
+  };
+
+  const handleColorChange = async (imageId, colorName) => {
+    const fd = new FormData();
+    fd.append("color_name", colorName);
+    try {
+      await updateSellerProductImage(slug, imageId, fd);
+      setImages((prev) => prev.map((img) => (img.id === imageId ? { ...img, color_name: colorName } : img)));
+    } catch {
+      setError("Erreur lors de la mise à jour.");
+    }
+  };
+
+  const handleReorder = async (imageId, direction) => {
+    const sorted = [...images].sort((a, b) => a.order - b.order);
+    const index = sorted.findIndex((img) => img.id === imageId);
+    if (index < 0) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sorted.length) return;
+    const a = sorted[index];
+    const b = sorted[targetIndex];
+    try {
+      const fdA = new FormData();
+      fdA.append("order", String(b.order));
+      const fdB = new FormData();
+      fdB.append("order", String(a.order));
+      await Promise.all([
+        updateSellerProductImage(slug, a.id, fdA),
+        updateSellerProductImage(slug, b.id, fdB),
+      ]);
+      setImages((prev) =>
+        prev.map((img) => {
+          if (img.id === a.id) return { ...img, order: b.order };
+          if (img.id === b.id) return { ...img, order: a.order };
+          return img;
+        })
+      );
+    } catch {
+      setError("Erreur lors du réordonnancement.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
+        <p className="text-sm text-muted">Chargement des images...</p>
+      </div>
+    );
+  }
+
+  const sorted = [...images].sort((a, b) => a.order - b.order);
+
+  return (
+    <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
+      <h3 className="text-base font-bold text-ink">Images du produit</h3>
+      <p className="mt-1 text-sm text-muted">
+        Ajoutez des photos supplémentaires pour votre galerie produit.
+      </p>
+
+      {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      {sorted.length > 0 && (
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {sorted.map((img, index) => (
+            <div key={img.id} className="group relative overflow-hidden rounded-lg border border-black/10 bg-brand-pale">
+              <div className="aspect-square">
+                <img
+                  src={optimizedImage(img.image, 300)}
+                  alt={img.alt_text || ""}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-0 transition group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={() => handleReorder(img.id, "up")}
+                  disabled={index === 0}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white disabled:opacity-30"
+                  title="Déplacer vers le haut"
+                >
+                  <ArrowUpIcon size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReorder(img.id, "down")}
+                  disabled={index === sorted.length - 1}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white disabled:opacity-30"
+                  title="Déplacer vers le bas"
+                >
+                  <ArrowDownIcon size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(img.id)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-red-600 shadow transition hover:bg-white"
+                  title="Supprimer"
+                >
+                  <TrashIcon size={13} />
+                </button>
+              </div>
+              {colors.length > 0 && (
+                <select
+                  value={img.color_name || ""}
+                  onChange={(event) => handleColorChange(img.id, event.target.value)}
+                  className="absolute inset-x-0 top-0 w-full bg-white/90 px-1 py-0.5 text-[10px] font-medium text-ink opacity-0 transition group-hover:opacity-100"
+                >
+                  <option value="">Toutes les couleurs</option>
+                  {colors.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-black/15 bg-[#fbfaf7] px-4 py-6 text-sm font-medium text-muted transition hover:border-brand hover:text-brand-dark">
+        <PlusIcon size={16} />
+        {uploading ? "Ajout en cours..." : "Ajouter des images"}
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleUpload}
+          disabled={uploading}
+          className="sr-only"
+        />
+      </label>
+    </div>
+  );
+}
+
+function ProductOptionManager({ slug }) {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchGroups = useCallback(() => {
+    if (!slug) return;
+    getProductOptionGroups(slug)
+      .then((data) => setGroups(data.results ?? data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
+
+  const handleAddGroup = async () => {
+    setError(null);
+    try {
+      const group = await createOptionGroup(slug, {
+        name: "Nouveau groupe",
+        is_required: false,
+        min_selections: 1,
+        max_selections: 1,
+        order: groups.length,
+        options: [],
+      });
+      setGroups((prev) => [...prev, group]);
+    } catch {
+      setError("Erreur lors de la création du groupe.");
+    }
+  };
+
+  const handleUpdateGroup = async (groupId, data) => {
+    setError(null);
+    try {
+      const updated = await updateOptionGroup(slug, groupId, data);
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? updated : g)));
+    } catch {
+      setError("Erreur lors de la mise à jour du groupe.");
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    setError(null);
+    try {
+      await deleteOptionGroup(slug, groupId);
+      setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    } catch {
+      setError("Erreur lors de la suppression du groupe.");
+    }
+  };
+
+  const handleAddOption = async (groupId) => {
+    setError(null);
+    try {
+      const opt = await createOption(slug, groupId, {
+        name: "Nouvelle option",
+        price_xof: 0,
+        is_default: false,
+        order: 0,
+      });
+      setGroups((prev) =>
+        prev.map((g) => (g.id === groupId ? { ...g, options: [...(g.options || []), opt] } : g))
+      );
+    } catch {
+      setError("Erreur lors de l'ajout de l'option.");
+    }
+  };
+
+  const handleUpdateOption = async (groupId, optionId, data) => {
+    setError(null);
+    try {
+      const updated = await updateOption(slug, groupId, optionId, data);
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId
+            ? { ...g, options: g.options.map((o) => (o.id === optionId ? updated : o)) }
+            : g
+        )
+      );
+    } catch {
+      setError("Erreur lors de la mise à jour de l'option.");
+    }
+  };
+
+  const handleDeleteOption = async (groupId, optionId) => {
+    setError(null);
+    try {
+      await deleteOption(slug, groupId, optionId);
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId ? { ...g, options: g.options.filter((o) => o.id !== optionId) } : g
+        )
+      );
+    } catch {
+      setError("Erreur lors de la suppression de l'option.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
+        <p className="text-sm text-muted">Chargement des options...</p>
+      </div>
+    );
+  }
+
+  const groupInput = "w-full rounded-lg border border-black/15 bg-white px-2.5 py-1.5 text-xs outline-none transition focus:border-brand";
+
+  return (
+    <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-ink">Options du plat</h3>
+          <p className="mt-1 text-sm text-muted">
+            Accompagnements, boissons, niveau de cuisson, suppléments...
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleAddGroup}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-light px-3 py-2 text-xs font-bold text-brand-dark transition hover:bg-brand/20"
+        >
+          <PlusIcon size={14} />
+          Ajouter un groupe
+        </button>
+      </div>
+
+      {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      {groups.length === 0 && (
+        <p className="mt-4 text-sm text-muted">
+          Aucune option configurée. Les clients verront uniquement le prix de base.
+        </p>
+      )}
+
+      <div className="mt-4 space-y-4">
+        {groups.map((group) => (
+          <div key={group.id} className="rounded-lg border border-black/10 bg-[#fbfaf7] p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="grid flex-1 gap-2 sm:grid-cols-4">
+                <input
+                  type="text"
+                  value={group.name}
+                  onChange={(e) => handleUpdateGroup(group.id, { name: e.target.value })}
+                  className={groupInput}
+                  placeholder="Nom du groupe"
+                />
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-ink">
+                  <input
+                    type="checkbox"
+                    checked={group.is_required}
+                    onChange={(e) => handleUpdateGroup(group.id, { is_required: e.target.checked })}
+                    className="h-3.5 w-3.5 accent-brand"
+                  />
+                  Obligatoire
+                </label>
+                <label className="flex items-center gap-1 text-[11px] font-medium text-ink">
+                  Min
+                  <input
+                    type="number"
+                    min="0"
+                    value={group.min_selections}
+                    onChange={(e) => handleUpdateGroup(group.id, { min_selections: parseInt(e.target.value, 10) || 0 })}
+                    className="w-12 rounded border border-black/15 px-1.5 py-0.5 text-xs outline-none"
+                  />
+                </label>
+                <label className="flex items-center gap-1 text-[11px] font-medium text-ink">
+                  Max
+                  <input
+                    type="number"
+                    min="0"
+                    value={group.max_selections}
+                    onChange={(e) => handleUpdateGroup(group.id, { max_selections: parseInt(e.target.value, 10) || 0 })}
+                    className="w-12 rounded border border-black/15 px-1.5 py-0.5 text-xs outline-none"
+                  />
+                  <span className="text-muted">(0=illimité)</span>
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDeleteGroup(group.id)}
+                className="shrink-0 text-red-500 transition hover:text-red-700"
+                title="Supprimer le groupe"
+              >
+                <TrashIcon size={14} />
+              </button>
+            </div>
+
+            {group.options && group.options.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {group.options.map((opt) => (
+                  <div key={opt.id} className="flex items-center gap-2 rounded-md bg-white px-2.5 py-1.5">
+                    <input
+                      type="text"
+                      value={opt.name}
+                      onChange={(e) => handleUpdateOption(group.id, opt.id, { name: e.target.value })}
+                      className="min-w-0 flex-1 rounded border border-black/15 px-2 py-1 text-xs outline-none focus:border-brand"
+                      placeholder="Nom de l'option"
+                    />
+                    <label className="flex items-center gap-1 text-[11px] font-medium text-ink whitespace-nowrap">
+                      +<input
+                        type="number"
+                        min="0"
+                        value={opt.price_xof}
+                        onChange={(e) => handleUpdateOption(group.id, opt.id, { price_xof: parseInt(e.target.value, 10) || 0 })}
+                        className="w-16 rounded border border-black/15 px-1.5 py-0.5 text-xs outline-none"
+                      /> CFA
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOption(group.id, opt.id)}
+                      className="shrink-0 text-red-500 transition hover:text-red-700"
+                      title="Supprimer l'option"
+                    >
+                      <TrashIcon size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleAddOption(group.id)}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-dark transition hover:text-brand"
+            >
+              <PlusIcon size={11} />
+              Ajouter une option
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SellerProducts() {
   const navigate = useNavigate();
   const { loading, isAuthenticated } = useAuth();
@@ -182,6 +621,12 @@ export default function SellerProducts() {
 
   const activeProducts = useMemo(() => products.filter((product) => product.is_active), [products]);
   const archivedProducts = products.length - activeProducts.length;
+
+  const selectedCategory = useMemo(
+    () => categories.find((c) => String(c.id) === form.category_id),
+    [categories, form.category_id],
+  );
+  const fieldConfig = CATEGORY_FIELD_CONFIG[selectedCategory?.slug] ?? DEFAULT_FIELD_CONFIG;
 
   const resetForm = () => {
     setEditingSlug(null);
@@ -228,7 +673,7 @@ export default function SellerProducts() {
     setError(null);
     setSuccess(null);
     try {
-      const payload = buildProductPayload(form);
+      const payload = buildProductPayload(form, fieldConfig);
       const savedProduct = editingSlug
         ? await updateSellerProduct(editingSlug, payload)
         : await createSellerProduct(payload);
@@ -272,7 +717,8 @@ export default function SellerProducts() {
   return (
     <SellerShell title="Produits" seller={seller}>
       <section className="grid gap-5 lg:grid-cols-[390px_1fr]">
-        <form onSubmit={handleSubmit} className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
+        <div className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-ink">
@@ -344,16 +790,18 @@ export default function SellerProducts() {
                   onChange={(event) => setForm({ ...form, price_xof: event.target.value })}
                 />
               </Field>
-              <Field label="Stock">
-                <input
-                  className={inputClass}
-                  required
-                  type="number"
-                  min="0"
-                  value={form.stock}
-                  onChange={(event) => setForm({ ...form, stock: event.target.value })}
-                />
-              </Field>
+              {fieldConfig.stock && (
+                <Field label="Stock">
+                  <input
+                    className={inputClass}
+                    required
+                    type="number"
+                    min="0"
+                    value={form.stock}
+                    onChange={(event) => setForm({ ...form, stock: event.target.value })}
+                  />
+                </Field>
+              )}
               <Field label="Catégorie">
                 <select
                   className={inputClass}
@@ -368,17 +816,19 @@ export default function SellerProducts() {
                   ))}
                 </select>
               </Field>
-              <Field label="Unité">
-                <select
-                  className={inputClass}
-                  value={form.unit}
-                  onChange={(event) => setForm({ ...form, unit: event.target.value })}
-                >
-                  <option value="piece">Pièce</option>
-                  <option value="metre">Mètre</option>
-                </select>
-              </Field>
-              {form.unit !== "metre" && (
+              {fieldConfig.unit && (
+                <Field label="Unité">
+                  <select
+                    className={inputClass}
+                    value={form.unit}
+                    onChange={(event) => setForm({ ...form, unit: event.target.value })}
+                  >
+                    <option value="piece">Pièce</option>
+                    <option value="metre">Mètre</option>
+                  </select>
+                </Field>
+              )}
+              {fieldConfig.size && form.unit !== "metre" && (
                 <Field label="Taille">
                   <select
                     className={inputClass}
@@ -453,6 +903,17 @@ export default function SellerProducts() {
             {submitting ? "Enregistrement..." : editingSlug ? "Enregistrer" : "Créer le produit"}
           </button>
         </form>
+
+        {editingSlug && (
+          <ProductGallery
+            slug={editingSlug}
+            colors={form.colors}
+          />
+        )}
+        {editingSlug && (
+          <ProductOptionManager slug={editingSlug} />
+        )}
+        </div>
 
         <section className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
           <div className="flex flex-col gap-4 border-b border-black/10 pb-4 sm:flex-row sm:items-end sm:justify-between">

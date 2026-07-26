@@ -33,8 +33,45 @@ export const updateSellerProduct = (slug, data) =>
 export const archiveSellerProduct = (slug) =>
   apiClient.delete(`/seller/products/${slug}/`).then((res) => res.data);
 
+export const getSellerProductImages = (slug) =>
+  apiClient.get(`/seller/products/${slug}/images/`).then((res) => res.data);
+
+export const createSellerProductImage = (slug, data) =>
+  apiClient.post(`/seller/products/${slug}/images/`, data, {
+    headers: { "Content-Type": "multipart/form-data" },
+  }).then((res) => res.data);
+
+export const updateSellerProductImage = (slug, imageId, data) =>
+  apiClient.patch(`/seller/products/${slug}/images/${imageId}/`, data, {
+    headers: { "Content-Type": "multipart/form-data" },
+  }).then((res) => res.data);
+
+export const deleteSellerProductImage = (slug, imageId) =>
+  apiClient.delete(`/seller/products/${slug}/images/${imageId}/`).then((res) => res.data);
+
 export const relaunchSellerPayment = (orderId) =>
   apiClient.post(`/seller/orders/${orderId}/relance-paiement/`).then((res) => res.data);
 
 export const confirmSellerPayment = (orderId) =>
   apiClient.post(`/seller/orders/${orderId}/confirmer-paiement/`).then((res) => res.data);
+
+export const getProductOptionGroups = (slug) =>
+  apiClient.get(`/seller/products/${slug}/option-groups/`).then((res) => res.data);
+
+export const createOptionGroup = (slug, data) =>
+  apiClient.post(`/seller/products/${slug}/option-groups/`, data).then((res) => res.data);
+
+export const updateOptionGroup = (slug, id, data) =>
+  apiClient.patch(`/seller/products/${slug}/option-groups/${id}/`, data).then((res) => res.data);
+
+export const deleteOptionGroup = (slug, id) =>
+  apiClient.delete(`/seller/products/${slug}/option-groups/${id}/`).then((res) => res.data);
+
+export const createOption = (slug, groupId, data) =>
+  apiClient.post(`/seller/products/${slug}/option-groups/${groupId}/options/`, data).then((res) => res.data);
+
+export const updateOption = (slug, groupId, id, data) =>
+  apiClient.patch(`/seller/products/${slug}/option-groups/${groupId}/options/${id}/`, data).then((res) => res.data);
+
+export const deleteOption = (slug, groupId, id) =>
+  apiClient.delete(`/seller/products/${slug}/option-groups/${groupId}/options/${id}/`).then((res) => res.data);
