@@ -12,6 +12,63 @@ from .models import Category, Product, ProductImage
 User = get_user_model()
 
 
+class PublicProductVisibilityTests(APITestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="Tissus", slug="tissus")
+        self.company_product = Product.objects.create(
+            category=self.category,
+            name="Produit entreprise",
+            slug="produit-entreprise",
+            price_xof=5000,
+            stock=10,
+        )
+        self.free_user = User.objects.create_user(username="free_vendeur", password="pass1234")
+        self.free_seller = SellerProfile.objects.create(
+            user=self.free_user, display_name="Free Shop", phone="+22990000001"
+        )
+        self.free_product = Product.objects.create(
+            seller=self.free_seller,
+            category=self.category,
+            name="Produit gratuit",
+            slug="produit-gratuit",
+            price_xof=3000,
+            stock=5,
+        )
+        self.paid_user = User.objects.create_user(username="paid_vendeur", password="pass1234")
+        self.paid_seller = SellerProfile.objects.create(
+            user=self.paid_user, display_name="Paid Shop", phone="+22990000002", plan=SellerProfile.Plan.PAID
+        )
+        self.paid_product = Product.objects.create(
+            seller=self.paid_seller,
+            category=self.category,
+            name="Produit payant",
+            slug="produit-payant",
+            price_xof=8000,
+            stock=5,
+        )
+
+    def test_company_product_visible_in_public_list(self):
+        response = self.client.get("/api/products/")
+        slugs = [item["slug"] for item in response.data["results"]]
+        self.assertIn("produit-entreprise", slugs)
+
+    def test_free_seller_product_hidden_from_public_list(self):
+        response = self.client.get("/api/products/")
+        slugs = [item["slug"] for item in response.data["results"]]
+        self.assertNotIn("produit-gratuit", slugs)
+
+    def test_paid_seller_product_visible_in_public_list(self):
+        response = self.client.get("/api/products/")
+        slugs = [item["slug"] for item in response.data["results"]]
+        self.assertIn("produit-payant", slugs)
+
+    def test_free_seller_product_accessible_in_seller_own_api(self):
+        self.client.force_authenticate(user=self.free_user)
+        response = self.client.get("/api/seller/products/")
+        slugs = [item["slug"] for item in response.data["results"]]
+        self.assertIn("produit-gratuit", slugs)
+
+
 class ProductApiTests(APITestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Tissus", slug="tissus")
