@@ -13,6 +13,7 @@ from apps.users.serializers import UserSerializer
 from .models import SellerProfile, Shop
 from .serializers import (
     PublicShopSerializer,
+    SellerOrderStatusSerializer,
     SellerProfileSerializer,
     SellerRegisterSerializer,
 )
@@ -78,9 +79,14 @@ class SellerDashboardView(APIView):
         )
 
 
-class SellerOrderViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = OrderSerializer
+class SellerOrderViewSet(viewsets.ModelViewSet):
+    http_method_names = ["get", "patch", "head", "options"]
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ("update", "partial_update"):
+            return SellerOrderStatusSerializer
+        return OrderSerializer
 
     def get_queryset(self):
         try:

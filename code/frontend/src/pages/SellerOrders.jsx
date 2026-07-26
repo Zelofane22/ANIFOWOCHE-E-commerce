@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { getSellerOrders, getSellerProfile } from "../api/seller.js";
+import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
 import { OrderStatusBadge } from "../components/account/common.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
-import { formatDate } from "../components/account/orderHelpers.js";
+import { formatDate, ORDER_STATUS } from "../components/account/orderHelpers.js";
 import { formatXof } from "../utils/format.js";
 import { PackageIcon, SearchIcon } from "../components/icons.jsx";
 
@@ -14,6 +14,9 @@ export default function SellerOrders() {
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState(null);
   const [search, setSearch] = useState("");
+  const [statusSelection, setStatusSelection] = useState({});
+  const [savingOrderIds, setSavingOrderIds] = useState([]);
+  const [statusErrors, setStatusErrors] = useState({});
 
   useEffect(() => {
     if (loading) return;
@@ -55,6 +58,39 @@ export default function SellerOrders() {
       return acc;
     }, {});
   }, [orders]);
+
+  const handleStatusChange = (orderId, status) => {
+    setStatusSelection((prev) => ({ ...prev, [orderId]: status }));
+    setStatusErrors((prev) => ({ ...prev, [orderId]: "" }));
+  };
+
+  const handleUpdateStatus = async (order) => {
+    const nextStatus = statusSelection[order.id] ?? order.status;
+    if (nextStatus === order.status) return;
+
+    setSavingOrderIds((prev) => [...prev, order.id]);
+    setStatusErrors((prev) => ({ ...prev, [order.id]: "" }));
+
+    try {
+      const updatedOrder = await updateSellerOrderStatus(order.id, { status: nextStatus });
+      setOrders((prevOrders) =>
+        prevOrders.map((existingOrder) =>
+          existingOrder.id === order.id ? { ...existingOrder, ...updatedOrder } : existingOrder
+        )
+      );
+      setStatusSelection((prev) => ({ ...prev, [order.id]: updatedOrder.status }));
+    } catch (error) {
+      setStatusErrors((prev) => ({
+        ...prev,
+        [order.id]:
+          error?.response?.data?.status?.[0] ||
+          error?.response?.data?.detail ||
+          "Impossible de mettre à jour le statut.",
+      }));
+    } finally {
+      setSavingOrderIds((prev) => prev.filter((id) => id !== order.id));
+    }
+  };
 
   if (loading || !seller) {
     return <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>;
@@ -124,6 +160,39 @@ export default function SellerOrders() {
                     </div>
                     <OrderStatusBadge status={order.status} />
                   </div>
+                  <div className="mt-4 flex flex-col gap-3 border-t border-black/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <label htmlFor={`order-status-${order.id}`} className="text-sm font-semibold text-muted">
+                        Changer le statut
+                      </label>
+                      <select
+                        id={`order-status-${order.id}`}
+                        value={statusSelection[order.id] ?? order.status}
+                        onChange={(event) => handleStatusChange(order.id, event.target.value)}
+                        className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                      >
+                        {Object.entries(ORDER_STATUS).map(([status, cfg]) => (
+                          <option key={status} value={status}>
+                            {cfg.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateStatus(order)}
+                      disabled={
+                        savingOrderIds.includes(order.id) ||
+                        (statusSelection[order.id] ?? order.status) === order.status
+                      }
+                      className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {savingOrderIds.includes(order.id) ? "Enregistrement..." : "Mettre à jour"}
+                    </button>
+                  </div>
+                  {statusErrors[order.id] ? (
+                    <p className="mt-2 text-sm text-red-600">{statusErrors[order.id]}</p>
+                  ) : null}
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {order.items?.map((item) => (
                       <div key={item.id} className="rounded-xl border border-black/10 bg-white p-3">

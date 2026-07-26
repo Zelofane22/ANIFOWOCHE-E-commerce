@@ -12,6 +12,9 @@ export const getSellerDashboard = () => apiClient.get("/seller/dashboard/").then
 
 export const getSellerOrders = () => apiClient.get("/seller/orders/").then((res) => res.data);
 
+export const updateSellerOrderStatus = (orderId, data) =>
+  apiClient.patch(`/seller/orders/${orderId}/`, data).then((res) => res.data);
+
 export const getPublicShop = (slug) =>
   apiClient.get(`/public/shops/${slug}/`).then((res) => res.data);
 

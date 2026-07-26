@@ -227,3 +227,36 @@ class SellerApiTests(APITestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["full_name"], "M. Client")
         self.assertEqual(results[0]["items"][0]["product_slug"], "pagne")
+
+    def test_seller_can_update_order_status(self):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.RECEIVED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+
+        self.client.force_authenticate(user=seller_user)
+        response = self.client.patch(f"/api/seller/orders/{order.id}/", {"status": "prepared"}, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "prepared")
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PREPARED)

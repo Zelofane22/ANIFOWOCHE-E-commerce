@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Prefetch, Q
 from rest_framework import serializers
 
+from apps.orders.models import Order
 from apps.users.backends import normalize_phone
 from apps.users.serializers import UserSerializer
 from apps.products.models import Product, ProductImage
@@ -78,6 +79,12 @@ class SellerProfileSerializer(serializers.ModelSerializer):
             shop_serializer.is_valid(raise_exception=True)
             shop_serializer.save()
         return instance
+
+
+class SellerOrderStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["status"]
 
 
 class SellerRegisterSerializer(serializers.Serializer):
