@@ -9,13 +9,9 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_204_NO_CONTENT
 
 from apps.promotions.models import Promotion
-from apps.sellers.models import SellerProfile
 
 from .models import Category, Product, ProductImage
 from .serializers import CategorySerializer, ProductImageSerializer, ProductSerializer, SellerProductSerializer
-
-PUBLIC_PRODUCT_FILTER = Q(seller__isnull=True) | Q(seller__plan=SellerProfile.Plan.PAID)
-
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -41,7 +37,6 @@ def _active_discount_subquery():
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = (
         Product.objects.filter(is_active=True)
-        .filter(PUBLIC_PRODUCT_FILTER)
         .select_related("category")
         .prefetch_related(
             Prefetch(
