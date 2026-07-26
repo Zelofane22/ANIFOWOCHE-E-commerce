@@ -1,10 +1,12 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from rest_framework import serializers
 
+from apps.notifications.services import notify_order_cancellation
 from apps.orders.models import Order
 from apps.users.backends import normalize_phone
 from apps.users.serializers import UserSerializer
@@ -82,9 +84,41 @@ class SellerProfileSerializer(serializers.ModelSerializer):
 
 
 class SellerOrderStatusSerializer(serializers.ModelSerializer):
+    cancellation_reason = serializers.CharField(required=False, allow_blank=True, default="")
+
     class Meta:
         model = Order
-        fields = ["status"]
+        fields = ["status", "cancellation_reason"]
+
+    def validate(self, attrs):
+        status = attrs.get("status")
+        if status == Order.Status.CANCELLED and self.instance:
+            if self.instance.status not in Order.CANCELLABLE_STATUSES:
+                raise serializers.ValidationError(
+                    {"status": f"Impossible d'annuler une commande avec le statut « {self.instance.get_status_display()} »."}
+                )
+        if status != self.instance.status and status != Order.Status.CANCELLED:
+            if self.instance.status == Order.Status.CANCELLED:
+                raise serializers.ValidationError(
+                    {"status": "Impossible de modifier le statut d'une commande annulée."}
+                )
+        return attrs
+
+    def update(self, instance, validated_data):
+        status = validated_data.get("status", instance.status)
+        if status == Order.Status.CANCELLED and instance.status != Order.Status.CANCELLED:
+            reason = validated_data.get("cancellation_reason", "")
+            instance.cancel(reason=reason)
+            notify_order_cancellation(instance, reason=reason)
+            return instance
+        if status != instance.status:
+            if instance.status == Order.Status.CANCELLED:
+                raise serializers.ValidationError(
+                    {"status": "Impossible de modifier le statut d'une commande annulée."}
+                )
+            instance.status = status
+            instance.save(update_fields=["status"])
+        return instance
 
 
 class SellerRegisterSerializer(serializers.Serializer):

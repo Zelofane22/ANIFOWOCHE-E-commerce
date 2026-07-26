@@ -23,6 +23,7 @@ const PublicOrder = lazy(() => import("./pages/PublicOrder.jsx"));
 const PublicShop = lazy(() => import("./pages/PublicShop.jsx"));
 const SellerAuth = lazy(() => import("./pages/SellerAuth.jsx"));
 const SellerDashboard = lazy(() => import("./pages/SellerDashboard.jsx"));
+const SellerOrderDetail = lazy(() => import("./pages/SellerOrderDetail.jsx"));
 const SellerOrders = lazy(() => import("./pages/SellerOrders.jsx"));
 const SellerProducts = lazy(() => import("./pages/SellerProducts.jsx"));
 const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
@@ -69,6 +70,7 @@ export default function App() {
                   <Route path="/seller/register" element={<SellerAuth />} />
                   <Route path="/seller/dashboard" element={<SellerDashboard />} />
                   <Route path="/seller/orders" element={<SellerOrders />} />
+                  <Route path="/seller/orders/:id" element={<SellerOrderDetail />} />
                   <Route path="/seller/products" element={<SellerProducts />} />
                   <Route path="/seller/settings" element={<SellerSettings />} />
                   <Route path="/shop/:slug" element={<PublicShop />} />

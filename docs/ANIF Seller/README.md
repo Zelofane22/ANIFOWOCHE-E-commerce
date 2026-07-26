@@ -53,9 +53,9 @@ Ce sous-domaine doit pointer vers le frontend ANIF Seller déployé sur Vercel. 
 | US-401 — Passage commande sans compte | ✅ Terminé |
 | US-402 — Saisie infos client (nom, téléphone, adresse) | ✅ Terminé |
 | US-403 — Liste des commandes reçues (côté vendeur) | ✅ Terminé |
-| US-405 — Changement de statut commande | 🔄 En cours |
-| US-404 — Détail d'une commande (côté vendeur) | ❌ À faire |
-| US-406 — Annulation de commande | ❌ À faire |
+| US-405 — Changement de statut commande | ✅ Terminé |
+| US-404 — Détail d'une commande (côté vendeur) | ✅ Terminé |
+| US-406 — Annulation de commande | ✅ Terminé |
 
 ### Sprints précédents
 

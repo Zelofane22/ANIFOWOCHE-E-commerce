@@ -241,6 +241,24 @@ def _notify_for_order(*, event, order, message, subject, title, cta_label="", ct
     return None
 
 
+def notify_order_cancellation(order, reason=""):
+    message = (
+        f"Bonjour {order.full_name}, votre commande ANIFOWOCHE #{order.pk} "
+        f"a été annulée."
+    )
+    if reason:
+        message += f" Motif : {reason}"
+    return _notify_for_order(
+        event=Notification.Event.ORDER_CANCELLED,
+        order=order,
+        message=message,
+        subject=f"Commande ANIFOWOCHE #{order.pk} annulée",
+        title="Commande annulée",
+        cta_label="Voir mes commandes",
+        cta_url=f"{settings.FRONTEND_BASE_URL}/compte",
+    )
+
+
 def notify_order_confirmation(order):
     items_summary = ", ".join(f"{item.quantity}x {item.product.name}" for item in order.items.all())
     message = (

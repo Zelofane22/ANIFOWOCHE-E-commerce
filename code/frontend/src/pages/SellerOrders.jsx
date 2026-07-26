@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
 import { OrderStatusBadge } from "../components/account/common.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { formatDate, ORDER_STATUS } from "../components/account/orderHelpers.js";
 import { formatXof } from "../utils/format.js";
-import { PackageIcon, SearchIcon } from "../components/icons.jsx";
+import { AlertCircleIcon, PackageIcon, SearchIcon } from "../components/icons.jsx";
 
 export default function SellerOrders() {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ export default function SellerOrders() {
   const [statusSelection, setStatusSelection] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState([]);
   const [statusErrors, setStatusErrors] = useState({});
+  const [cancelModal, setCancelModal] = useState(null);
 
   useEffect(() => {
     if (loading) return;
@@ -64,7 +65,7 @@ export default function SellerOrders() {
     setStatusErrors((prev) => ({ ...prev, [orderId]: "" }));
   };
 
-  const handleUpdateStatus = async (order) => {
+  const handleUpdateStatus = async (order, reason = "") => {
     const nextStatus = statusSelection[order.id] ?? order.status;
     if (nextStatus === order.status) return;
 
@@ -72,7 +73,9 @@ export default function SellerOrders() {
     setStatusErrors((prev) => ({ ...prev, [order.id]: "" }));
 
     try {
-      const updatedOrder = await updateSellerOrderStatus(order.id, { status: nextStatus });
+      const payload = { status: nextStatus };
+      if (nextStatus === "cancelled" && reason) payload.cancellation_reason = reason;
+      const updatedOrder = await updateSellerOrderStatus(order.id, payload);
       setOrders((prevOrders) =>
         prevOrders.map((existingOrder) =>
           existingOrder.id === order.id ? { ...existingOrder, ...updatedOrder } : existingOrder
@@ -90,6 +93,16 @@ export default function SellerOrders() {
     } finally {
       setSavingOrderIds((prev) => prev.filter((id) => id !== order.id));
     }
+  };
+
+  const handleCancelClick = (order) => {
+    setCancelModal({ order, reason: "" });
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelModal) return;
+    await handleUpdateStatus(cancelModal.order, cancelModal.reason);
+    setCancelModal(null);
   };
 
   if (loading || !seller) {
@@ -178,17 +191,32 @@ export default function SellerOrders() {
                         ))}
                       </select>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(order)}
-                      disabled={
-                        savingOrderIds.includes(order.id) ||
-                        (statusSelection[order.id] ?? order.status) === order.status
-                      }
-                      className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {savingOrderIds.includes(order.id) ? "Enregistrement..." : "Mettre à jour"}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        to={`/seller/orders/${order.id}`}
+                        className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                      >
+                        Voir le détail
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextStatus = statusSelection[order.id] ?? order.status;
+                          if (nextStatus === "cancelled" && nextStatus !== order.status) {
+                            handleCancelClick(order);
+                          } else {
+                            handleUpdateStatus(order);
+                          }
+                        }}
+                        disabled={
+                          savingOrderIds.includes(order.id) ||
+                          (statusSelection[order.id] ?? order.status) === order.status
+                        }
+                        className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {savingOrderIds.includes(order.id) ? "Enregistrement..." : "Mettre à jour"}
+                      </button>
+                    </div>
                   </div>
                   {statusErrors[order.id] ? (
                     <p className="mt-2 text-sm text-red-600">{statusErrors[order.id]}</p>
@@ -230,6 +258,52 @@ export default function SellerOrders() {
           </section>
         </aside>
       </div>
+      {cancelModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <AlertCircleIcon size={22} className="mt-0.5 shrink-0 text-red-600" />
+              <div>
+                <h3 className="text-lg font-bold text-ink">Annuler la commande</h3>
+                <p className="mt-2 text-sm text-muted">
+                  Êtes-vous sûr de vouloir annuler la commande <strong>ANW-{cancelModal.order.id}</strong> de {cancelModal.order.full_name}&nbsp;?
+                </p>
+                <p className="mt-1 text-xs text-muted">Cette action remettra les produits en stock et ne peut pas être annulée.</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <label htmlFor="cancel-reason" className="block text-sm font-semibold text-ink">
+                Motif de l'annulation <span className="font-normal text-muted">(optionnel)</span>
+              </label>
+              <textarea
+                id="cancel-reason"
+                value={cancelModal.reason}
+                onChange={(e) => setCancelModal((prev) => ({ ...prev, reason: e.target.value }))}
+                placeholder="Exemple : Rupture de stock, client annule, etc."
+                className="mt-2 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                rows={3}
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelModal(null)}
+                className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50"
+              >
+                Retour
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelConfirm}
+                disabled={savingOrderIds.includes(cancelModal.order.id)}
+                className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingOrderIds.includes(cancelModal.order.id) ? "Annulation..." : "Confirmer l'annulation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </SellerShell>
   );
 }

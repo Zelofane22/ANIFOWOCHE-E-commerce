@@ -1,3 +1,6 @@
+from unittest import mock
+
+import requests
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
@@ -260,3 +263,149 @@ class SellerApiTests(APITestCase):
         self.assertEqual(response.data["status"], "prepared")
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.PREPARED)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_seller_can_cancel_received_order(self, mock_post):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.RECEIVED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=2, unit_price_xof=5000)
+
+        self.client.force_authenticate(user=seller_user)
+        response = self.client.patch(
+            f"/api/seller/orders/{order.id}/",
+            {"status": "cancelled", "cancellation_reason": "Plus en stock"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.assertEqual(order.cancellation_reason, "Plus en stock")
+        self.assertIsNotNone(order.cancelled_at)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_cancellation_restores_stock(self, mock_post):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.RECEIVED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=2, unit_price_xof=5000)
+
+        self.client.force_authenticate(user=seller_user)
+        response = self.client.patch(
+            f"/api/seller/orders/{order.id}/",
+            {"status": "cancelled"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        product.refresh_from_db()
+        self.assertEqual(product.stock, 7)
+
+    def test_cannot_cancel_delivered_order(self):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.DELIVERED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+
+        self.client.force_authenticate(user=seller_user)
+        response = self.client.patch(
+            f"/api/seller/orders/{order.id}/",
+            {"status": "cancelled"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.DELIVERED)
+
+    def test_cannot_update_cancelled_order(self):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.CANCELLED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+
+        self.client.force_authenticate(user=seller_user)
+        response = self.client.patch(
+            f"/api/seller/orders/{order.id}/",
+            {"status": "prepared"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)

@@ -49,10 +49,12 @@ class OrderSerializer(serializers.ModelSerializer):
             "discount_xof",
             "total_xof",
             "items",
+            "cancelled_at",
+            "cancellation_reason",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["discount_xof", "total_xof", "created_at", "updated_at"]
+        read_only_fields = ["discount_xof", "total_xof", "cancelled_at", "cancellation_reason", "created_at", "updated_at"]
 
     def validate_items(self, items):
         if not items:
