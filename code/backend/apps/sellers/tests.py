@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
+from apps.orders.models import Order, OrderItem
 from apps.products.models import Category, Product
 
 from .models import SellerProfile, Shop
@@ -137,3 +138,92 @@ class SellerApiTests(APITestCase):
     def test_dashboard_requires_authenticated_seller(self):
         response = self.client.get("/api/seller/dashboard/")
         self.assertEqual(response.status_code, 401)
+
+    def test_seller_dashboard_includes_order_metrics(self):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.RECEIVED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=2, unit_price_xof=5000)
+
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["metrics"]["orders_today"], 1)
+        self.assertEqual(response.data["metrics"]["pending_orders"], 1)
+
+    def test_seller_orders_list_returns_only_their_orders(self):
+        category = Category.objects.create(name="Tissus", slug="tissus")
+        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
+        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        product = Product.objects.create(
+            seller=seller,
+            category=category,
+            name="Pagne",
+            slug="pagne",
+            price_xof=5000,
+            stock=5,
+        )
+        other_user = User.objects.create_user(username="autre", password="StrongPass123!")
+        other_seller = SellerProfile.objects.create(user=other_user, display_name="Autre Boutique", phone="+22991000000")
+        Shop.objects.create(seller=other_seller, name="Autre Shop", slug="autre-shop", whatsapp_phone="+22991000000")
+        other_product = Product.objects.create(
+            seller=other_seller,
+            category=category,
+            name="Autre Pagne",
+            slug="autre-pagne",
+            price_xof=6000,
+            stock=5,
+        )
+
+        customer = User.objects.create_user(username="client", password="StrongPass123!")
+        order = Order.objects.create(
+            customer=customer,
+            full_name="M. Client",
+            phone="+22991111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.RECEIVED,
+        )
+        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+
+        other_order = Order.objects.create(
+            customer=customer,
+            full_name="Mme Autre",
+            phone="+22992222222",
+            email="autre@example.com",
+            address="Rue des Palmiers",
+            city="Porto-Novo",
+            status=Order.Status.RECEIVED,
+        )
+        OrderItem.objects.create(order=other_order, product=other_product, quantity=1, unit_price_xof=6000)
+
+        self.client.force_authenticate(user=seller_user)
+        response = self.client.get("/api/seller/orders/")
+
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["full_name"], "M. Client")
+        self.assertEqual(results[0]["items"][0]["product_slug"], "pagne")

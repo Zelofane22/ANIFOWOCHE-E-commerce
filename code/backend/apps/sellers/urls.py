@@ -2,10 +2,17 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.products.views import ProductImageDetailView, ProductImageListCreateView, SellerProductViewSet
-from .views import PublicShopView, SellerDashboardView, SellerProfileView, SellerRegisterView
+from .views import (
+    PublicShopView,
+    SellerDashboardView,
+    SellerProfileView,
+    SellerRegisterView,
+    SellerOrderViewSet,
+)
 
 router = DefaultRouter()
 router.register("seller/products", SellerProductViewSet, basename="seller-product")
+router.register("seller/orders", SellerOrderViewSet, basename="seller-order")
 
 urlpatterns = [
     path("", include(router.urls)),

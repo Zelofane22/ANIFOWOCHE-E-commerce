@@ -5,6 +5,7 @@ import {
   PackageIcon,
   SettingsIcon,
   StoreIcon,
+  TruckIcon,
 } from "../icons.jsx";
 import { useAuth } from "../../context/useAuth.js";
 
@@ -13,6 +14,7 @@ export default function SellerShell({ children, title, seller }) {
   const navigate = useNavigate();
   const navItems = [
     { to: "/seller/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
+    { to: "/seller/orders", label: "Commandes", Icon: TruckIcon },
     { to: "/seller/products", label: "Produits", Icon: PackageIcon },
     { to: "/seller/settings", label: "Paramètres", Icon: SettingsIcon },
   ];

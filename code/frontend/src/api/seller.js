@@ -10,6 +10,8 @@ export const updateSellerProfile = (data) =>
 
 export const getSellerDashboard = () => apiClient.get("/seller/dashboard/").then((res) => res.data);
 
+export const getSellerOrders = () => apiClient.get("/seller/orders/").then((res) => res.data);
+
 export const getPublicShop = (slug) =>
   apiClient.get(`/public/shops/${slug}/`).then((res) => res.data);
 
