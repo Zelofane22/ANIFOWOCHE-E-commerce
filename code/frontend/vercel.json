@@ -2,6 +2,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/shop/:slug",
+      "destination": "https://seller.anifowoche.com/:slug",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

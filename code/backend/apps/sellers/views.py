@@ -10,12 +10,16 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from django.db.models import Q
+
 from apps.orders.models import Order, OrderItem
 from apps.orders.serializers import OrderSerializer
 from apps.payments.models import Payment
 from apps.payments.serializers import PaymentSerializer
 from apps.notifications.services import notify_invoice
 from apps.payments.services import PaymentRelaunchError, RELAUNCHABLE_STATUSES, relaunch_payment
+from apps.products.models import Product
+from apps.products.serializers import ProductSerializer
 from apps.users.serializers import UserSerializer
 
 from .models import SellerProfile, Shop
@@ -272,3 +276,16 @@ class SellerConfirmPaymentView(APIView):
         notify_invoice(payment)
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)
+
+
+class PublicShopProductDetailView(generics.RetrieveAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        shop = get_object_or_404(Shop, slug=self.kwargs["shop_slug"], is_published=True)
+        return Product.objects.filter(
+            Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
+            is_active=True,
+        )

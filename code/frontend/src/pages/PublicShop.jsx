@@ -123,7 +123,7 @@ export default function PublicShop() {
               {visibleProducts.map((product) => (
                 <Link
                   key={product.id}
-                  to={`/produits/${product.slug}`}
+                  to={`/${slug}/produits/${product.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="relative aspect-square bg-brand-pale">

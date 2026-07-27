@@ -37,6 +37,8 @@ services:
         sync: false
       - key: FRONTEND_BASE_URL
         sync: false
+      - key: SELLER_FRONTEND_BASE_URL
+        sync: false
       - key: FEDAPAY_BASE_URL
         value: https://sandbox-api.fedapay.com
       - key: FEDAPAY_SECRET_KEY

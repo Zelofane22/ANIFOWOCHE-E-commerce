@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
 
@@ -16,7 +17,11 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
     lookup_field = "product_id"
 
     def get_queryset(self):
-        return WishlistItem.objects.filter(user=self.request.user).select_related("product")
+        return WishlistItem.objects.filter(
+            user=self.request.user,
+        ).filter(
+            Q(product__shop__isnull=True) | Q(product__shop__visible_on_main_store=True)
+        ).select_related("product")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

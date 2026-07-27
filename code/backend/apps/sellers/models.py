@@ -31,6 +31,11 @@ class Shop(models.Model):
     city = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     is_published = models.BooleanField(default=True)
+    visible_on_main_store = models.BooleanField(
+        default=True,
+        help_text="Afficher les produits de cette boutique dans le catalogue, "
+                  "la recherche et la wishlist de la vitrine principale anifowoche.com",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

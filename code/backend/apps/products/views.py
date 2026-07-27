@@ -45,6 +45,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         Product.objects.filter(
             is_active=True,
         )
+        .filter(Q(shop__isnull=True) | Q(shop__visible_on_main_store=True))
         .select_related("category", "seller")
         .prefetch_related(
             Prefetch(
