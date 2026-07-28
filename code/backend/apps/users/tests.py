@@ -8,6 +8,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APITestCase
 
+from apps.core.factories import ProfileFactory, UserFactory
 from apps.notifications.services import NotificationDeliveryError
 
 from .models import Profile
@@ -43,7 +44,7 @@ class AuthApiTests(APITestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_register_rejects_duplicate_email(self):
-        User.objects.create_user(username="existant", email="dup@example.com", password="SuperSecret123!")
+        UserFactory(username="existant", email="dup@example.com")
         payload = {
             "username": "autre",
             "email": "dup@example.com",
@@ -68,7 +69,9 @@ class AuthApiTests(APITestCase):
         self.assertFalse(User.objects.filter(username="phoneemail").exists())
 
     def test_login_and_me(self):
-        User.objects.create_user(username="loginuser", password="SuperSecret123!")
+        user = UserFactory(username="loginuser")
+        user.set_password("SuperSecret123!")
+        user.save()
         login_response = self.client.post(
             "/api/auth/token/", {"username": "loginuser", "password": "SuperSecret123!"}, format="json"
         )
@@ -80,9 +83,9 @@ class AuthApiTests(APITestCase):
         self.assertEqual(me_response.data["username"], "loginuser")
 
     def test_login_with_email(self):
-        User.objects.create_user(
-            username="loginemail", email="loginemail@example.com", password="SuperSecret123!"
-        )
+        user = UserFactory(username="loginemail", email="loginemail@example.com")
+        user.set_password("SuperSecret123!")
+        user.save()
         login_response = self.client.post(
             "/api/auth/token/",
             {"username": "loginemail@example.com", "password": "SuperSecret123!"},
@@ -91,8 +94,10 @@ class AuthApiTests(APITestCase):
         self.assertEqual(login_response.status_code, 200)
 
     def test_login_with_phone(self):
-        user = User.objects.create_user(username="loginphone", password="SuperSecret123!")
-        Profile.objects.create(user=user, phone="+22991112233")
+        user = UserFactory(username="loginphone")
+        user.set_password("SuperSecret123!")
+        user.save()
+        ProfileFactory(user=user, phone="+22991112233")
         login_response = self.client.post(
             "/api/auth/token/",
             {"username": "+22991112233", "password": "SuperSecret123!"},
@@ -101,8 +106,10 @@ class AuthApiTests(APITestCase):
         self.assertEqual(login_response.status_code, 200)
 
     def test_login_with_phone_ignores_spacing_differences(self):
-        user = User.objects.create_user(username="loginphone2", password="SuperSecret123!")
-        Profile.objects.create(user=user, phone="+22991112233")
+        user = UserFactory(username="loginphone2")
+        user.set_password("SuperSecret123!")
+        user.save()
+        ProfileFactory(user=user, phone="+22991112233")
         login_response = self.client.post(
             "/api/auth/token/",
             {"username": "+229 91 11 22 33", "password": "SuperSecret123!"},
@@ -111,9 +118,9 @@ class AuthApiTests(APITestCase):
         self.assertEqual(login_response.status_code, 200)
 
     def test_login_rejects_wrong_password_for_email(self):
-        User.objects.create_user(
-            username="loginemail2", email="loginemail2@example.com", password="SuperSecret123!"
-        )
+        user = UserFactory(username="loginemail2", email="loginemail2@example.com")
+        user.set_password("SuperSecret123!")
+        user.save()
         login_response = self.client.post(
             "/api/auth/token/",
             {"username": "loginemail2@example.com", "password": "WrongPassword!"},
@@ -126,7 +133,9 @@ class AuthApiTests(APITestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_me_defaults_gracefully_for_user_without_profile(self):
-        User.objects.create_user(username="sansprofil", password="SuperSecret123!")
+        user = UserFactory(username="sansprofil")
+        user.set_password("SuperSecret123!")
+        user.save()
         login_response = self.client.post(
             "/api/auth/token/", {"username": "sansprofil", "password": "SuperSecret123!"}, format="json"
         )
@@ -138,8 +147,6 @@ class AuthApiTests(APITestCase):
         self.assertEqual(me_response.data["phone"], "")
 
     def test_register_defaults_to_email_channel(self):
-        """WhatsApp reste bloqué par défaut (Sprint 6, voir NotificationSettings)
-        tant qu'aucune vraie clé WhatsApp Business API n'est configurée."""
         payload = {
             "username": "pardefaut",
             "email": "pardefaut@example.com",
@@ -173,7 +180,9 @@ class AuthApiTests(APITestCase):
 
     @mock.patch("apps.users.views.ResendClient.send_email", return_value="resend-reset-id")
     def test_password_reset_request_sends_link_without_exposing_account_lookup(self, mock_send_email):
-        User.objects.create_user(username="resetuser", email="reset@example.com", password="OldSecret123!")
+        user = UserFactory(username="resetuser", email="reset@example.com")
+        user.set_password("OldSecret123!")
+        user.save()
 
         response = self.client.post("/api/auth/password-reset/", {"email": "reset@example.com"}, format="json")
 
@@ -192,7 +201,9 @@ class AuthApiTests(APITestCase):
         side_effect=NotificationDeliveryError("Resend indisponible"),
     )
     def test_password_reset_request_returns_generic_success_when_email_delivery_fails(self, mock_send_email):
-        User.objects.create_user(username="resetfail", email="resetfail@example.com", password="OldSecret123!")
+        user = UserFactory(username="resetfail", email="resetfail@example.com")
+        user.set_password("OldSecret123!")
+        user.save()
 
         response = self.client.post("/api/auth/password-reset/", {"email": "resetfail@example.com"}, format="json")
 
@@ -201,7 +212,9 @@ class AuthApiTests(APITestCase):
         self.assertEqual(mock_send_email.call_count, 1)
 
     def test_password_reset_confirm_updates_password(self):
-        user = User.objects.create_user(username="resetconfirm", email="confirm@example.com", password="OldSecret123!")
+        user = UserFactory(username="resetconfirm", email="confirm@example.com")
+        user.set_password("OldSecret123!")
+        user.save()
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 

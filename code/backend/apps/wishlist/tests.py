@@ -1,24 +1,23 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
-from apps.products.models import Category, Product
-
-from .models import WishlistItem
+from apps.core.factories import CategoryFactory, ProductFactory, UserFactory
+from apps.wishlist.models import WishlistItem
 
 User = get_user_model()
 
 
 class WishlistApiTests(APITestCase):
     def setUp(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        self.product = Product.objects.create(
-            category=category, name="Pagne", slug="pagne", price_xof=2000, stock=10
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
+            category=self.category, name="Pagne", slug="pagne", price_xof=2000, stock=10
         )
-        self.other_product = Product.objects.create(
-            category=category, name="Bazin", slug="bazin", price_xof=3000, stock=5
+        self.other_product = ProductFactory(
+            category=self.category, name="Bazin", slug="bazin", price_xof=3000, stock=5
         )
-        self.owner = User.objects.create_user(username="owner", password="pass1234")
-        self.other_user = User.objects.create_user(username="other", password="pass1234")
+        self.owner = UserFactory(username="owner")
+        self.other_user = UserFactory(username="other")
 
     def test_authenticated_user_can_add_product_to_wishlist(self):
         self.client.force_authenticate(user=self.owner)

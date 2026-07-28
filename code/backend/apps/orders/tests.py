@@ -4,9 +4,8 @@ import requests
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
+from apps.core.factories import CategoryFactory, CouponFactory, OrderFactory, ProductFactory, UserFactory
 from apps.core.models import StoreSettings
-from apps.products.models import Category, Product
-from apps.promotions.models import Coupon
 
 from .models import Order
 
@@ -15,12 +14,12 @@ User = get_user_model()
 
 class OrderApiTests(APITestCase):
     def setUp(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        self.product = Product.objects.create(
-            category=category, name="Pagne", slug="pagne", price_xof=2000, stock=10
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
+            category=self.category, name="Pagne", slug="pagne", price_xof=2000, stock=10
         )
-        self.staff_user = User.objects.create_user(username="admin", password="pass1234", is_staff=True)
-        self.regular_user = User.objects.create_user(username="client", password="pass1234")
+        self.staff_user = UserFactory(username="admin", is_staff=True)
+        self.regular_user = UserFactory(username="client")
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_computes_total_and_snapshots_price(self, mock_post):
@@ -75,7 +74,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_non_staff_can_list_own_orders_only(self, mock_post):
-        owner = User.objects.create_user(username="owner", password="pass1234")
+        owner = UserFactory(username="owner")
         self.client.force_authenticate(user=owner)
         create_response = self.client.post(
             "/api/orders/",
@@ -128,7 +127,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_valid_coupon_discounts_total_and_increments_usage(self, mock_post):
-        coupon = Coupon.objects.create(code="PROMO10", discount_percent=10, max_uses=5, used_count=0)
+        coupon = CouponFactory(code="PROMO10", discount_percent=10, max_uses=5, used_count=0)
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",

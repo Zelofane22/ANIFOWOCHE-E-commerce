@@ -4,22 +4,28 @@ import requests
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
+from apps.core.factories import (
+    CategoryFactory,
+    DeliveryFactory,
+    DeliverySlotFactory,
+    DeliveryZoneFactory,
+    OrderFactory,
+    ProductFactory,
+    UserFactory,
+)
 from apps.notifications.models import Notification
-from apps.orders.models import Order
-
-from .models import Delivery, DeliverySlot, DeliveryZone
 
 User = get_user_model()
 
 
 class DeliveryApiTests(APITestCase):
     def setUp(self):
-        self.zone = DeliveryZone.objects.create(name="Zone Test", fee_xof=500)
-        self.slot = DeliverySlot.objects.create(label="Créneau Test", start_time="08:00", end_time="12:00")
-        self.order = Order.objects.create(
+        self.zone = DeliveryZoneFactory(name="Zone Test", fee_xof=500)
+        self.slot = DeliverySlotFactory(label="Créneau Test", start_time="08:00", end_time="12:00")
+        self.order = OrderFactory(
             full_name="Client", phone="+22990000000", email="client@example.com", address="Akpakpa", total_xof=1000
         )
-        self.staff_user = User.objects.create_user(username="admin", password="pass1234", is_staff=True)
+        self.staff_user = UserFactory(username="admin", is_staff=True)
 
     def test_zones_and_slots_are_publicly_readable(self):
         self.assertEqual(self.client.get("/api/delivery/zones/").status_code, 200)
@@ -33,7 +39,7 @@ class DeliveryApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
 
     def test_cannot_create_two_deliveries_for_same_order(self):
-        Delivery.objects.create(order=self.order, zone=self.zone, slot=self.slot)
+        DeliveryFactory(order=self.order, zone=self.zone, slot=self.slot)
         response = self.client.post(
             "/api/delivery/", {"order_id": self.order.id, "zone_id": self.zone.id, "slot_id": self.slot.id},
             format="json",
@@ -46,7 +52,7 @@ class DeliveryApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_transition_to_in_transit_creates_notification(self, mock_post):
-        delivery = Delivery.objects.create(order=self.order, zone=self.zone, slot=self.slot)
+        delivery = DeliveryFactory(order=self.order, zone=self.zone, slot=self.slot)
         self.client.force_authenticate(user=self.staff_user)
 
         response = self.client.patch(f"/api/delivery/{delivery.id}/", {"status": "in_transit"}, format="json")
@@ -58,7 +64,7 @@ class DeliveryApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_transition_to_same_status_does_not_duplicate_notification(self, mock_post):
-        delivery = Delivery.objects.create(order=self.order, zone=self.zone, slot=self.slot, status="in_transit")
+        delivery = DeliveryFactory(order=self.order, zone=self.zone, slot=self.slot, status="in_transit")
         self.client.force_authenticate(user=self.staff_user)
 
         self.client.patch(f"/api/delivery/{delivery.id}/", {"courier_name": "Kokou"}, format="json")

@@ -1,8 +1,13 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
-from apps.orders.models import Order
-from apps.products.models import Category, Product
+from apps.core.factories import (
+    CategoryFactory,
+    OrderFactory,
+    ProductFactory,
+    ReturnRequestFactory,
+    UserFactory,
+)
 
 from .models import ReturnRequest
 
@@ -11,19 +16,20 @@ User = get_user_model()
 
 class ReturnRequestApiTests(APITestCase):
     def setUp(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        product = Product.objects.create(category=category, name="Pagne", slug="pagne", price_xof=2000, stock=10)
-        self.owner = User.objects.create_user(username="owner", password="pass1234")
-        self.other_user = User.objects.create_user(username="other", password="pass1234")
-        self.staff_user = User.objects.create_user(username="admin", password="pass1234", is_staff=True)
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
+            category=self.category, name="Pagne", slug="pagne", price_xof=2000, stock=10
+        )
+        self.owner = UserFactory(username="owner")
+        self.other_user = UserFactory(username="other")
+        self.staff_user = UserFactory(username="admin", is_staff=True)
 
-        self.order = Order.objects.create(
+        self.order = OrderFactory(
             customer=self.owner, full_name="Owner", phone="+22990000000", address="Fidjrossè", total_xof=2000
         )
-        self.other_order = Order.objects.create(
+        self.other_order = OrderFactory(
             customer=self.other_user, full_name="Other", phone="+22990000001", address="Akpakpa", total_xof=2000
         )
-        self.product = product
 
     def test_owner_can_request_return_for_own_order(self):
         self.client.force_authenticate(user=self.owner)
