@@ -10,7 +10,7 @@ import Home from "./pages/Home.jsx";
 import ShopRedirect from "./pages/ShopRedirect.jsx";
 
 const hostname = window.location.hostname;
-const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname.startsWith("seller.");
+const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname.startsWith("seller.") || window.location.search.includes("seller=1");
 
 const Account = lazy(() => import("./pages/Account.jsx"));
 const Addresses = lazy(() => import("./pages/Addresses.jsx"));
