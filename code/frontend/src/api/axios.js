@@ -1,10 +1,19 @@
 import axios from "axios";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "../utils/tokenStorage.js";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+const rawBaseURL = import.meta.env.VITE_API_BASE_URL;
+const baseURL = rawBaseURL ? rawBaseURL.replace(/\/+$/, "") : "http://localhost:8000/api";
+const apiBaseURL = (() => {
+  try {
+    const parsed = new URL(baseURL);
+    return parsed.pathname === "" || parsed.pathname === "/" ? `${baseURL}/api` : baseURL;
+  } catch {
+    return baseURL;
+  }
+})();
 
-const apiClient = axios.create({ baseURL });
-const refreshClient = axios.create({ baseURL });
+const apiClient = axios.create({ baseURL: apiBaseURL });
+const refreshClient = axios.create({ baseURL: apiBaseURL });
 
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();

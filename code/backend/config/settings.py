@@ -28,6 +28,13 @@ def _normalize_origins(origins):
             normalized.append(origin)
     return normalized
 
+
+def _append_origins(origins, additional_origins):
+    for origin in _normalize_origins(additional_origins):
+        if origin not in origins:
+            origins.append(origin)
+    return origins
+
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=not ON_RENDER, cast=bool)
 ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()))
@@ -216,10 +223,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
-CORS_ALLOWED_ORIGINS = _normalize_origins(
-    config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())
-)
-
 # Intégration FedaPay (sandbox). Valeurs placeholder tant que les vraies clés
 # ne sont pas fournies via les variables d'environnement — voir docs/stack-technique.md.
 FEDAPAY_BASE_URL = config("FEDAPAY_BASE_URL", default="https://sandbox-api.fedapay.com")
@@ -227,6 +230,12 @@ FEDAPAY_SECRET_KEY = config("FEDAPAY_SECRET_KEY", default="sk_sandbox_placeholde
 FEDAPAY_WEBHOOK_SECRET = config("FEDAPAY_WEBHOOK_SECRET", default="whsec_placeholder")
 FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
 SELLER_FRONTEND_BASE_URL = config("SELLER_FRONTEND_BASE_URL", default=FRONTEND_BASE_URL)
+
+CORS_ALLOWED_ORIGINS = _append_origins(
+    _normalize_origins(config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())),
+    [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL],
+)
+CSRF_TRUSTED_ORIGINS = _append_origins(CSRF_TRUSTED_ORIGINS, [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL])
 
 # Notifications WhatsApp Business Cloud API (Meta). Valeurs placeholder tant
 # que le vrai token et le phone_number_id ne sont pas fournis — voir
