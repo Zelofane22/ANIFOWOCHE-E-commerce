@@ -2,6 +2,7 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from apps.core.factories import CategoryFactory, CouponFactory, OrderFactory, ProductFactory, UserFactory
@@ -170,3 +171,31 @@ class OrderApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["discount_xof"], 0)
         self.assertEqual(response.data["coupon_code"], "")
+
+
+class OrderAdminTests(TestCase):
+    def setUp(self):
+        from apps.core.factories import SuperUserFactory
+        self.admin = SuperUserFactory(username="order-admin")
+        self.client.force_login(self.admin)
+
+    def test_order_changelist(self):
+        response = self.client.get("/admin/orders/order/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_order_add_form(self):
+        response = self.client.get("/admin/orders/order/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_order_change_form(self):
+        from apps.core.factories import OrderFactory
+        order = OrderFactory()
+        response = self.client.get(f"/admin/orders/order/{order.pk}/change/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular")
+        self.client.force_login(user)
+        response = self.client.get("/admin/orders/order/")
+        self.assertEqual(response.status_code, 302)

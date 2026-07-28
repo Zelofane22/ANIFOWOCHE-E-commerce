@@ -46,7 +46,7 @@ Context API : `AuthContext`, `CartContext`, `SiteConfigContext`. Appels API dans
 ## CI/CD
 
 Workflow `.github/workflows/ci.yml` — 3 jobs parallèles :
-1. **backend** : `pip install` → `python manage.py test` → `pip-audit`
+1. **backend** : `pip install` → `pytest --cov` → `pip-audit`
 2. **frontend** : `npm ci` → `npm run lint` → `npm run build` → `npm audit`
 3. **security** : `gitleaks` (secret scanning)
 
@@ -75,7 +75,7 @@ Workspace Render : `tea-d4neu37gi27c738i7vh0` (My Workspace).
 
 ## Tests
 
-- **Backend** : `docker compose -f code/docker-compose.yml exec backend python manage.py test` (77 tests, appels externes mockés).
+- **Backend** : `docker compose -f code/docker-compose.yml exec backend pytest` (272 tests, appels externes mockés). Coverage : `pytest --cov=apps --cov-report=term-missing`.
 - **Frontend** : aucun test unitaire existant. CI vérifie uniquement `lint` + `build`.
 
 ## Conventions de modification

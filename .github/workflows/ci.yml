@@ -45,9 +45,11 @@ jobs:
         working-directory: code/backend
         run: pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: code/backend
-        run: python manage.py test
+        run: |
+          pip install pytest pytest-django pytest-cov pytest-xdist
+          pytest -n auto --cov=apps --cov-report=term-missing --cov-fail-under=80
 
       - name: Audit Python dependencies (pip-audit)
         working-directory: code/backend

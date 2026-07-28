@@ -6,7 +6,7 @@ from unittest import mock
 import requests
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import override_settings
+from django.test import TestCase, override_settings
 from rest_framework.test import APITestCase
 from rest_framework.throttling import ScopedRateThrottle
 
@@ -343,3 +343,35 @@ class PaymentRelaunchTests(APITestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.order.payments.count(), 2)
         self.assertTrue(Notification.objects.filter(event=Notification.Event.PAYMENT_RETRY).exists())
+
+
+class PaymentAdminTests(TestCase):
+    def setUp(self):
+        from apps.core.factories import SuperUserFactory
+        self.admin = SuperUserFactory(username="payment-admin")
+        self.client.force_login(self.admin)
+
+    def test_payment_changelist(self):
+        response = self.client.get("/admin/payments/payment/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_payment_add_form(self):
+        response = self.client.get("/admin/payments/payment/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_paymentsettings_changelist_redirects(self):
+        from apps.payments.models import PaymentSettings
+        PaymentSettings.get_solo()
+        response = self.client.get("/admin/payments/paymentsettings/", follow=True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_paymentsettings_cannot_add(self):
+        response = self.client.get("/admin/payments/paymentsettings/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-payment")
+        self.client.force_login(user)
+        response = self.client.get("/admin/payments/payment/")
+        self.assertEqual(response.status_code, 302)

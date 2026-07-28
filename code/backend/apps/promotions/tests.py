@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -98,3 +99,33 @@ class ProductDiscountAnnotationTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["discount_percent"])
         self.assertIsNone(response.data["discounted_price_xof"])
+
+
+class PromotionAdminTests(TestCase):
+    def setUp(self):
+        from apps.core.factories import SuperUserFactory
+        self.admin = SuperUserFactory(username="promo-admin")
+        self.client.force_login(self.admin)
+
+    def test_promotion_changelist(self):
+        response = self.client.get("/admin/promotions/promotion/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_promotion_add_form(self):
+        response = self.client.get("/admin/promotions/promotion/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_coupon_changelist(self):
+        response = self.client.get("/admin/promotions/coupon/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_coupon_add_form(self):
+        response = self.client.get("/admin/promotions/coupon/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-promo")
+        self.client.force_login(user)
+        response = self.client.get("/admin/promotions/coupon/")
+        self.assertEqual(response.status_code, 302)

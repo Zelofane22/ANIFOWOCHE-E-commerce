@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from apps.core.factories import CategoryFactory, ProductFactory, UserFactory
+from apps.core.factories import CategoryFactory, ProductFactory, SuperUserFactory, UserFactory
 from apps.wishlist.models import WishlistItem
 
 User = get_user_model()
@@ -60,3 +61,23 @@ class WishlistApiTests(APITestCase):
         response = self.client.delete(f"/api/wishlist/{self.other_product.id}/")
         self.assertEqual(response.status_code, 404)
         self.assertEqual(WishlistItem.objects.count(), 1)
+
+
+class WishlistAdminTests(TestCase):
+    def setUp(self):
+        self.admin = SuperUserFactory(username="wishlist-admin")
+        self.client.force_login(self.admin)
+
+    def test_wishlistitem_changelist(self):
+        response = self.client.get("/admin/wishlist/wishlistitem/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_wishlistitem_add_form(self):
+        response = self.client.get("/admin/wishlist/wishlistitem/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        user = UserFactory(username="regular-wishlist")
+        self.client.force_login(user)
+        response = self.client.get("/admin/wishlist/wishlistitem/")
+        self.assertEqual(response.status_code, 302)

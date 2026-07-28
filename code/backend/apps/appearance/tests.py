@@ -37,3 +37,34 @@ class HomeSectionDefaultsTests(TestCase):
         HomeSection.ensure_defaults()
         HomeSection.ensure_defaults()
         self.assertEqual(HomeSection.objects.count(), 4)
+
+
+class AppearanceAdminTests(TestCase):
+    def setUp(self):
+        from apps.core.factories import SuperUserFactory
+        self.admin = SuperUserFactory(username="appearance-admin")
+        self.client.force_login(self.admin)
+
+    def test_sitetheme_changelist(self):
+        response = self.client.get("/admin/appearance/sitetheme/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_sitetheme_add_when_none_exists(self):
+        SiteTheme.objects.all().delete()
+        response = self.client.get("/admin/appearance/sitetheme/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_homesection_changelist(self):
+        response = self.client.get("/admin/appearance/homesection/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_homesection_cannot_add(self):
+        response = self.client.get("/admin/appearance/homesection/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-appearance")
+        self.client.force_login(user)
+        response = self.client.get("/admin/appearance/sitetheme/")
+        self.assertEqual(response.status_code, 302)

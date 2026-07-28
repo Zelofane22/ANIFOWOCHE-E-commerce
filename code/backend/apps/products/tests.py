@@ -345,3 +345,44 @@ class SellerProductApiTests(APITestCase):
 
         delete_response = self.client.delete(f"/api/seller/products/{product.slug}/images/{image_id}/")
         self.assertEqual(delete_response.status_code, 204)
+
+
+from django.test import TestCase
+from apps.core.factories import SuperUserFactory, CategoryFactory, ProductFactory, SellerProfileFactory, ShopFactory
+
+
+class ProductAdminTests(TestCase):
+    def setUp(self):
+        self.admin = SuperUserFactory(username="product-admin")
+        self.client.force_login(self.admin)
+
+    def test_category_changelist(self):
+        response = self.client.get("/admin/products/category/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_category_add_form(self):
+        response = self.client.get("/admin/products/category/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_product_changelist(self):
+        response = self.client.get("/admin/products/product/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_product_add_form(self):
+        response = self.client.get("/admin/products/product/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_optiongroup_changelist(self):
+        response = self.client.get("/admin/products/optiongroup/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_optiongroup_add_form(self):
+        response = self.client.get("/admin/products/optiongroup/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-user")
+        self.client.force_login(user)
+        response = self.client.get("/admin/products/category/")
+        self.assertEqual(response.status_code, 302)

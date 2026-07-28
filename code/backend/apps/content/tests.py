@@ -1,6 +1,7 @@
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from apps.core.factories import BannerFactory
+from apps.core.factories import BannerFactory, SuperUserFactory
 
 
 class BannerApiTests(APITestCase):
@@ -22,3 +23,24 @@ class BannerApiTests(APITestCase):
         detail_url = f"/api/content/banners/{self.published_first.id}/"
         self.assertEqual(self.client.patch(detail_url, {"title": "Test"}, format="json").status_code, 405)
         self.assertEqual(self.client.delete(detail_url).status_code, 405)
+
+
+class BannerAdminTests(TestCase):
+    def setUp(self):
+        self.admin = SuperUserFactory(username="content-admin")
+        self.client.force_login(self.admin)
+
+    def test_banner_changelist(self):
+        response = self.client.get("/admin/content/banner/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_banner_add_form(self):
+        response = self.client.get("/admin/content/banner/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-content")
+        self.client.force_login(user)
+        response = self.client.get("/admin/content/banner/")
+        self.assertEqual(response.status_code, 302)

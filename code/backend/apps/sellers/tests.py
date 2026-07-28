@@ -2,6 +2,7 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from apps.core.factories import (
@@ -11,6 +12,7 @@ from apps.core.factories import (
     ProductFactory,
     SellerProfileFactory,
     ShopFactory,
+    SuperUserFactory,
     UserFactory,
 )
 from apps.orders.models import Order, OrderItem
@@ -417,3 +419,31 @@ class SellerApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+
+class SellerAdminTests(TestCase):
+    def setUp(self):
+        self.admin = SuperUserFactory(username="seller-admin")
+        self.client.force_login(self.admin)
+
+    def test_sellerprofile_changelist(self):
+        response = self.client.get("/admin/sellers/sellerprofile/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_sellerprofile_add_form(self):
+        response = self.client.get("/admin/sellers/sellerprofile/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_shop_changelist(self):
+        response = self.client.get("/admin/sellers/shop/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_shop_add_form(self):
+        response = self.client.get("/admin/sellers/shop/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        user = UserFactory(username="regular-seller")
+        self.client.force_login(user)
+        response = self.client.get("/admin/sellers/shop/")
+        self.assertEqual(response.status_code, 302)
