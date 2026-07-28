@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "cloudinary_storage",
     "cloudinary",
     "django.contrib.humanize",
+    "django.contrib.postgres",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
