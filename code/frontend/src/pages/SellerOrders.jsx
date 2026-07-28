@@ -27,7 +27,7 @@ export default function SellerOrders() {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) {
-      navigate("/seller/login", { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
 
@@ -37,7 +37,7 @@ export default function SellerOrders() {
         setOrders(ordersData.results ?? ordersData);
       })
       .catch((err) => {
-        navigate(err?.response?.status === 404 ? "/seller/register" : "/seller/login", {
+        navigate(err?.response?.status === 404 ? "/register" : "/login", {
           replace: true,
         });
       });
@@ -210,7 +210,7 @@ export default function SellerOrders() {
                         <MessageSquareIcon size={16} />
                       </a>
                       <Link
-                        to={`/seller/orders/${order.id}`}
+                        to={`/orders/${order.id}`}
                         className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
                       >
                         Voir le détail

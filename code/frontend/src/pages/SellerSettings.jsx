@@ -30,7 +30,7 @@ export default function SellerSettings() {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) {
-      navigate("/seller/login", { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
     getSellerProfile()
@@ -51,7 +51,7 @@ export default function SellerSettings() {
         });
       })
       .catch((err) => {
-        navigate(err?.response?.status === 404 ? "/seller/register" : "/seller/login", { replace: true });
+        navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
       });
   }, [isAuthenticated, loading, navigate]);
 

@@ -104,13 +104,13 @@ export default function SellerDashboard() {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) {
-      navigate("/seller/login", { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
     getSellerDashboard()
       .then(setDashboard)
       .catch((err) => {
-        navigate(err?.response?.status === 404 ? "/seller/register" : "/seller/login", { replace: true });
+        navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
       });
   }, [isAuthenticated, loading, navigate]);
 
@@ -143,14 +143,14 @@ export default function SellerDashboard() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              to="/seller/products"
+              to="/products"
               className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium"
             >
               <PackageIcon size={15} />
               Gérer les produits
             </Link>
             <Link
-              to="/seller/settings"
+              to="/settings"
               className="inline-flex items-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
             >
               <SettingsIcon size={15} />
@@ -262,7 +262,7 @@ export default function SellerDashboard() {
                 </div>
               ))}
               <Link
-                to="/seller/products"
+                to="/products"
                 className="mt-2 inline-block text-xs font-semibold text-brand-dark hover:underline"
               >
                 Voir tous les produits →
@@ -281,7 +281,7 @@ export default function SellerDashboard() {
             {recent_orders.map((order) => (
               <Link
                 key={order.id}
-                to={`/seller/orders/${order.id}`}
+                to={`/orders/${order.id}`}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-black/5 px-4 py-3 transition hover:bg-gray-50"
               >
                 <div className="flex items-center gap-3">
@@ -300,7 +300,7 @@ export default function SellerDashboard() {
               </Link>
             ))}
             <Link
-              to="/seller/orders"
+              to="/orders"
               className="mt-1 inline-block text-center text-xs font-semibold text-brand-dark hover:underline"
             >
               Voir toutes les commandes →

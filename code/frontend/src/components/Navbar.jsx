@@ -125,8 +125,8 @@ export default function Navbar() {
 
       <div className="hidden bg-coal px-4 md:block">
         <div className="mx-auto flex h-10 max-w-7xl items-center gap-1 text-sm">
-          <Link
-            to="/seller"
+          <a
+            href="https://seller.anifowoche.com"
             className="flex items-center gap-1.5 rounded bg-brand px-4 py-1.5 font-semibold text-white transition hover:bg-brand-medium"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -134,7 +134,7 @@ export default function Navbar() {
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
             Vendre
-          </Link>
+          </a>
           <div className="mx-1 h-5 w-px bg-white/20" />
           <Link
             to="/catalogue"
@@ -188,8 +188,8 @@ export default function Navbar() {
             </button>
           </form>
           <div className="flex flex-col gap-1 text-sm font-medium">
-            <Link
-              to="/seller"
+            <a
+              href="https://seller.anifowoche.com"
               onClick={() => setMenuOpen(false)}
               className="flex items-center gap-2 border-b border-white/10 bg-brand px-3 py-3 font-bold text-white transition hover:bg-brand-medium"
             >
@@ -198,7 +198,7 @@ export default function Navbar() {
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
               Vendre
-            </Link>
+            </a>
             <Link
               to="/compte"
               onClick={() => setMenuOpen(false)}

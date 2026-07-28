@@ -63,7 +63,7 @@ export default function SellerAuth() {
     try {
       await login(loginForm);
       await getSellerProfile();
-      navigate("/seller/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       logout();
       setError(
@@ -86,7 +86,7 @@ export default function SellerAuth() {
         shop_slug: generatedSlug,
         shop_name: registerForm.shop_name || registerForm.display_name,
       });
-      navigate("/seller/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -97,7 +97,7 @@ export default function SellerAuth() {
   const switchMode = (nextMode) => {
     setMode(nextMode);
     setError(null);
-    navigate(nextMode === "register" ? "/seller/register" : "/seller/login", { replace: true });
+    navigate(nextMode === "register" ? "/register" : "/login", { replace: true });
   };
 
   return (
