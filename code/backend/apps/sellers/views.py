@@ -1,6 +1,8 @@
+import logging
+
 from datetime import timedelta
 
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Sum, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import generics, permissions, status, viewsets
@@ -9,8 +11,6 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from django.db.models import Q
 
 from apps.orders.models import Order, OrderItem
 from apps.orders.serializers import OrderSerializer
@@ -278,6 +278,9 @@ class SellerConfirmPaymentView(APIView):
         return Response(PaymentSerializer(payment).data, status=status.HTTP_200_OK)
 
 
+logger = logging.getLogger(__name__)
+
+
 class PublicShopProductDetailView(generics.RetrieveAPIView):
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
@@ -288,4 +291,16 @@ class PublicShopProductDetailView(generics.RetrieveAPIView):
         return Product.objects.filter(
             Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
             is_active=True,
+        ).select_related("category", "seller").prefetch_related(
+            "images", "option_groups__options"
         )
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            return super().retrieve(request, *args, **kwargs)
+        except Exception as e:
+            logger.exception("PublicShopProductDetailView error")
+            return Response(
+                {"error": str(e), "detail": "Erreur lors du chargement du produit"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
