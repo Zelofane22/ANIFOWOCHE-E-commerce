@@ -62,7 +62,7 @@ export default function SellerOrderDetail() {
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) {
-      navigate("/seller/login", { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
 
@@ -74,7 +74,7 @@ export default function SellerOrderDetail() {
       })
       .catch((error) => {
         if (error?.response?.status === 404) {
-          navigate("/seller/orders", { replace: true });
+          navigate("/orders", { replace: true });
           return;
         }
         setPageError(extractErrorMessage(error));
@@ -147,7 +147,7 @@ export default function SellerOrderDetail() {
     <SellerShell title="Détail de la commande" seller={seller}>
       <div className="space-y-4">
         <Link
-          to="/seller/orders"
+          to="/orders"
           className="inline-flex items-center gap-2 text-sm font-semibold text-brand-dark transition hover:text-brand-medium"
         >
           <ChevronLeftIcon size={15} />

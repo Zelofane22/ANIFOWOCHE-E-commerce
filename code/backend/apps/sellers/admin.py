@@ -11,7 +11,7 @@ class SellerProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug", "whatsapp_phone", "city", "is_published", "created_at"]
-    list_filter = ["is_published", "city"]
+    list_display = ["name", "slug", "whatsapp_phone", "city", "is_published", "visible_on_main_store", "created_at"]
+    list_filter = ["is_published", "visible_on_main_store", "city"]
     search_fields = ["name", "slug", "whatsapp_phone"]
     prepopulated_fields = {"slug": ("name",)}

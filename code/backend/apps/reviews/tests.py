@@ -1,20 +1,19 @@
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from apps.products.models import Category, Product
-
-from .models import Review
+from apps.core.factories import CategoryFactory, ProductFactory, ReviewFactory
 
 
 class ReviewApiTests(APITestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Tissus", slug="tissus")
-        self.product = Product.objects.create(
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
             category=self.category, name="Pagne wax", slug="pagne-wax", price_xof=5000, stock=10
         )
-        self.approved = Review.objects.create(
+        self.approved = ReviewFactory(
             product=self.product, author_name="Awa", rating=5, comment="Très beau tissu", is_approved=True
         )
-        self.pending = Review.objects.create(
+        self.pending = ReviewFactory(
             product=self.product, author_name="Koffi", rating=3, comment="Correct", is_approved=False
         )
 
@@ -32,6 +31,8 @@ class ReviewApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 201)
+        from .models import Review
+
         review = Review.objects.get(author_name="Chidi")
         self.assertFalse(review.is_approved)
 
@@ -48,6 +49,8 @@ class ReviewApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 201)
+        from .models import Review
+
         review = Review.objects.get(author_name="Malicious")
         self.assertFalse(review.is_approved)
 
@@ -61,3 +64,25 @@ class ReviewApiTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["review_count"], 1)
         self.assertEqual(response.data["rating_average"], 5.0)
+
+
+class ReviewAdminTests(TestCase):
+    def setUp(self):
+        from apps.core.factories import SuperUserFactory
+        self.admin = SuperUserFactory(username="review-admin")
+        self.client.force_login(self.admin)
+
+    def test_review_changelist(self):
+        response = self.client.get("/admin/reviews/review/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_review_add_form(self):
+        response = self.client.get("/admin/reviews/review/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-reviews")
+        self.client.force_login(user)
+        response = self.client.get("/admin/reviews/review/")
+        self.assertEqual(response.status_code, 302)

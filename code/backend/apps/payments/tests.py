@@ -6,13 +6,22 @@ from unittest import mock
 import requests
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import override_settings
+from django.test import TestCase, override_settings
 from rest_framework.test import APITestCase
 from rest_framework.throttling import ScopedRateThrottle
 
+from apps.core.factories import (
+    CategoryFactory,
+    CouponFactory,
+    OrderFactory,
+    OrderItemFactory,
+    PaymentFactory,
+    ProductFactory,
+    SuperUserFactory,
+    UserFactory,
+)
 from apps.notifications.models import BackofficeNotification, Notification
 from apps.orders.models import Order, OrderItem
-from apps.products.models import Category, Product
 
 from .models import Payment, PaymentSettings
 from .services import FedaPayError, PaymentRelaunchError, relaunch_payment
@@ -28,15 +37,17 @@ def _sign(body: str, secret: str, timestamp: str = "1700000000") -> str:
 
 class PaymentApiTests(APITestCase):
     def setUp(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        product = Product.objects.create(category=category, name="Pagne", slug="pagne", price_xof=1000, stock=5)
-        self.owner = User.objects.create_user(username="owner", password="pass1234")
-        self.other_user = User.objects.create_user(username="other", password="pass1234")
-        self.order = Order.objects.create(
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
+            category=self.category, name="Pagne", slug="pagne", price_xof=1000, stock=5
+        )
+        self.owner = UserFactory(username="owner")
+        self.other_user = UserFactory(username="other")
+        self.order = OrderFactory(
             customer=self.owner, full_name="Client", phone="+22990000000", address="Cotonou", total_xof=1000
         )
-        OrderItem.objects.create(order=self.order, product=product, quantity=1, unit_price_xof=1000)
-        self.staff_user = User.objects.create_user(username="admin", password="pass1234", is_staff=True)
+        OrderItemFactory(order=self.order, product=self.product, quantity=1, unit_price_xof=1000)
+        self.staff_user = UserFactory(username="admin", is_staff=True)
 
     @mock.patch("apps.payments.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_initiate_payment_handles_provider_failure_gracefully(self, mock_post):
@@ -46,7 +57,6 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.status_code, 502)
         payment = Payment.objects.get(order=self.order)
         self.assertEqual(payment.status, Payment.Status.FAILED)
-        # US-34 : l'échec d'initialisation doit remonter dans la cloche backoffice.
         self.assertTrue(
             BackofficeNotification.objects.filter(kind=BackofficeNotification.Kind.PAYMENT_FAILED).exists()
         )
@@ -71,15 +81,6 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.data["payment_url"], "https://sandbox-pay.fedapay.com/t/42")
 
     def test_initiate_payment_is_rate_limited(self):
-        """US-38 : chaque appel coûte un appel API FedaPay réel, donc scope dédié
-        plus strict que le throttle anon générique (voir apps.payments.views).
-
-        ScopedRateThrottle.THROTTLE_RATES est figé en attribut de classe au chargement
-        du module DRF : override_settings(REST_FRAMEWORK=...) ne le rafraîchit pas, il
-        faut patcher le dict directement (mock.patch.dict) pour abaisser le taux dans un
-        test rapide. Le cache de throttling (process-wide) doit aussi être vidé : les
-        autres tests de cette classe appellent déjà /api/payments/initiate/ et laissent
-        un historique pour le même ident (127.0.0.1) sous le même scope "payments"."""
         cache.clear()
         transaction_response = mock.Mock()
         transaction_response.json.return_value = {"v1/transaction": {"id": 42}}
@@ -152,7 +153,7 @@ class PaymentApiTests(APITestCase):
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_webhook_approves_payment_and_updates_order(self, mock_post):
-        payment = Payment.objects.create(
+        payment = PaymentFactory(
             order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="777"
         )
         body = json.dumps({"name": "transaction.approved", "entity": {"id": "777"}})
@@ -173,9 +174,7 @@ class PaymentApiTests(APITestCase):
 
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
     def test_webhook_declined_creates_backoffice_notification(self):
-        """US-34 : un paiement refusé doit être visible côté admin sans aller
-        fouiller la liste des paiements — alerte dans la cloche backoffice."""
-        payment = Payment.objects.create(
+        payment = PaymentFactory(
             order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="888"
         )
         body = json.dumps({"name": "transaction.declined", "entity": {"id": "888"}})
@@ -199,31 +198,31 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_staff_can_list_payments(self):
-        Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        PaymentFactory(order=self.order, method="mtn", amount_xof=1000)
         self.client.force_authenticate(user=self.staff_user)
         response = self.client.get("/api/payments/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
 
     def test_owner_can_retrieve_own_payment(self):
-        payment = Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000)
         self.client.force_authenticate(user=self.owner)
         response = self.client.get(f"/api/payments/{payment.id}/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["id"], payment.id)
 
     def test_other_customer_cannot_retrieve_someone_elses_payment(self):
-        payment = Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000)
         self.client.force_authenticate(user=self.other_user)
         response = self.client.get(f"/api/payments/{payment.id}/")
         self.assertEqual(response.status_code, 404)
 
     def test_owner_sees_only_own_payments_in_list(self):
-        other_order = Order.objects.create(
+        other_order = OrderFactory(
             customer=self.other_user, full_name="Autre", phone="+22990000001", address="Cotonou", total_xof=500
         )
-        Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
-        Payment.objects.create(order=other_order, method="moov", amount_xof=500)
+        PaymentFactory(order=self.order, method="mtn", amount_xof=1000)
+        PaymentFactory(order=other_order, method="moov", amount_xof=500)
 
         self.client.force_authenticate(user=self.owner)
         response = self.client.get("/api/payments/")
@@ -243,15 +242,15 @@ def _fedapay_success_responses(transaction_id=99, url="https://sandbox-pay.fedap
 
 
 class PaymentRelaunchTests(APITestCase):
-    """US-34 : relance des paiements échoués (panier abandonné) par l'admin."""
-
     def setUp(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        product = Product.objects.create(category=category, name="Pagne", slug="pagne", price_xof=1000, stock=5)
-        self.customer = User.objects.create_user(
-            username="cliente", password="pass1234", email="cliente@example.com"
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
+            category=self.category, name="Pagne", slug="pagne", price_xof=1000, stock=5
         )
-        self.order = Order.objects.create(
+        self.customer = UserFactory(
+            username="cliente", email="cliente@example.com"
+        )
+        self.order = OrderFactory(
             customer=self.customer,
             full_name="Cliente",
             phone="+22990000000",
@@ -259,16 +258,13 @@ class PaymentRelaunchTests(APITestCase):
             address="Cotonou",
             total_xof=1000,
         )
-        OrderItem.objects.create(order=self.order, product=product, quantity=1, unit_price_xof=1000)
-        self.failed_payment = Payment.objects.create(
+        OrderItemFactory(order=self.order, product=self.product, quantity=1, unit_price_xof=1000)
+        self.failed_payment = PaymentFactory(
             order=self.order, method="mtn", amount_xof=1000, status=Payment.Status.DECLINED
         )
 
     @staticmethod
     def _mocked_providers_post():
-        """Un seul patch de requests.post pour FedaPay ET Resend : les deux
-        services partagent le même module requests, deux patches imbriqués
-        s'écraseraient mutuellement — on dispatche donc sur l'URL appelée."""
         resend_response = mock.Mock()
         resend_response.json.return_value = {"id": "email_123"}
         resend_response.raise_for_status.return_value = None
@@ -301,23 +297,17 @@ class PaymentRelaunchTests(APITestCase):
         self.assertIn(new_payment.payment_url, notification.message)
 
     def test_relaunch_rejects_pending_payment(self):
-        pending = Payment.objects.create(order=self.order, method="mtn", amount_xof=1000)
+        pending = PaymentFactory(order=self.order, method="mtn", amount_xof=1000)
         with self.assertRaises(PaymentRelaunchError):
             relaunch_payment(pending)
 
     def test_relaunch_rejects_cash_on_delivery_payment(self):
-        cod = Payment.objects.create(
-            order=self.order,
-            provider=Payment.Provider.CASH_ON_DELIVERY,
-            method=Payment.Method.CASH_ON_DELIVERY,
-            amount_xof=1000,
-            status=Payment.Status.CANCELED,
-        )
+        cod = PaymentFactory(order=self.order, canceled=True)
         with self.assertRaises(PaymentRelaunchError):
             relaunch_payment(cod)
 
     def test_relaunch_rejects_order_already_paid(self):
-        Payment.objects.create(order=self.order, method="mtn", amount_xof=1000, status=Payment.Status.APPROVED)
+        PaymentFactory(order=self.order, method="mtn", amount_xof=1000, status=Payment.Status.APPROVED)
         with self.assertRaises(PaymentRelaunchError):
             relaunch_payment(self.failed_payment)
         self.assertEqual(self.order.payments.count(), 2)
@@ -339,9 +329,9 @@ class PaymentRelaunchTests(APITestCase):
         )
 
     def test_admin_action_relaunches_selected_payments(self):
-        admin_user = User.objects.create_superuser(
-            username="superadmin", password="pass-solide-1234", email="admin@example.com"
-        )
+        admin_user = SuperUserFactory(username="superadmin", email="admin@example.com")
+        admin_user.set_password("pass-solide-1234")
+        admin_user.save()
         self.client.force_login(admin_user)
 
         with self._mocked_providers_post():
@@ -353,3 +343,35 @@ class PaymentRelaunchTests(APITestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.order.payments.count(), 2)
         self.assertTrue(Notification.objects.filter(event=Notification.Event.PAYMENT_RETRY).exists())
+
+
+class PaymentAdminTests(TestCase):
+    def setUp(self):
+        from apps.core.factories import SuperUserFactory
+        self.admin = SuperUserFactory(username="payment-admin")
+        self.client.force_login(self.admin)
+
+    def test_payment_changelist(self):
+        response = self.client.get("/admin/payments/payment/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_payment_add_form(self):
+        response = self.client.get("/admin/payments/payment/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_paymentsettings_changelist_redirects(self):
+        from apps.payments.models import PaymentSettings
+        PaymentSettings.get_solo()
+        response = self.client.get("/admin/payments/paymentsettings/", follow=True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_paymentsettings_cannot_add(self):
+        response = self.client.get("/admin/payments/paymentsettings/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-payment")
+        self.client.force_login(user)
+        response = self.client.get("/admin/payments/payment/")
+        self.assertEqual(response.status_code, 302)

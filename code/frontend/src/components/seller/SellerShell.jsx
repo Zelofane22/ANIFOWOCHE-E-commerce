@@ -13,21 +13,21 @@ export default function SellerShell({ children, title, seller }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const navItems = [
-    { to: "/seller/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
-    { to: "/seller/orders", label: "Commandes", Icon: TruckIcon },
-    { to: "/seller/products", label: "Produits", Icon: PackageIcon },
-    { to: "/seller/settings", label: "Paramètres", Icon: SettingsIcon },
+    { to: "/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
+    { to: "/orders", label: "Commandes", Icon: TruckIcon },
+    { to: "/products", label: "Produits", Icon: PackageIcon },
+    { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
   ];
 
   const handleLogout = () => {
     logout();
-    navigate("/seller/login", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (
     <div className="min-h-screen bg-[#f7f6f2] text-ink">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-black/10 bg-white px-4 py-5 lg:block">
-        <Link to="/seller/dashboard" className="flex items-center gap-2 text-base font-bold text-ink">
+        <Link to="/dashboard" className="flex items-center gap-2 text-base font-bold text-ink">
           <StoreIcon size={21} className="text-brand-dark" />
           ANIF Seller
         </Link>

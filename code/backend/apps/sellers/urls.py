@@ -6,6 +6,7 @@ from apps.products.views import (OptionGroupViewSet, OptionViewSet,
                                  ProductImageListCreateView,
                                  SellerProductViewSet)
 from .views import (
+    PublicShopProductDetailView,
     PublicShopView,
     SellerConfirmPaymentView,
     SellerDashboardView,
@@ -38,4 +39,6 @@ urlpatterns = [
     path("seller/orders/<int:order_id>/relance-paiement/", SellerPaymentRelaunchView.as_view(), name="seller-payment-relaunch"),
     path("seller/orders/<int:order_id>/confirmer-paiement/", SellerConfirmPaymentView.as_view(), name="seller-confirm-payment"),
     path("public/shops/<slug:slug>/", PublicShopView.as_view(), name="public-shop-detail"),
+    path("public/shops/<slug:shop_slug>/products/<slug:slug>/",
+         PublicShopProductDetailView.as_view(), name="public-shop-product-detail"),
 ]

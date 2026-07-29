@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Route, Routes, useLocation } from "react-router";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import { pingPageView } from "./api/analytics.js";
 import Footer from "./components/Footer.jsx";
 import Navbar from "./components/Navbar.jsx";
@@ -7,9 +7,11 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import { SiteConfigProvider } from "./context/SiteConfigContext.jsx";
 import Home from "./pages/Home.jsx";
+import ShopRedirect from "./pages/ShopRedirect.jsx";
 
-// Code-splitting : seule la page d'accueil est dans le bundle initial, les
-// autres pages sont téléchargées à la première navigation.
+const hostname = window.location.hostname;
+const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname.startsWith("seller.") || window.location.search.includes("seller=1");
+
 const Account = lazy(() => import("./pages/Account.jsx"));
 const Addresses = lazy(() => import("./pages/Addresses.jsx"));
 const Cart = lazy(() => import("./pages/Cart.jsx"));
@@ -27,6 +29,7 @@ const SellerOrderDetail = lazy(() => import("./pages/SellerOrderDetail.jsx"));
 const SellerOrders = lazy(() => import("./pages/SellerOrders.jsx"));
 const SellerProducts = lazy(() => import("./pages/SellerProducts.jsx"));
 const SellerLanding = lazy(() => import("./pages/SellerLanding.jsx"));
+const SellerProductDetail = lazy(() => import("./pages/SellerProductDetail.jsx"));
 const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
 const Wishlist = lazy(() => import("./pages/Wishlist.jsx"));
 
@@ -42,7 +45,33 @@ function PageViewTracker() {
 
 export default function App() {
   const location = useLocation();
-  const isSellerSurface = (location.pathname !== "/seller" && location.pathname.startsWith("/seller")) || location.pathname.startsWith("/shop/");
+  const isSellerSurface = isSellerSubdomain || location.pathname.startsWith("/shop/");
+
+  if (isSellerSubdomain) {
+    return (
+      <AuthProvider>
+        <div className="min-h-screen bg-white text-ink">
+          <main>
+            <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
+              <Routes>
+                <Route path="/" element={<SellerLanding />} />
+                <Route path="/login" element={<SellerAuth />} />
+                <Route path="/register" element={<SellerAuth />} />
+                <Route path="/dashboard" element={<SellerDashboard />} />
+                <Route path="/orders" element={<SellerOrders />} />
+                <Route path="/orders/:id" element={<SellerOrderDetail />} />
+                <Route path="/products" element={<SellerProducts />} />
+                <Route path="/settings" element={<SellerSettings />} />
+                <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
+                <Route path="/:slug" element={<PublicShop />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </main>
+        </div>
+      </AuthProvider>
+    );
+  }
 
   return (
     <SiteConfigProvider>
@@ -66,15 +95,7 @@ export default function App() {
                   <Route path="/compte/commandes/:id" element={<OrderDetail />} />
                   <Route path="/compte/adresses" element={<Addresses />} />
                   <Route path="/compte/favoris" element={<Wishlist />} />
-                  <Route path="/seller" element={<SellerLanding />} />
-                  <Route path="/seller/login" element={<SellerAuth />} />
-                  <Route path="/seller/register" element={<SellerAuth />} />
-                  <Route path="/seller/dashboard" element={<SellerDashboard />} />
-                  <Route path="/seller/orders" element={<SellerOrders />} />
-                  <Route path="/seller/orders/:id" element={<SellerOrderDetail />} />
-                  <Route path="/seller/products" element={<SellerProducts />} />
-                  <Route path="/seller/settings" element={<SellerSettings />} />
-                  <Route path="/shop/:slug" element={<PublicShop />} />
+                  <Route path="/shop/:slug" element={<ShopRedirect />} />
                 </Routes>
               </Suspense>
             </main>

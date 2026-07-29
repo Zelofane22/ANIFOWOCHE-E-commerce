@@ -21,6 +21,9 @@ export const updateSellerOrderStatus = (orderId, data) =>
 export const getPublicShop = (slug) =>
   apiClient.get(`/public/shops/${slug}/`).then((res) => res.data);
 
+export const getPublicShopProduct = (shopSlug, productSlug) =>
+  apiClient.get(`/public/shops/${shopSlug}/products/${productSlug}/`).then((res) => res.data);
+
 export const getSellerProducts = () =>
   apiClient.get("/seller/products/").then((res) => res.data);
 

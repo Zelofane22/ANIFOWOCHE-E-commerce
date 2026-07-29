@@ -1,0 +1,25 @@
+# Amélioration du script de test backend — Tâches en cours
+
+## Statut global
+
+| Étape | Statut |
+|-------|--------|
+| Ajout `factory-boy` | ✅ Terminé |
+| Création de `apps/core/factories.py` (27 factories) | ✅ Terminé |
+| Création de `conftest.py` (fixtures pytest) | ✅ Terminé |
+| Refactoring des 14 fichiers de tests | ✅ Terminé |
+| Vérification (272/272 tests OK) | ✅ Terminé |
+| Migration vers pytest + pytest-django + pytest-cov | ✅ Terminé |
+| Ajout coverage.py en CI avec seuil 80% | ✅ Terminé |
+| Ajout des tests de l'app `analytics` | ✅ Terminé |
+| Ajout des tests unitaires modèles | ✅ Terminé |
+| Ajout des tests serializers isolés | ✅ Terminé |
+| Ajout des tests admin (12 apps) | ✅ Terminé |
+| Ajout `pytest-xdist` pour exécution parallèle | ✅ Terminé |
+| Mise à jour AGENTS.md (272 tests) | ✅ Terminé |
+
+---
+
+## Tâches restantes
+
+Aucune — toutes les tâches de la feuille de route ont été complétées.

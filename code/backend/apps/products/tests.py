@@ -5,28 +5,35 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 from rest_framework.test import APITestCase
 
-from apps.sellers.models import SellerProfile, Shop
+from apps.core.factories import (
+    CategoryFactory,
+    ProductFactory,
+    ProductImageFactory,
+    SellerProfileFactory,
+    ShopFactory,
+    UserFactory,
+)
 
-from .models import Category, Product, ProductImage
+from .models import ProductImage
 
 User = get_user_model()
 
 
 class PublicProductVisibilityTests(APITestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Tissus", slug="tissus")
-        self.company_product = Product.objects.create(
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.company_product = ProductFactory(
             category=self.category,
             name="Produit entreprise",
             slug="produit-entreprise",
             price_xof=5000,
             stock=10,
         )
-        self.free_user = User.objects.create_user(username="free_vendeur", password="pass1234")
-        self.free_seller = SellerProfile.objects.create(
+        self.free_user = UserFactory(username="free_vendeur")
+        self.free_seller = SellerProfileFactory(
             user=self.free_user, display_name="Free Shop", phone="+22990000001"
         )
-        self.free_product = Product.objects.create(
+        self.free_product = ProductFactory(
             seller=self.free_seller,
             category=self.category,
             name="Produit gratuit",
@@ -34,11 +41,11 @@ class PublicProductVisibilityTests(APITestCase):
             price_xof=3000,
             stock=5,
         )
-        self.paid_user = User.objects.create_user(username="paid_vendeur", password="pass1234")
-        self.paid_seller = SellerProfile.objects.create(
-            user=self.paid_user, display_name="Paid Shop", phone="+22990000002", plan=SellerProfile.Plan.PAID
+        self.paid_user = UserFactory(username="paid_vendeur")
+        self.paid_seller = SellerProfileFactory(
+            user=self.paid_user, display_name="Paid Shop", phone="+22990000002", plan="paid"
         )
-        self.paid_product = Product.objects.create(
+        self.paid_product = ProductFactory(
             seller=self.paid_seller,
             category=self.category,
             name="Produit payant",
@@ -71,15 +78,15 @@ class PublicProductVisibilityTests(APITestCase):
 
 class ProductApiTests(APITestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Tissus", slug="tissus")
-        self.product = Product.objects.create(
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.product = ProductFactory(
             category=self.category,
             name="Pagne wax",
             slug="pagne-wax",
             price_xof=5000,
             stock=10,
         )
-        self.inactive_product = Product.objects.create(
+        self.inactive_product = ProductFactory(
             category=self.category,
             name="Ancien modèle",
             slug="ancien-modele",
@@ -110,8 +117,8 @@ class ProductApiTests(APITestCase):
         self.assertEqual(len(response.data["results"]), 1)
 
     def test_filter_by_category_slug(self):
-        other_category = Category.objects.create(name="Vêtements", slug="vetements")
-        Product.objects.create(
+        other_category = CategoryFactory(name="Vêtements", slug="vetements")
+        ProductFactory(
             category=other_category, name="Chemise", slug="chemise", price_xof=4000, stock=5
         )
         response = self.client.get("/api/products/", {"category__slug": "tissus"})
@@ -119,7 +126,7 @@ class ProductApiTests(APITestCase):
         self.assertEqual(slugs, ["pagne-wax"])
 
     def test_filter_by_unit(self):
-        Product.objects.create(
+        ProductFactory(
             category=self.category, name="Bazin 3m", slug="bazin-3m", price_xof=9000, stock=5, unit="metre"
         )
         response = self.client.get("/api/products/", {"unit": "metre"})
@@ -127,7 +134,7 @@ class ProductApiTests(APITestCase):
         self.assertEqual(slugs, ["bazin-3m"])
 
     def test_filter_by_price_range(self):
-        Product.objects.create(
+        ProductFactory(
             category=self.category, name="Produit cher", slug="produit-cher", price_xof=50000, stock=5
         )
         response = self.client.get("/api/products/", {"price_xof__gte": 4000, "price_xof__lte": 6000})
@@ -135,7 +142,7 @@ class ProductApiTests(APITestCase):
         self.assertEqual(slugs, ["pagne-wax"])
 
     def test_filter_in_stock_only(self):
-        Product.objects.create(
+        ProductFactory(
             category=self.category, name="Rupture", slug="rupture", price_xof=2000, stock=0
         )
         response = self.client.get("/api/products/", {"stock__gt": 0})
@@ -143,7 +150,7 @@ class ProductApiTests(APITestCase):
         self.assertEqual(slugs, ["pagne-wax"])
 
     def test_ordering_by_price(self):
-        Product.objects.create(
+        ProductFactory(
             category=self.category, name="Moins cher", slug="moins-cher", price_xof=1000, stock=5
         )
         response = self.client.get("/api/products/", {"ordering": "price_xof"})
@@ -172,29 +179,27 @@ class ProductApiTests(APITestCase):
 
 class SellerProductApiTests(APITestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Tissus", slug="tissus")
-        self.user = User.objects.create_user(username="vendeuse", password="pass1234")
-        self.seller = SellerProfile.objects.create(
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.user = UserFactory(username="vendeuse")
+        self.seller = SellerProfileFactory(
             user=self.user,
             display_name="Afi Boutique",
             phone="+22990000000",
         )
-        Shop.objects.create(
+        ShopFactory(
             seller=self.seller,
             name="Afi Wax",
-            slug="afi-wax",
             whatsapp_phone="+22990000000",
         )
-        self.other_user = User.objects.create_user(username="autre", password="pass1234")
-        self.other_seller = SellerProfile.objects.create(
+        self.other_user = UserFactory(username="autre")
+        self.other_seller = SellerProfileFactory(
             user=self.other_user,
             display_name="Autre Boutique",
             phone="+22991000000",
         )
-        Shop.objects.create(
+        ShopFactory(
             seller=self.other_seller,
             name="Autre Shop",
-            slug="autre-shop",
             whatsapp_phone="+22991000000",
         )
         self.client.force_authenticate(user=self.user)
@@ -216,12 +221,14 @@ class SellerProductApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 201)
+        from .models import Product
+
         product = Product.objects.get(slug="pagne-vendeur")
         self.assertEqual(product.seller, self.seller)
         self.assertEqual(response.data["category"]["slug"], "tissus")
 
     def test_seller_products_are_scoped_to_authenticated_seller(self):
-        Product.objects.create(
+        ProductFactory(
             seller=self.seller,
             category=self.category,
             name="Produit Afi",
@@ -229,7 +236,7 @@ class SellerProductApiTests(APITestCase):
             price_xof=5000,
             stock=4,
         )
-        Product.objects.create(
+        ProductFactory(
             seller=self.other_seller,
             category=self.category,
             name="Produit autre",
@@ -245,7 +252,7 @@ class SellerProductApiTests(APITestCase):
         self.assertEqual(slugs, ["produit-afi"])
 
     def test_seller_can_update_own_product(self):
-        product = Product.objects.create(
+        product = ProductFactory(
             seller=self.seller,
             category=self.category,
             name="Pagne",
@@ -266,7 +273,7 @@ class SellerProductApiTests(APITestCase):
         self.assertEqual(product.stock, 12)
 
     def test_seller_delete_archives_product(self):
-        product = Product.objects.create(
+        product = ProductFactory(
             seller=self.seller,
             category=self.category,
             name="Ancien pagne",
@@ -296,11 +303,13 @@ class SellerProductApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 201)
+        from .models import Product
+
         product = Product.objects.get(slug="pagne-boutique")
         self.assertEqual(product.shop, self.seller.shop)
 
     def test_seller_can_manage_product_gallery_images(self):
-        product = Product.objects.create(
+        product = ProductFactory(
             seller=self.seller,
             shop=self.seller.shop,
             category=self.category,
@@ -336,3 +345,44 @@ class SellerProductApiTests(APITestCase):
 
         delete_response = self.client.delete(f"/api/seller/products/{product.slug}/images/{image_id}/")
         self.assertEqual(delete_response.status_code, 204)
+
+
+from django.test import TestCase
+from apps.core.factories import SuperUserFactory, CategoryFactory, ProductFactory, SellerProfileFactory, ShopFactory
+
+
+class ProductAdminTests(TestCase):
+    def setUp(self):
+        self.admin = SuperUserFactory(username="product-admin")
+        self.client.force_login(self.admin)
+
+    def test_category_changelist(self):
+        response = self.client.get("/admin/products/category/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_category_add_form(self):
+        response = self.client.get("/admin/products/category/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_product_changelist(self):
+        response = self.client.get("/admin/products/product/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_product_add_form(self):
+        response = self.client.get("/admin/products/product/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_optiongroup_changelist(self):
+        response = self.client.get("/admin/products/optiongroup/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_optiongroup_add_form(self):
+        response = self.client.get("/admin/products/optiongroup/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="regular-user")
+        self.client.force_login(user)
+        response = self.client.get("/admin/products/category/")
+        self.assertEqual(response.status_code, 302)

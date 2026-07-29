@@ -2,6 +2,8 @@ from django.db.models import Avg, Count, IntegerField, OuterRef, Prefetch, Q, Su
 from django.db.models.functions import Now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
+
+from .filters import AccentInsensitiveSearchFilter
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -45,6 +47,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         Product.objects.filter(
             is_active=True,
         )
+        .filter(Q(shop__isnull=True) | Q(shop__visible_on_main_store=True))
         .select_related("category", "seller")
         .prefetch_related(
             Prefetch(
@@ -61,7 +64,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     )
     serializer_class = ProductSerializer
     lookup_field = "slug"
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, AccentInsensitiveSearchFilter, filters.OrderingFilter]
     filterset_fields = {
         "category__slug": ["exact"],
         "unit": ["exact"],
@@ -77,7 +80,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     lookup_field = "slug"
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [AccentInsensitiveSearchFilter, filters.OrderingFilter]
     search_fields = ["name", "description"]
     ordering_fields = ["price_xof", "stock", "created_at", "updated_at"]
 

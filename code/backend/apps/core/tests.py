@@ -5,6 +5,12 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
 
+from apps.core.factories import (
+    SettingChangeRequestFactory,
+    StaffUserFactory,
+    SuperUserFactory,
+    UserFactory,
+)
 from apps.notifications.models import Notification, NotificationSettings
 from apps.payments.models import PaymentSettings
 
@@ -15,18 +21,14 @@ User = get_user_model()
 
 
 class SettingChangeRequestServiceTests(TestCase):
-    """Sprint 6 : chaque coupure (paiement en ligne, moyen de paiement,
-    maintenance) doit être justifiée et validée par un superadmin ; réactiver
-    (le sens sûr) s'applique tout de suite, sans validation."""
-
     def setUp(self):
-        self.superuser = User.objects.create_superuser(
-            username="root", password="pass1234", email="root@anifowoche.example"
+        self.superuser = SuperUserFactory(
+            username="root", email="root@anifowoche.example"
         )
-        self.staff_user = User.objects.create_user(username="staffer", password="pass1234", is_staff=True)
+        self.staff_user = StaffUserFactory(username="staffer")
 
     def test_non_superuser_request_to_disable_stays_pending_and_notifies_superusers(self):
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_MTN,
             target_value=False,
             reason="MTN API instable ce matin",
@@ -48,7 +50,7 @@ class SettingChangeRequestServiceTests(TestCase):
 
     def test_non_superuser_request_to_re_enable_is_auto_approved(self):
         PaymentSettings.objects.update_or_create(pk=1, defaults={"mtn_enabled": False})
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_MTN,
             target_value=True,
             reason="Panne résolue",
@@ -60,7 +62,7 @@ class SettingChangeRequestServiceTests(TestCase):
         self.assertTrue(PaymentSettings.get_solo().mtn_enabled)
 
     def test_superuser_request_to_disable_is_auto_approved(self):
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_CARD,
             target_value=False,
             reason="Fraude détectée sur ce canal",
@@ -72,13 +74,10 @@ class SettingChangeRequestServiceTests(TestCase):
         self.assertFalse(PaymentSettings.get_solo().card_enabled)
 
     def test_cannot_disable_last_remaining_payment_method(self):
-        """Garde-fou anti-blocage total demandé par l'utilisateur : même un
-        superadmin ne peut pas couper le dernier moyen de paiement actif tant
-        que le paiement en ligne est lui-même actif."""
         PaymentSettings.objects.update_or_create(
             pk=1, defaults={"mtn_enabled": False, "moov_enabled": False, "card_enabled": True}
         )
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_CARD,
             target_value=False,
             reason="Test blocage total",
@@ -91,10 +90,7 @@ class SettingChangeRequestServiceTests(TestCase):
         self.assertTrue(PaymentSettings.get_solo().card_enabled)
 
     def test_disabling_online_payment_globally_is_not_blocked_by_the_lockout_guard(self):
-        """Couper le paiement en ligne dans son ensemble (repli délibéré sur
-        la livraison) reste possible même si 0 moyen de paiement est actif —
-        ce n'est pas le blocage accidentel que le garde-fou vise à empêcher."""
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.ONLINE_PAYMENT_ENABLED,
             target_value=False,
             reason="Migration vers les clés de production FedaPay en cours",
@@ -106,7 +102,7 @@ class SettingChangeRequestServiceTests(TestCase):
         self.assertFalse(PaymentSettings.get_solo().online_payment_enabled)
 
     def test_maintenance_mode_enable_is_risky_disable_is_safe(self):
-        enable_request = SettingChangeRequest.objects.create(
+        enable_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.MAINTENANCE_MODE,
             target_value=True,
             reason="Rupture de stock générale, on ferme le temps de se réapprovisionner",
@@ -122,7 +118,7 @@ class SettingChangeRequestServiceTests(TestCase):
         self.assertEqual(enable_request.status, SettingChangeRequest.Status.APPROVED)
         self.assertTrue(StoreSettings.get_solo().maintenance_mode)
 
-        disable_request = SettingChangeRequest.objects.create(
+        disable_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.MAINTENANCE_MODE,
             target_value=False,
             reason="Stock reconstitué, réouverture",
@@ -134,7 +130,7 @@ class SettingChangeRequestServiceTests(TestCase):
         self.assertFalse(StoreSettings.get_solo().maintenance_mode)
 
     def test_reject_setting_change_does_not_apply_it(self):
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_MOOV,
             target_value=False,
             reason="Test",
@@ -148,10 +144,10 @@ class SettingChangeRequestServiceTests(TestCase):
 
 class SettingChangeRequestAdminTests(TestCase):
     def setUp(self):
-        self.superuser = User.objects.create_superuser(username="root2", password="pass1234")
-        self.commandes_staff = User.objects.create_user(username="commandes", password="pass1234", is_staff=True)
+        self.superuser = SuperUserFactory(username="root2")
+        self.commandes_staff = StaffUserFactory(username="commandes")
         self.commandes_staff.groups.add(Group.objects.get(name="Gestion commandes"))
-        self.catalogue_staff = User.objects.create_user(username="catalogue", password="pass1234", is_staff=True)
+        self.catalogue_staff = StaffUserFactory(username="catalogue")
         self.catalogue_staff.groups.add(Group.objects.get(name="Gestion catalogue"))
 
     def test_gestion_commandes_can_create_a_disable_request_which_stays_pending(self):
@@ -173,7 +169,7 @@ class SettingChangeRequestAdminTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_superuser_can_approve_a_pending_request(self):
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_CARD,
             target_value=False,
             reason="Suspicion de fraude",
@@ -195,7 +191,7 @@ class SettingChangeRequestAdminTests(TestCase):
         PaymentSettings.objects.update_or_create(
             pk=1, defaults={"mtn_enabled": False, "moov_enabled": False, "card_enabled": True}
         )
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_CARD,
             target_value=False,
             reason="Test blocage",
@@ -212,7 +208,7 @@ class SettingChangeRequestAdminTests(TestCase):
         self.assertTrue(PaymentSettings.get_solo().card_enabled)
 
     def test_non_superuser_cannot_approve_but_can_view_own_pending_request(self):
-        change_request = SettingChangeRequest.objects.create(
+        change_request = SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_MOOV,
             target_value=False,
             reason="Test",
@@ -236,11 +232,8 @@ class SettingChangeRequestAdminTests(TestCase):
 
 
 class LockedSingletonAdminTests(TestCase):
-    """StoreSettings/PaymentSettings ne sont jamais éditables directement,
-    même par un superadmin — seule une SettingChangeRequest peut les changer."""
-
     def setUp(self):
-        self.superuser = User.objects.create_superuser(username="root3", password="pass1234")
+        self.superuser = SuperUserFactory(username="root3")
 
     def test_superuser_cannot_add_or_change_store_settings_directly(self):
         self.client.force_login(self.superuser)
@@ -261,12 +254,12 @@ class LockedSingletonAdminTests(TestCase):
 
 class SettingsHubAdminTests(TestCase):
     def setUp(self):
-        self.superuser = User.objects.create_superuser(username="root4", password="pass1234")
+        self.superuser = SuperUserFactory(username="root4")
 
     def test_superuser_can_open_the_settings_hub(self):
         PaymentSettings.objects.update_or_create(pk=1, defaults={"card_enabled": False})
         NotificationSettings.objects.update_or_create(pk=1, defaults={"whatsapp_enabled": True})
-        SettingChangeRequest.objects.create(
+        SettingChangeRequestFactory(
             setting_key=SettingChangeRequest.SettingKey.PAYMENT_METHOD_CARD,
             target_value=True,
             reason="Réactivation carte",
@@ -305,11 +298,12 @@ class StoreStatusViewTests(TestCase):
 
 class SettingsHubPaymentCardTests(TestCase):
     def setUp(self):
-        self.superuser = User.objects.create_superuser(
+        self.superuser = SuperUserFactory(
             username="root",
             email="root@anifowoche.example",
-            password="pass12345",
         )
+        self.superuser.set_password("pass12345")
+        self.superuser.save()
 
     def test_online_methods_look_inactive_when_online_payment_is_disabled(self):
         PaymentSettings.objects.update_or_create(

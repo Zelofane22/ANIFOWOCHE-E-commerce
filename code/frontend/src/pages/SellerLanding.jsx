@@ -120,7 +120,7 @@ export default function SellerLanding() {
       <Seo
         title="ANIF Seller — Vendez facilement sur WhatsApp"
         description="Créez votre boutique en ligne en 2 minutes. Partagez votre catalogue sur WhatsApp, recevez les commandes et gérez tout depuis votre téléphone. Gratuit."
-        path="/seller"
+        path="/"
       />
 
       <HeroSection />
@@ -154,14 +154,14 @@ function HeroSection() {
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
             <Link
-              to="/seller/register"
+              to="/register"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-7 py-3.5 font-bold text-white transition hover:bg-brand-medium"
             >
               Créer ma boutique gratuitement
               <ArrowRightIcon size={16} />
             </Link>
             <Link
-              to="/seller/login"
+              to="/login"
               className="inline-flex items-center justify-center rounded-lg border border-white/20 px-7 py-3.5 font-semibold text-white transition hover:border-brand hover:text-brand"
             >
               J'ai déjà un compte
@@ -333,7 +333,7 @@ function HowItWorksSection() {
         </div>
         <div className="mt-10 text-center">
           <Link
-            to="/seller/register"
+            to="/register"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-6 py-3 font-bold text-white transition hover:bg-brand-medium"
           >
             Commencer maintenant
@@ -382,7 +382,7 @@ function PricingSection() {
               ))}
             </ul>
             <Link
-              to="/seller/register"
+              to="/register"
               className="mt-6 flex items-center justify-center gap-2 rounded-lg border border-brand/40 px-5 py-2.5 font-bold text-brand-dark transition hover:bg-brand-light"
             >
               C'est parti
@@ -436,14 +436,14 @@ function CTASection() {
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
-            to="/seller/register"
+            to="/register"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-8 py-3.5 font-bold text-white transition hover:bg-brand-medium"
           >
             Créer ma boutique gratuite
             <ArrowRightIcon size={16} />
           </Link>
           <Link
-            to="/seller/login"
+            to="/login"
             className="inline-flex items-center justify-center rounded-lg border border-white/20 px-8 py-3.5 font-semibold text-white transition hover:border-brand hover:text-brand"
           >
             Me connecter

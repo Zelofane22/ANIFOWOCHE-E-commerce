@@ -2,8 +2,19 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
+from apps.core.factories import (
+    CategoryFactory,
+    OrderFactory,
+    OrderItemFactory,
+    ProductFactory,
+    SellerProfileFactory,
+    ShopFactory,
+    SuperUserFactory,
+    UserFactory,
+)
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Category, Product
 
@@ -38,9 +49,9 @@ class SellerApiTests(APITestCase):
         self.assertEqual(Shop.objects.count(), 1)
 
     def test_seller_register_rejects_duplicate_slug(self):
-        user = User.objects.create_user(username="owner", password="pass1234")
-        seller = SellerProfile.objects.create(user=user, display_name="Owner", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        user = UserFactory(username="owner")
+        seller = SellerProfileFactory(user=user, display_name="Owner", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
 
         response = self.client.post(
             "/api/seller/register/",
@@ -60,9 +71,9 @@ class SellerApiTests(APITestCase):
         self.assertEqual(User.objects.count(), 1)
 
     def test_authenticated_seller_can_read_and_update_profile(self):
-        user = User.objects.create_user(username="vendeuse", password="pass1234")
-        seller = SellerProfile.objects.create(user=user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
         self.client.force_authenticate(user=user)
 
         response = self.client.get("/api/seller/profile/")
@@ -85,12 +96,11 @@ class SellerApiTests(APITestCase):
         self.assertEqual(seller.shop.name, "Afi Mode")
 
     def test_public_shop_is_available_by_slug(self):
-        user = User.objects.create_user(username="vendeuse", password="pass1234")
-        seller = SellerProfile.objects.create(user=user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(
             seller=seller,
             name="Afi Wax",
-            slug="afi-wax",
             whatsapp_phone="+22990000000",
             city="Cotonou",
         )
@@ -101,13 +111,13 @@ class SellerApiTests(APITestCase):
         self.assertEqual(response.data["name"], "Afi Wax")
 
     def test_public_shop_returns_only_active_seller_products(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        user = User.objects.create_user(username="vendeuse", password="pass1234")
-        seller = SellerProfile.objects.create(user=user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        other_user = User.objects.create_user(username="autre", password="pass1234")
-        other_seller = SellerProfile.objects.create(user=other_user, display_name="Autre", phone="+22991000000")
-        Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        other_user = UserFactory(username="autre")
+        other_seller = SellerProfileFactory(user=other_user, display_name="Autre", phone="+22991000000")
+        ProductFactory(
             seller=seller,
             category=category,
             name="Pagne publié",
@@ -115,7 +125,7 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        Product.objects.create(
+        ProductFactory(
             seller=seller,
             category=category,
             name="Pagne archivé",
@@ -124,7 +134,7 @@ class SellerApiTests(APITestCase):
             stock=0,
             is_active=False,
         )
-        Product.objects.create(
+        ProductFactory(
             seller=other_seller,
             category=category,
             name="Produit autre",
@@ -143,11 +153,11 @@ class SellerApiTests(APITestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_seller_dashboard_includes_order_metrics(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -155,8 +165,8 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -165,7 +175,7 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.RECEIVED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=2, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=2, unit_price_xof=5000)
 
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/seller/dashboard/")
@@ -175,11 +185,11 @@ class SellerApiTests(APITestCase):
         self.assertEqual(response.data["metrics"]["pending_orders"], 1)
 
     def test_seller_orders_list_returns_only_their_orders(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        seller_user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -187,10 +197,10 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        other_user = User.objects.create_user(username="autre", password="StrongPass123!")
-        other_seller = SellerProfile.objects.create(user=other_user, display_name="Autre Boutique", phone="+22991000000")
-        Shop.objects.create(seller=other_seller, name="Autre Shop", slug="autre-shop", whatsapp_phone="+22991000000")
-        other_product = Product.objects.create(
+        other_user = UserFactory(username="autre")
+        other_seller = SellerProfileFactory(user=other_user, display_name="Autre Boutique", phone="+22991000000")
+        ShopFactory(seller=other_seller, name="Autre Shop", whatsapp_phone="+22991000000")
+        other_product = ProductFactory(
             seller=other_seller,
             category=category,
             name="Autre Pagne",
@@ -199,8 +209,8 @@ class SellerApiTests(APITestCase):
             stock=5,
         )
 
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -209,9 +219,9 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.RECEIVED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=5000)
 
-        other_order = Order.objects.create(
+        other_order = OrderFactory(
             customer=customer,
             full_name="Mme Autre",
             phone="+22992222222",
@@ -220,7 +230,7 @@ class SellerApiTests(APITestCase):
             city="Porto-Novo",
             status=Order.Status.RECEIVED,
         )
-        OrderItem.objects.create(order=other_order, product=other_product, quantity=1, unit_price_xof=6000)
+        OrderItemFactory(order=other_order, product=other_product, quantity=1, unit_price_xof=6000)
 
         self.client.force_authenticate(user=seller_user)
         response = self.client.get("/api/seller/orders/")
@@ -232,11 +242,11 @@ class SellerApiTests(APITestCase):
         self.assertEqual(results[0]["items"][0]["product_slug"], "pagne")
 
     def test_seller_can_update_order_status(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        seller_user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -244,8 +254,8 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -254,7 +264,7 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.RECEIVED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=5000)
 
         self.client.force_authenticate(user=seller_user)
         response = self.client.patch(f"/api/seller/orders/{order.id}/", {"status": "prepared"}, format="json")
@@ -266,11 +276,11 @@ class SellerApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_seller_can_cancel_received_order(self, mock_post):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        seller_user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -278,8 +288,8 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -288,7 +298,7 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.RECEIVED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=2, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=2, unit_price_xof=5000)
 
         self.client.force_authenticate(user=seller_user)
         response = self.client.patch(
@@ -305,11 +315,11 @@ class SellerApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_cancellation_restores_stock(self, mock_post):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        seller_user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -317,8 +327,8 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -327,7 +337,7 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.RECEIVED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=2, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=2, unit_price_xof=5000)
 
         self.client.force_authenticate(user=seller_user)
         response = self.client.patch(
@@ -341,11 +351,11 @@ class SellerApiTests(APITestCase):
         self.assertEqual(product.stock, 7)
 
     def test_cannot_cancel_delivered_order(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        seller_user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -353,8 +363,8 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -363,7 +373,7 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.DELIVERED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=5000)
 
         self.client.force_authenticate(user=seller_user)
         response = self.client.patch(
@@ -377,11 +387,11 @@ class SellerApiTests(APITestCase):
         self.assertEqual(order.status, Order.Status.DELIVERED)
 
     def test_cannot_update_cancelled_order(self):
-        category = Category.objects.create(name="Tissus", slug="tissus")
-        seller_user = User.objects.create_user(username="vendeuse", password="StrongPass123!")
-        seller = SellerProfile.objects.create(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
-        Shop.objects.create(seller=seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+22990000000")
-        product = Product.objects.create(
+        category = CategoryFactory(name="Tissus", slug="tissus")
+        seller_user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=seller_user, display_name="Afi Boutique", phone="+22990000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+22990000000")
+        product = ProductFactory(
             seller=seller,
             category=category,
             name="Pagne",
@@ -389,8 +399,8 @@ class SellerApiTests(APITestCase):
             price_xof=5000,
             stock=5,
         )
-        customer = User.objects.create_user(username="client", password="StrongPass123!")
-        order = Order.objects.create(
+        customer = UserFactory(username="client")
+        order = OrderFactory(
             customer=customer,
             full_name="M. Client",
             phone="+22991111111",
@@ -399,7 +409,7 @@ class SellerApiTests(APITestCase):
             city="Cotonou",
             status=Order.Status.CANCELLED,
         )
-        OrderItem.objects.create(order=order, product=product, quantity=1, unit_price_xof=5000)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=5000)
 
         self.client.force_authenticate(user=seller_user)
         response = self.client.patch(
@@ -409,3 +419,31 @@ class SellerApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+
+class SellerAdminTests(TestCase):
+    def setUp(self):
+        self.admin = SuperUserFactory(username="seller-admin")
+        self.client.force_login(self.admin)
+
+    def test_sellerprofile_changelist(self):
+        response = self.client.get("/admin/sellers/sellerprofile/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_sellerprofile_add_form(self):
+        response = self.client.get("/admin/sellers/sellerprofile/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_shop_changelist(self):
+        response = self.client.get("/admin/sellers/shop/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_shop_add_form(self):
+        response = self.client.get("/admin/sellers/shop/add/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_cannot_access(self):
+        user = UserFactory(username="regular-seller")
+        self.client.force_login(user)
+        response = self.client.get("/admin/sellers/shop/")
+        self.assertEqual(response.status_code, 302)
