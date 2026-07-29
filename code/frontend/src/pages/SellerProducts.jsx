@@ -376,8 +376,8 @@ function ProductOptionManager({ slug }) {
         options: [],
       });
       setGroups((prev) => [...prev, group]);
-    } catch {
-      setError("Erreur lors de la création du groupe.");
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
@@ -386,8 +386,8 @@ function ProductOptionManager({ slug }) {
     try {
       const updated = await updateOptionGroup(slug, groupId, data);
       setGroups((prev) => prev.map((g) => (g.id === groupId ? updated : g)));
-    } catch {
-      setError("Erreur lors de la mise à jour du groupe.");
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
@@ -396,8 +396,8 @@ function ProductOptionManager({ slug }) {
     try {
       await deleteOptionGroup(slug, groupId);
       setGroups((prev) => prev.filter((g) => g.id !== groupId));
-    } catch {
-      setError("Erreur lors de la suppression du groupe.");
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
@@ -413,8 +413,8 @@ function ProductOptionManager({ slug }) {
       setGroups((prev) =>
         prev.map((g) => (g.id === groupId ? { ...g, options: [...(g.options || []), opt] } : g))
       );
-    } catch {
-      setError("Erreur lors de l'ajout de l'option.");
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
@@ -429,8 +429,8 @@ function ProductOptionManager({ slug }) {
             : g
         )
       );
-    } catch {
-      setError("Erreur lors de la mise à jour de l'option.");
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
@@ -443,8 +443,8 @@ function ProductOptionManager({ slug }) {
           g.id === groupId ? { ...g, options: g.options.filter((o) => o.id !== optionId) } : g
         )
       );
-    } catch {
-      setError("Erreur lors de la suppression de l'option.");
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   };
 
