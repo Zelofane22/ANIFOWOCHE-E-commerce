@@ -46,6 +46,21 @@
       },
       "enabled": true,
       "oauth": {}
+    },
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.dev/mcp",
+      "enabled": true,
+      "oauth": {}
+    },
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
     }
   }
 }
