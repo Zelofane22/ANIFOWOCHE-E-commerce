@@ -73,3 +73,16 @@ jobs:
           path: "*.dump.gpg"
           retention-days: 30
           if-no-files-found: error
+
+      - name: Notify on failure
+        if: failure() && steps.check.outputs.configured == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.NOTIFY_EMAIL_USER }}
+          password: ${{ secrets.NOTIFY_EMAIL_PASSWORD }}
+          subject: "❌ Échec sauvegarde DB - ANIFOWOCHE E-commerce"
+          to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          from: ANIFOWOCHE Backup Bot
+          body: file://${{ github.workspace }}/.github/workflows/backup-failure-email.txt

@@ -1,0 +1,22 @@
+La sauvegarde quotidienne de la base de données PostgreSQL a échoué.
+
+**Détails du workflow :**
+- Repository : ${{ github.repository }}
+- Workflow : ${{ github.workflow }}
+- Run ID : ${{ github.run_id }}
+- Run Number : ${{ github.run_number }}
+- Branch : ${{ github.ref_name }}
+- Commit : ${{ github.sha }}
+- Timestamp : $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+**Lien vers l'exécution :**
+https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+**Actions recommandées :**
+1. Vérifier les logs du workflow ci-dessus pour identifier l'erreur
+2. Vérifier que les secrets `RENDER_DATABASE_URL` et `BACKUP_PASSPHRASE` sont corrects
+3. Vérifier la connectivité réseau vers la base de données Render
+4. Relancer manuellement le workflow via l'onglet Actions si le problème est résolu
+
+---
+*Notification automatique - ANIFOWOCHE E-commerce*
