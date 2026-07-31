@@ -5,6 +5,9 @@ from apps.products.models import Category, Product
 
 
 class Promotion(models.Model):
+    """Promotion commerciale : réduction en % appliquée à des produits et/ou
+    catégories ciblés pendant une période donnée."""
+
     name = models.CharField(max_length=150)
     discount_percent = models.PositiveIntegerField(help_text="Réduction en % (0-100)")
     products = models.ManyToManyField(Product, blank=True, related_name="promotions")
@@ -18,10 +21,13 @@ class Promotion(models.Model):
         ordering = ["-starts_at"]
 
     def __str__(self):
+        # Représentation lisible : nom de la promotion + taux de réduction.
         return f"{self.name} (-{self.discount_percent}%)"
 
 
 class Coupon(models.Model):
+    """Code promo à usage limité (nombre d'utilisations max, expiration éventuelle)."""
+
     code = models.CharField(max_length=30, unique=True)
     discount_percent = models.PositiveIntegerField(help_text="Réduction en % (0-100)")
     max_uses = models.PositiveIntegerField(default=1)
@@ -37,6 +43,7 @@ class Coupon(models.Model):
         return self.code
 
     def is_valid(self):
+        # Vérifie successivement : actif, non expiré, et quota d'utilisations restant.
         if not self.is_active:
             return False
         if self.expires_at and self.expires_at < timezone.now():

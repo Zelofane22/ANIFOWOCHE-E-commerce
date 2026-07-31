@@ -4,6 +4,7 @@ from django.utils.text import slugify
 
 
 class SellerProfile(models.Model):
+    """Profil commercial d'un utilisateur : identité publique et plan d'abonnement."""
     class Plan(models.TextChoices):
         FREE = "FREE", "Gratuit"
         PAID = "PAID", "Payant"
@@ -20,10 +21,12 @@ class SellerProfile(models.Model):
         ordering = ["display_name"]
 
     def __str__(self):
+        # Représentation lisible : le nom affiché du vendeur.
         return self.display_name
 
 
 class Shop(models.Model):
+    """Boutique publique d'un vendeur, accessible via son slug."""
     seller = models.OneToOneField(SellerProfile, on_delete=models.CASCADE, related_name="shop")
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=180, unique=True)
@@ -43,19 +46,23 @@ class Shop(models.Model):
         ordering = ["name"]
 
     def __str__(self):
+        # Représentation lisible : le nom de la boutique.
         return self.name
 
     @property
     def public_path(self):
+        # Chemin d'accès public de la boutique sur le frontend.
         return f"/shop/{self.slug}"
 
     def save(self, *args, **kwargs):
+        # Génère automatiquement un slug unique à partir du nom si absent.
         if not self.slug:
             self.slug = self._build_unique_slug(self.name)
         super().save(*args, **kwargs)
 
     @classmethod
     def _build_unique_slug(cls, name):
+        # Construction d'un slug de base puis incrémentation d'un suffixe numérique si conflit.
         base = slugify(name)[:150] or "boutique"
         slug = base
         suffix = 2

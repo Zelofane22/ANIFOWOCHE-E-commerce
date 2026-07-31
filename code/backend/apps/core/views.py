@@ -26,6 +26,7 @@ class StoreStatusView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        # Lit l'état courant de la boutique et des moyens de paiement.
         store_settings = StoreSettings.get_solo()
         payment_settings = PaymentSettings.get_solo()
         return Response(
@@ -44,6 +45,8 @@ class StoreStatusView(APIView):
 
 @staff_member_required
 def reports_view(request):
+    """Page « Rapports » de l'admin : revenus mensuels, top produits, ventes par catégorie."""
+    # Revenus agrégés par mois (hors annulations).
     revenue_by_month = (
         Order.objects.exclude(status=Order.Status.CANCELLED)
         .annotate(month=TruncMonth("created_at"))
@@ -52,6 +55,7 @@ def reports_view(request):
         .order_by("month")
     )
 
+    # Top 10 des produits par chiffre d'affaires.
     top_products = (
         OrderItem.objects.exclude(order__status=Order.Status.CANCELLED)
         .annotate(subtotal=F("quantity") * F("unit_price_xof"))
@@ -60,6 +64,7 @@ def reports_view(request):
         .order_by("-total_revenue")[:10]
     )
 
+    # Répartition du chiffre d'affaires par catégorie.
     category_breakdown = (
         OrderItem.objects.exclude(order__status=Order.Status.CANCELLED)
         .annotate(subtotal=F("quantity") * F("unit_price_xof"))
@@ -68,6 +73,7 @@ def reports_view(request):
         .order_by("-total")
     )
 
+    # Assemblage du contexte pour le template de rapports.
     context = {
         **admin.site.each_context(request),
         "title": "Rapports",
@@ -83,12 +89,16 @@ def reports_view(request):
 
 @staff_member_required
 def settings_hub_view(request):
+    """Page « Réglages boutique » de l'admin : état des réglages et demandes en attente."""
+    # Lecture des réglages singleton de la boutique, des paiements et des notifications.
     store_settings = StoreSettings.get_solo()
     payment_settings = PaymentSettings.get_solo()
     notification_settings = NotificationSettings.get_solo()
 
+    # Demandes de changement encore en attente de validation.
     pending_requests = SettingChangeRequest.objects.filter(status=SettingChangeRequest.Status.PENDING)
 
+    # Assemblage du contexte et des liens admin de la page.
     context = {
         **admin.site.each_context(request),
         "title": "Réglages boutique",

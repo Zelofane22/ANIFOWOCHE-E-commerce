@@ -9,14 +9,17 @@ class SingletonModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
+        # Force la clé primaire à 1 pour garantir le comportement singleton.
         self.pk = 1
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        # Empêche la suppression du singleton.
         pass
 
     @classmethod
     def get_solo(cls):
+        """Récupère (ou crée) la ligne unique du modèle de réglages."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
@@ -34,6 +37,7 @@ class StoreSettings(SingletonModel):
         verbose_name_plural = "Réglages boutique"
 
     def __str__(self):
+        # Représentation lisible : nom du réglage et libellé du modèle.
         return "Réglages boutique"
 
 
@@ -76,4 +80,5 @@ class SettingChangeRequest(models.Model):
         verbose_name_plural = "Demandes de changement de réglage"
 
     def __str__(self):
+        # Représentation lisible : réglage ciblé, valeur demandée et statut.
         return f"{self.get_setting_key_display()} → {self.target_value} ({self.get_status_display()})"

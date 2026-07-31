@@ -10,6 +10,7 @@ class ReferenceDataViewSet(viewsets.ModelViewSet):
     """Lecture ouverte (nécessaire au formulaire de checkout), écriture réservée au staff."""
 
     def get_permissions(self):
+        # Lecture ouverte au public ; toute écriture réservée au staff.
         if self.action in ("list", "retrieve"):
             return [permissions.AllowAny()]
         return [permissions.IsAdminUser()]
@@ -33,11 +34,13 @@ class DeliveryViewSet(viewsets.ModelViewSet):
     serializer_class = DeliverySerializer
 
     def get_permissions(self):
+        # Création ouverte (checkout) ; consultation et gestion réservées au staff.
         if self.action == "create":
             return [permissions.AllowAny()]
         return [permissions.IsAdminUser()]
 
     def perform_update(self, serializer):
+        # Notifie le client lors des passages en « en route » et « livrée ».
         previous_status = serializer.instance.status
         delivery = serializer.save()
         if previous_status != Delivery.Status.IN_TRANSIT and delivery.status == Delivery.Status.IN_TRANSIT:

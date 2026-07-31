@@ -39,8 +39,11 @@ class RegisterView(generics.CreateAPIView):
     throttle_scope = "auth"
 
     def create(self, request, *args, **kwargs):
+        """Crée un compte client, notifie la bienvenue et retourne les tokens JWT."""
+        # Validation des données d'inscription.
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # Création du compte + profil puis génération des tokens.
         user = serializer.save()
         notify_account_created(user)
         refresh = RefreshToken.for_user(user)
@@ -60,9 +63,12 @@ class PasswordResetRequestView(APIView):
     throttle_scope = "auth"
 
     def post(self, request):
+        """Envoie un email de réinitialisation de mot de passe si le compte existe."""
+        # Validation de l'email fourni.
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.get_user()
+        # Génération du lien de réinitialisation et envoi de l'email (si compte actif).
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
@@ -84,7 +90,9 @@ class PasswordResetRequestView(APIView):
                     html=html,
                 )
             except NotificationDeliveryError:
+                # L'échec d'envoi ne révèle pas l'existence du compte à l'appelant.
                 logger.exception("Échec d'envoi du lien de réinitialisation pour l'utilisateur %s", user.pk)
+        # Réponse volontairement neutre (anti-énumération de comptes).
         return Response(
             {"detail": "Si un compte actif correspond à cet email, un lien de réinitialisation a été envoyé."}
         )
@@ -96,6 +104,8 @@ class PasswordResetConfirmView(APIView):
     throttle_scope = "auth"
 
     def post(self, request):
+        """Applique le nouveau mot de passe après validation du uid + token."""
+        # Validation puis enregistrement du nouveau mot de passe.
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -106,6 +116,7 @@ class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        # Retourne le profil de l'utilisateur connecté.
         return Response(UserSerializer(request.user).data)
 
 
@@ -116,7 +127,9 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # Un client n'accède qu'à ses propres adresses.
         return Address.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        # Associe automatiquement l'adresse au client connecté.
         serializer.save(user=self.request.user)

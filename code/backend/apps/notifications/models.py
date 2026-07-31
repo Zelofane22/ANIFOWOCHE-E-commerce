@@ -27,14 +27,17 @@ class NotificationSettings(models.Model):
         return "Réglages notifications"
 
     def save(self, *args, **kwargs):
+        # Force la clé primaire à 1 pour garantir le comportement singleton.
         self.pk = 1
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        # Empêche la suppression du singleton par l'admin.
         pass
 
     @classmethod
     def get_solo(cls):
+        """Récupère (ou crée) la ligne unique de réglages des notifications."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
@@ -74,6 +77,7 @@ class Notification(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
+        # Représentation lisible : événement → destinataire (statut).
         recipient = self.recipient_email or self.recipient_phone
         return f"{self.get_event_display()} → {recipient} ({self.status})"
 
@@ -111,4 +115,5 @@ class BackofficeNotification(models.Model):
         verbose_name_plural = "Alertes backoffice"
 
     def __str__(self):
+        # Représentation lisible : le titre de l'alerte.
         return self.title

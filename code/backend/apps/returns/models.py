@@ -4,6 +4,7 @@ from apps.orders.models import Order
 
 
 class ReturnRequest(models.Model):
+    """Demande de retour client sur une commande (traitée par l'admin)."""
     class Status(models.TextChoices):
         REQUESTED = "requested", "Demandé"
         APPROVED = "approved", "Approuvé"
@@ -23,4 +24,5 @@ class ReturnRequest(models.Model):
         verbose_name_plural = "Retours"
 
     def __str__(self):
+        # Représentation lisible : retour, commande associée et statut.
         return f"Retour #{self.pk} — commande #{self.order_id} ({self.status})"

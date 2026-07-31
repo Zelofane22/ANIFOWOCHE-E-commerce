@@ -64,17 +64,21 @@ class SiteTheme(models.Model):
         verbose_name_plural = "Apparence du site"
 
     def __str__(self):
+        # Représentation lisible : libellé du modèle de réglages.
         return "Apparence du site"
 
     def save(self, *args, **kwargs):
+        # Force la clé primaire à 1 pour garantir le comportement singleton.
         self.pk = 1
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        # Empêche la suppression du singleton par l'admin.
         pass
 
     @classmethod
     def get_solo(cls):
+        """Récupère (ou crée) la ligne unique de réglages d'apparence."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
@@ -102,6 +106,7 @@ class HomeSection(models.Model):
         verbose_name_plural = "Sections d'accueil"
 
     def __str__(self):
+        # Représentation lisible : libellé du type de section.
         return self.get_section_type_display()
 
     @classmethod
@@ -114,6 +119,7 @@ class HomeSection(models.Model):
             cls.SectionType.CATEGORIES,
             cls.SectionType.FEATURED,
         ]
+        # Création idempotente de chaque section manquante avec son ordre par défaut.
         for index, section_type in enumerate(defaults_order):
             cls.objects.get_or_create(
                 section_type=section_type,

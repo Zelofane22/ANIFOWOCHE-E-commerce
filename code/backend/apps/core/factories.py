@@ -22,6 +22,8 @@ from apps.wishlist.models import WishlistItem
 
 
 class UserFactory(factory.django.DjangoModelFactory):
+    """Factory de comptes utilisateur classiques pour les tests."""
+
     class Meta:
         model = User
 
@@ -30,6 +32,8 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 
 class SuperUserFactory(factory.django.DjangoModelFactory):
+    """Factory de superadmins (staff + superuser)."""
+
     class Meta:
         model = User
 
@@ -40,6 +44,8 @@ class SuperUserFactory(factory.django.DjangoModelFactory):
 
 
 class StaffUserFactory(factory.django.DjangoModelFactory):
+    """Factory d'utilisateurs staff (droits limités, sans superuser)."""
+
     class Meta:
         model = User
 
@@ -49,6 +55,8 @@ class StaffUserFactory(factory.django.DjangoModelFactory):
 
 
 class ProfileFactory(factory.django.DjangoModelFactory):
+    """Factory de profils client (préférences de notification)."""
+
     class Meta:
         model = Profile
 
@@ -58,6 +66,8 @@ class ProfileFactory(factory.django.DjangoModelFactory):
 
 
 class CategoryFactory(factory.django.DjangoModelFactory):
+    """Factory de catégories de produits."""
+
     class Meta:
         model = Category
 
@@ -66,6 +76,8 @@ class CategoryFactory(factory.django.DjangoModelFactory):
 
 
 class SellerProfileFactory(factory.django.DjangoModelFactory):
+    """Factory de profils vendeur."""
+
     class Meta:
         model = SellerProfile
 
@@ -75,6 +87,8 @@ class SellerProfileFactory(factory.django.DjangoModelFactory):
 
 
 class ShopFactory(factory.django.DjangoModelFactory):
+    """Factory de boutiques vendeur."""
+
     class Meta:
         model = Shop
 
@@ -84,6 +98,8 @@ class ShopFactory(factory.django.DjangoModelFactory):
 
 
 class ProductFactory(factory.django.DjangoModelFactory):
+    """Factory de produits (avec trait « inactive » pour les tests de désactivation)."""
+
     class Meta:
         model = Product
 
@@ -96,10 +112,13 @@ class ProductFactory(factory.django.DjangoModelFactory):
     is_active = True
 
     class Params:
+        # Produit inactif et en rupture de stock.
         inactive = factory.Trait(is_active=False, stock=0)
 
 
 class OptionGroupFactory(factory.django.DjangoModelFactory):
+    """Factory de groupes d'options de produit."""
+
     class Meta:
         model = OptionGroup
 
@@ -108,6 +127,8 @@ class OptionGroupFactory(factory.django.DjangoModelFactory):
 
 
 class OptionFactory(factory.django.DjangoModelFactory):
+    """Factory d'options de vente."""
+
     class Meta:
         model = Option
 
@@ -117,6 +138,8 @@ class OptionFactory(factory.django.DjangoModelFactory):
 
 
 class ProductImageFactory(factory.django.DjangoModelFactory):
+    """Factory d'images de la galerie produit."""
+
     class Meta:
         model = ProductImage
 
@@ -125,6 +148,8 @@ class ProductImageFactory(factory.django.DjangoModelFactory):
 
 
 class OrderFactory(factory.django.DjangoModelFactory):
+    """Factory de commandes (avec traits de statut pour les scénarios de test)."""
+
     class Meta:
         model = Order
 
@@ -136,12 +161,15 @@ class OrderFactory(factory.django.DjangoModelFactory):
     status = Order.Status.RECEIVED
 
     class Params:
+        # Commandes dans les différents états du cycle de vie.
         delivered = factory.Trait(status=Order.Status.DELIVERED)
         cancelled = factory.Trait(status=Order.Status.CANCELLED)
         prepared = factory.Trait(status=Order.Status.PREPARED)
 
 
 class OrderItemFactory(factory.django.DjangoModelFactory):
+    """Factory de lignes de commande (prix unitaire hérité du produit)."""
+
     class Meta:
         model = OrderItem
 
@@ -152,6 +180,8 @@ class OrderItemFactory(factory.django.DjangoModelFactory):
 
 
 class PaymentFactory(factory.django.DjangoModelFactory):
+    """Factory de paiements (avec traits de statut pour les scénarios de test)."""
+
     class Meta:
         model = Payment
 
@@ -160,10 +190,12 @@ class PaymentFactory(factory.django.DjangoModelFactory):
     amount_xof = 1000
 
     class Params:
+        # Paiements dans les différents états.
         approved = factory.Trait(status=Payment.Status.APPROVED)
         declined = factory.Trait(status=Payment.Status.DECLINED)
         failed = factory.Trait(status=Payment.Status.FAILED)
         pending = factory.Trait(status=Payment.Status.PENDING)
+        # Paiement à la livraison annulé (fournisseur et moyen dédiés).
         canceled = factory.Trait(
             provider=Payment.Provider.CASH_ON_DELIVERY,
             method=Payment.Method.CASH_ON_DELIVERY,
@@ -172,6 +204,8 @@ class PaymentFactory(factory.django.DjangoModelFactory):
 
 
 class DeliveryZoneFactory(factory.django.DjangoModelFactory):
+    """Factory de zones de livraison."""
+
     class Meta:
         model = DeliveryZone
 
@@ -180,6 +214,8 @@ class DeliveryZoneFactory(factory.django.DjangoModelFactory):
 
 
 class DeliverySlotFactory(factory.django.DjangoModelFactory):
+    """Factory de créneaux de livraison."""
+
     class Meta:
         model = DeliverySlot
 
@@ -189,6 +225,8 @@ class DeliverySlotFactory(factory.django.DjangoModelFactory):
 
 
 class DeliveryFactory(factory.django.DjangoModelFactory):
+    """Factory de livraisons."""
+
     class Meta:
         model = Delivery
 
@@ -198,6 +236,8 @@ class DeliveryFactory(factory.django.DjangoModelFactory):
 
 
 class CouponFactory(factory.django.DjangoModelFactory):
+    """Factory de coupons de réduction."""
+
     class Meta:
         model = Coupon
 
@@ -209,6 +249,8 @@ class CouponFactory(factory.django.DjangoModelFactory):
 
 
 class PromotionFactory(factory.django.DjangoModelFactory):
+    """Factory de promotions (période de validité courante par défaut)."""
+
     class Meta:
         model = Promotion
 
@@ -222,6 +264,8 @@ class PromotionFactory(factory.django.DjangoModelFactory):
 
 
 class ReturnRequestFactory(factory.django.DjangoModelFactory):
+    """Factory de demandes de retour."""
+
     class Meta:
         model = ReturnRequest
 
@@ -231,6 +275,8 @@ class ReturnRequestFactory(factory.django.DjangoModelFactory):
 
 
 class ReviewFactory(factory.django.DjangoModelFactory):
+    """Factory d'avis produit (non approuvés par défaut)."""
+
     class Meta:
         model = Review
 
@@ -242,6 +288,8 @@ class ReviewFactory(factory.django.DjangoModelFactory):
 
 
 class WishlistItemFactory(factory.django.DjangoModelFactory):
+    """Factory d'éléments de wishlist."""
+
     class Meta:
         model = WishlistItem
 
@@ -250,6 +298,8 @@ class WishlistItemFactory(factory.django.DjangoModelFactory):
 
 
 class BannerFactory(factory.django.DjangoModelFactory):
+    """Factory de bannières du contenu de la vitrine."""
+
     class Meta:
         model = Banner
 
@@ -259,6 +309,8 @@ class BannerFactory(factory.django.DjangoModelFactory):
 
 
 class NotificationFactory(factory.django.DjangoModelFactory):
+    """Factory de notifications client."""
+
     class Meta:
         model = Notification
 
@@ -269,6 +321,8 @@ class NotificationFactory(factory.django.DjangoModelFactory):
 
 
 class BackofficeNotificationFactory(factory.django.DjangoModelFactory):
+    """Factory d'alertes backoffice."""
+
     class Meta:
         model = BackofficeNotification
 
@@ -279,6 +333,8 @@ class BackofficeNotificationFactory(factory.django.DjangoModelFactory):
 
 
 class SettingChangeRequestFactory(factory.django.DjangoModelFactory):
+    """Factory de demandes de changement de réglage sensible."""
+
     class Meta:
         model = SettingChangeRequest
 

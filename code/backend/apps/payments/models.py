@@ -27,21 +27,26 @@ class PaymentSettings(SingletonModel):
 
     @property
     def mobile_money_enabled(self):
+        # Au moins un opérateur de mobile money est activé.
         return self.mtn_enabled or self.moov_enabled
 
     @property
     def mobile_money_available(self):
+        # Le mobile money est proposable si le paiement en ligne est actif et un opérateur activé.
         return self.online_payment_enabled and self.mobile_money_enabled
 
     @property
     def card_available(self):
+        # La carte est proposable si le paiement en ligne est actif et la carte activée.
         return self.online_payment_enabled and self.card_enabled
 
     @property
     def cash_on_delivery_enabled(self):
+        # Le paiement à la livraison est toujours disponible.
         return True
 
     def is_method_enabled(self, method):
+        # Vérifie si un moyen de paiement précis est activé (ou COD, toujours actif).
         if method == Payment.Method.CASH_ON_DELIVERY:
             return self.cash_on_delivery_enabled
         return {
@@ -84,4 +89,5 @@ class Payment(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
+        # Représentation lisible : paiement, commande associée et statut.
         return f"Paiement #{self.pk} — commande #{self.order_id} ({self.status})"

@@ -33,6 +33,7 @@ class DeliverySlot(models.Model):
 
 
 class Delivery(models.Model):
+    """Livraison d'une commande : zone, créneau, coursier et suivi de statut."""
     class Status(models.TextChoices):
         PENDING = "pending", "En attente"
         ASSIGNED = "assigned", "Affectée"
@@ -53,4 +54,5 @@ class Delivery(models.Model):
         verbose_name_plural = "Deliveries"
 
     def __str__(self):
+        # Représentation lisible : livraison, commande associée et statut.
         return f"Livraison #{self.pk} — commande #{self.order_id} ({self.status})"

@@ -17,6 +17,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
+        # Création ouverte à tous ; modifications/suppressions réservées au staff ; lecture au client connecté.
         if self.action == "create":
             return [permissions.AllowAny()]
         if self.action in ("update", "partial_update", "destroy"):
@@ -24,6 +25,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def create(self, request, *args, **kwargs):
+        # Refuse les nouvelles commandes pendant la maintenance.
         if StoreSettings.get_solo().maintenance_mode:
             return Response(
                 {"detail": "La boutique est temporairement en maintenance. Merci de réessayer plus tard."},
@@ -32,6 +34,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
+        # Un client ne voit que ses propres commandes ; le staff voit tout.
         qs = super().get_queryset()
         user = self.request.user
         if user.is_authenticated and not user.is_staff:

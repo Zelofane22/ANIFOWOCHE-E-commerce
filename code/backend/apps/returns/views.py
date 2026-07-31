@@ -15,6 +15,7 @@ class ReturnRequestViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "head", "options"]
 
     def get_queryset(self):
+        # Un client ne voit que les demandes de retour sur ses propres commandes.
         qs = super().get_queryset()
         user = self.request.user
         if user.is_authenticated and not user.is_staff:

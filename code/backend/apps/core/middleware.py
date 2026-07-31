@@ -12,13 +12,17 @@ class ForceDefaultPasswordChangeMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # Traitement uniquement sur les pages admin d'un utilisateur connecté.
         if request.path.startswith("/admin/") and request.user.is_authenticated:
             change_url = reverse("admin:password_change")
             done_url = reverse("admin:password_change_done")
             logout_url = reverse("admin:logout")
 
+            # Une fois le mot de passe changé, le drapeau de session est retiré.
             if request.path == done_url:
                 request.session.pop(FORCE_PASSWORD_CHANGE_SESSION_KEY, None)
+            # Sinon, tant que le drapeau est actif, tout accès admin est redirigé
+            # vers le changement de mot de passe (hors cette page et la déconnexion).
             elif (
                 request.session.get(FORCE_PASSWORD_CHANGE_SESSION_KEY)
                 and request.path not in (change_url, logout_url)

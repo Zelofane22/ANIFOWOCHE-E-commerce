@@ -10,6 +10,7 @@ from .models import Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    """Sérialise une ligne de commande avec un aperçu du produit associé."""
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(), source="product", write_only=True
     )
@@ -37,6 +38,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    """Sérialise une commande complète (articles, coupon, infos de paiement) et gère sa création."""
     items = OrderItemSerializer(many=True)
     coupon_code = serializers.CharField(required=False, allow_blank=True, default="")
     payment_info = serializers.SerializerMethodField()
@@ -64,17 +66,20 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ["discount_xof", "total_xof", "cancelled_at", "cancellation_reason", "created_at", "updated_at"]
 
     def get_payment_info(self, obj):
+        # Renvoie le dernier paiement de la commande (None si aucun).
         latest = obj.payments.order_by("-created_at").first()
         if not latest:
             return None
         return PaymentSerializer(latest).data
 
     def validate_items(self, items):
+        # Une commande ne peut pas être vide.
         if not items:
             raise serializers.ValidationError("Une commande doit contenir au moins un article.")
         return items
 
     def validate_coupon_code(self, value):
+        # Vérifie que le code coupon existe et est encore valide.
         code = value.strip()
         if not code:
             return ""
@@ -84,13 +89,16 @@ class OrderSerializer(serializers.ModelSerializer):
         return code
 
     def create(self, validated_data):
+        # Extraction des articles et du code coupon hors des champs de la commande.
         items_data = validated_data.pop("items")
         coupon_code = validated_data.pop("coupon_code", "") or ""
+        # Rattachage au client s'il est authentifié.
         request = self.context.get("request")
         customer = request.user if request and request.user.is_authenticated else None
 
         order = Order.objects.create(customer=customer, **validated_data)
 
+        # Création des lignes, calcul du total et mise à jour des stocks.
         total = 0
         for item_data in items_data:
             product = item_data["product"]
@@ -100,6 +108,7 @@ class OrderSerializer(serializers.ModelSerializer):
             color_hex = item_data.get("color_hex", "")
             selected_options = item_data.get("selected_options", [])
             options_total = sum(opt.get("price_xof", 0) for opt in selected_options)
+            # Création de la ligne de commande.
             OrderItem.objects.create(
                 order=order,
                 product=product,
@@ -111,6 +120,7 @@ class OrderSerializer(serializers.ModelSerializer):
             )
             total += quantity * (unit_price + options_total)
 
+            # Décrémente le stock de la couleur choisie (si le produit a des couleurs).
             if color_name and product.colors:
                 colors = product.colors
                 for color in colors:
@@ -119,10 +129,12 @@ class OrderSerializer(serializers.ModelSerializer):
                         break
                 Product.objects.filter(pk=product.pk).update(colors=colors)
 
+            # Décrémente le stock global du produit.
             Product.objects.filter(pk=product.pk).update(
                 stock=models.F("stock") - quantity
             )
 
+        # Application de la remise coupon si un code valide a été fourni.
         discount = 0
         coupon = Coupon.objects.filter(code__iexact=coupon_code).first() if coupon_code else None
         if coupon:
@@ -131,10 +143,12 @@ class OrderSerializer(serializers.ModelSerializer):
             coupon.used_count += 1
             coupon.save(update_fields=["used_count"])
 
+        # Enregistrement du total après remise.
         order.discount_xof = discount
         order.total_xof = max(total - discount, 0)
         order.save(update_fields=["total_xof", "discount_xof", "coupon_code"])
 
+        # Notification de confirmation au client.
         notify_order_confirmation(order)
 
         return order

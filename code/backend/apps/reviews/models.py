@@ -5,6 +5,7 @@ from apps.products.models import Product
 
 
 class Review(models.Model):
+    """Avis client sur un produit (modération admin avant publication)."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     author_name = models.CharField(max_length=150)
     rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
@@ -16,4 +17,5 @@ class Review(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
+        # Représentation lisible : auteur, produit et note.
         return f"{self.author_name} — {self.product.name} ({self.rating}/5)"

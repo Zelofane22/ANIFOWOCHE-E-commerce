@@ -19,10 +19,12 @@ User = get_user_model()
 
 
 def seller_frontend_base_url():
+    """Base URL du frontend vendeur (repli sur le frontend principal)."""
     return getattr(settings, "SELLER_FRONTEND_BASE_URL", settings.FRONTEND_BASE_URL).rstrip("/")
 
 
 class ShopSerializer(serializers.ModelSerializer):
+    """Sérialise une boutique, avec son lien public complet."""
     public_path = serializers.CharField(read_only=True)
     public_url = serializers.SerializerMethodField()
 
@@ -44,9 +46,11 @@ class ShopSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "public_path", "public_url"]
 
     def get_public_url(self, shop):
+        # URL publique complète de la boutique (base frontend + chemin).
         return f"{seller_frontend_base_url()}{shop.public_path}"
 
     def validate_slug(self, value):
+        # Slug normalisé (minuscules, sans espaces) et unicité hors instance courante.
         slug = value.strip().lower()
         if not slug:
             raise serializers.ValidationError("Le slug est requis.")
@@ -59,10 +63,12 @@ class ShopSerializer(serializers.ModelSerializer):
         return slug
 
     def validate_whatsapp_phone(self, value):
+        # Normalise le numéro WhatsApp au format international.
         return normalize_phone(value) if value else value
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):
+    """Sérialise le profil vendeur en incluant sa boutique."""
     shop = ShopSerializer()
 
     class Meta:
@@ -71,9 +77,11 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "plan"]
 
     def validate_phone(self, value):
+        # Normalise le numéro de téléphone au format international.
         return normalize_phone(value) if value else value
 
     def update(self, instance, validated_data):
+        # Mise à jour du profil puis de la boutique imbriquée (si fournie).
         shop_data = validated_data.pop("shop", None)
         instance = super().update(instance, validated_data)
         if shop_data:
@@ -84,6 +92,7 @@ class SellerProfileSerializer(serializers.ModelSerializer):
 
 
 class SellerOrderStatusSerializer(serializers.ModelSerializer):
+    """Mise à jour du statut d'une commande côté vendeur (avec motif d'annulation)."""
     cancellation_reason = serializers.CharField(required=False, allow_blank=True, default="")
 
     class Meta:
@@ -91,12 +100,14 @@ class SellerOrderStatusSerializer(serializers.ModelSerializer):
         fields = ["status", "cancellation_reason"]
 
     def validate(self, attrs):
+        # Annulation impossible si la commande n'est pas dans un statut annulable.
         status = attrs.get("status")
         if status == Order.Status.CANCELLED and self.instance:
             if self.instance.status not in Order.CANCELLABLE_STATUSES:
                 raise serializers.ValidationError(
                     {"status": f"Impossible d'annuler une commande avec le statut « {self.instance.get_status_display()} »."}
                 )
+        # Toute modification de statut est interdite une fois la commande annulée.
         if status != self.instance.status and status != Order.Status.CANCELLED:
             if self.instance.status == Order.Status.CANCELLED:
                 raise serializers.ValidationError(
@@ -105,12 +116,14 @@ class SellerOrderStatusSerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, instance, validated_data):
+        # Annulation : appelle le modèle (re-stock) puis notifie le client.
         status = validated_data.get("status", instance.status)
         if status == Order.Status.CANCELLED and instance.status != Order.Status.CANCELLED:
             reason = validated_data.get("cancellation_reason", "")
             instance.cancel(reason=reason)
             notify_order_cancellation(instance, reason=reason)
             return instance
+        # Changement de statut simple (interdit sur une commande déjà annulée).
         if status != instance.status:
             if instance.status == Order.Status.CANCELLED:
                 raise serializers.ValidationError(
@@ -122,6 +135,7 @@ class SellerOrderStatusSerializer(serializers.ModelSerializer):
 
 
 class SellerRegisterSerializer(serializers.Serializer):
+    """Inscription d'un vendeur : compte utilisateur + profil vendeur + boutique."""
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -134,24 +148,29 @@ class SellerRegisterSerializer(serializers.Serializer):
     shop_description = serializers.CharField(required=False, allow_blank=True)
 
     def validate_username(self, value):
+        # Unicité du nom d'utilisateur (insensible à la casse).
         if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError("Ce nom d'utilisateur est déjà utilisé.")
         return value
 
     def validate_email(self, value):
+        # Unicité de l'adresse email si fournie.
         if value and User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("Un compte existe déjà avec cet email.")
         return value
 
     def validate_phone(self, value):
+        # Normalise le numéro de téléphone au format international.
         return normalize_phone(value)
 
     def validate_shop_slug(self, value):
+        # Slug de boutique normalisé et unique.
         if value and Shop.objects.filter(slug=value.lower()).exists():
             raise serializers.ValidationError("Ce lien boutique est déjà utilisé.")
         return value.lower() if value else value
 
     def validate(self, attrs):
+        # Contrôle que les deux mots de passe correspondent.
         password2 = attrs.pop("password2")
         if attrs["password"] != password2:
             raise serializers.ValidationError({"password2": "Les mots de passe ne correspondent pas."})
@@ -159,12 +178,14 @@ class SellerRegisterSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create(self, validated_data):
+        # Extraction des données spécifiques vendeur/boutique hors du bloc utilisateur.
         display_name = validated_data.pop("display_name")
         phone = validated_data.pop("phone")
         city = validated_data.pop("city", "")
         shop_name = validated_data.pop("shop_name")
         shop_slug = validated_data.pop("shop_slug", "")
         shop_description = validated_data.pop("shop_description", "")
+        # Création atomique du compte, du profil vendeur et de la boutique.
         user = User.objects.create_user(**validated_data)
         seller = SellerProfile.objects.create(user=user, display_name=display_name, phone=phone, city=city)
         Shop.objects.create(
@@ -179,11 +200,13 @@ class SellerRegisterSerializer(serializers.Serializer):
 
 
 class SellerDashboardSerializer(serializers.Serializer):
+    """Sérialise la réponse du tableau de bord vendeur."""
     seller = SellerProfileSerializer()
     metrics = serializers.DictField()
 
 
 class PublicShopSerializer(serializers.ModelSerializer):
+    """Sérialise la vitrine publique d'une boutique avec ses produits."""
     public_path = serializers.CharField(read_only=True)
     products = serializers.SerializerMethodField()
 
@@ -192,6 +215,7 @@ class PublicShopSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "public_path", "products"]
 
     def get_products(self, shop):
+        # Produits actifs de la boutique (ou du vendeur), avec images, triés par mise à jour.
         products = (
             Product.objects.filter(
                 Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),

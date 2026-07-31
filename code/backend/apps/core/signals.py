@@ -7,5 +7,7 @@ from .middleware import FORCE_PASSWORD_CHANGE_SESSION_KEY
 
 @receiver(user_logged_in)
 def flag_default_password_on_login(sender, request, user, **kwargs):
+    # Marque la session si le superadmin utilise encore le mot de passe par défaut
+    # (le middleware le forcera alors à changer de mot de passe).
     if user.check_password(settings.DEFAULT_SUPERUSER_PASSWORD):
         request.session[FORCE_PASSWORD_CHANGE_SESSION_KEY] = True

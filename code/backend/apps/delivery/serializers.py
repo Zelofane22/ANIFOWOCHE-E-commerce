@@ -6,18 +6,23 @@ from .models import Delivery, DeliverySlot, DeliveryZone
 
 
 class DeliveryZoneSerializer(serializers.ModelSerializer):
+    """Sérialise une zone de livraison avec ses frais."""
+
     class Meta:
         model = DeliveryZone
         fields = ["id", "name", "fee_xof", "is_active"]
 
 
 class DeliverySlotSerializer(serializers.ModelSerializer):
+    """Sérialise un créneau de livraison."""
+
     class Meta:
         model = DeliverySlot
         fields = ["id", "label", "start_time", "end_time", "is_active"]
 
 
 class DeliverySerializer(serializers.ModelSerializer):
+    """Sérialise une livraison avec zone et créneau (écriture via identifiants)."""
     zone = DeliveryZoneSerializer(read_only=True)
     slot = DeliverySlotSerializer(read_only=True)
     order_id = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all(), source="order", write_only=True)
@@ -46,6 +51,7 @@ class DeliverySerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at"]
 
     def validate_order_id(self, order):
+        # Une seule livraison est autorisée par commande (hors livraison en cours d'édition).
         existing = Delivery.objects.filter(order=order)
         if self.instance is not None:
             existing = existing.exclude(pk=self.instance.pk)
@@ -54,6 +60,7 @@ class DeliverySerializer(serializers.ModelSerializer):
         return order
 
     def create(self, validated_data):
+        # Création de la livraison puis ajout des frais de zone au total de la commande.
         delivery = super().create(validated_data)
         if delivery.zone.fee_xof:
             order = delivery.order

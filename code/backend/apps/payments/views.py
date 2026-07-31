@@ -32,6 +32,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # Un client ne voit que les paiements de ses propres commandes ; le staff voit tout.
         qs = super().get_queryset()
         user = self.request.user
         if user.is_authenticated and not user.is_staff:
@@ -53,11 +54,13 @@ class InitiatePaymentView(APIView):
     throttle_scope = "payments"
 
     def post(self, request):
+        # Validation des données (commande et moyen de paiement).
         serializer = InitiatePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         order = serializer.validated_data["order"]
         method = serializer.validated_data["method"]
 
+        # Paiement à la livraison : simple ligne Payment en attente, sans fournisseur.
         if method == Payment.Method.CASH_ON_DELIVERY:
             payment = Payment.objects.create(
                 order=order,
@@ -67,6 +70,7 @@ class InitiatePaymentView(APIView):
             )
             return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
+        # Paiement en ligne : vérification des bascules admin (global et par moyen).
         payment_settings = PaymentSettings.get_solo()
         if not payment_settings.online_payment_enabled:
             return Response(
@@ -82,6 +86,7 @@ class InitiatePaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Création de la ligne Payment puis initiation de la transaction FedaPay.
         payment = Payment.objects.create(
             order=order,
             method=method,
@@ -91,6 +96,7 @@ class InitiatePaymentView(APIView):
         try:
             start_fedapay_transaction(payment)
         except FedaPayError as exc:
+            # Échec d'initiation : la ligne est marquée en échec et signalée au backoffice.
             logger.warning("Initiation FedaPay échouée pour la commande #%s : %s", order.pk, exc)
             payment.status = Payment.Status.FAILED
             payment.save(update_fields=["status", "updated_at"])
@@ -110,24 +116,29 @@ class FedaPayWebhookView(APIView):
     authentication_classes = []
 
     def post(self, request):
+        # Vérification de la signature HMAC de l'événement FedaPay.
         signature = request.headers.get("X-FEDAPAY-SIGNATURE", "")
         if not verify_webhook_signature(request.body, signature, settings.FEDAPAY_WEBHOOK_SECRET):
             return Response({"detail": "Signature invalide."}, status=status.HTTP_401_UNAUTHORIZED)
 
+        # Décodage du corps JSON de l'événement.
         try:
             event = json.loads(request.body)
         except ValueError:
             return Response({"detail": "JSON invalide."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Extraction de l'identifiant de transaction et du nom de l'événement.
         entity = event.get("entity", {})
         transaction_id = str(entity.get("id", ""))
         event_name = event.get("name", "")
 
+        # Recherche du paiement local correspondant à la transaction FedaPay.
         try:
             payment = Payment.objects.get(fedapay_transaction_id=transaction_id)
         except Payment.DoesNotExist:
             return Response({"detail": "Paiement introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Mappage des événements FedaPay vers les statuts locaux.
         status_map = {
             "transaction.approved": Payment.Status.APPROVED,
             "transaction.declined": Payment.Status.DECLINED,
@@ -136,14 +147,17 @@ class FedaPayWebhookView(APIView):
         new_status = status_map.get(event_name)
         if new_status:
             payment.status = new_status
+        # Conservation du payload reçu pour l'audit.
         payment.last_webhook_payload = event
         payment.save(update_fields=["status", "last_webhook_payload", "updated_at"])
 
+        # Paiement approuvé : la commande passe en « préparée » et la facture est envoyée.
         if payment.status == Payment.Status.APPROVED:
             order = payment.order
             order.status = Order.Status.PREPARED
             order.save(update_fields=["status", "updated_at"])
             notify_invoice(payment)
+        # Paiement refusé/annulé : l'échec est signalé au backoffice pour relance.
         elif new_status in (Payment.Status.DECLINED, Payment.Status.CANCELED):
             # US-34 : l'échec remonte dans la cloche backoffice, d'où l'admin
             # peut ouvrir le paiement et le relancer.

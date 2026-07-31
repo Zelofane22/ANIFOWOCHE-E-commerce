@@ -17,6 +17,7 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
     lookup_field = "product_id"
 
     def get_queryset(self):
+        # Entrées du client connecté, limitées aux produits visibles sur la vitrine principale.
         return WishlistItem.objects.filter(
             user=self.request.user,
         ).filter(
@@ -24,6 +25,7 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
         ).select_related("product")
 
     def create(self, request, *args, **kwargs):
+        # Ajout idempotent : le couple user/produit n'est créé que s'il n'existe pas déjà.
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         item, _ = WishlistItem.objects.get_or_create(

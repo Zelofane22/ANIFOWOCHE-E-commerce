@@ -9,6 +9,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     """Lecture publique des avis approuvés + soumission publique. La modération
     (approbation/suppression) reste réservée à l'admin Django, pas exposée en API."""
 
+    # Seuls les avis approuvés sont exposés, filtrables par slug de produit.
     queryset = Review.objects.filter(is_approved=True).select_related("product")
     serializer_class = ReviewSerializer
     http_method_names = ["get", "post", "head", "options"]
