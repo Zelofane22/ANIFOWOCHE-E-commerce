@@ -33,28 +33,18 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install PostgreSQL client 18
-        if: steps.check.outputs.configured == 'true'
-        # Le client apt d'ubuntu-latest est plus ancien que le serveur (PG 18) :
-        # pg_dump refuse de dumper un serveur plus récent que lui, d'où le dépôt PGDG.
-        run: |
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail \
-            https://www.postgresql.org/media/keys/ACCC4CF8.asc
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
-            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
-            | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-18
-
-      - name: Dump database
+      - name: Dump database (using postgres:18 container)
         if: steps.check.outputs.configured == 'true'
         run: |
-          pg_dump "$DATABASE_URL" \
-            --format=custom \
-            --no-owner \
-            --no-privileges \
-            --file="anifowoche-db-$(date -u +%F).dump"
+          docker run --rm \
+            -e DATABASE_URL="${DATABASE_URL}" \
+            -v "$GITHUB_WORKSPACE":/work -w /work \
+            postgres:18 \
+            pg_dump "$DATABASE_URL" \
+              --format=custom \
+              --no-owner \
+              --no-privileges \
+              --file="anifowoche-db-$(date -u +%F).dump"
 
       - name: Encrypt dump
         if: steps.check.outputs.configured == 'true'
