@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { pingPageView } from "./api/analytics.js";
 import Footer from "./components/Footer.jsx";
+import MobileTabBar from "./components/MobileTabBar.jsx";
 import Navbar from "./components/Navbar.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
@@ -80,26 +81,29 @@ export default function App() {
           <div className="min-h-screen bg-white text-ink">
             <PageViewTracker />
             {!isSellerSurface && <Navbar />}
-            <main>
-              <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/catalogue" element={<Catalogue />} />
-                  <Route path="/produits/:slug" element={<Product />} />
-                  <Route path="/panier" element={<Cart />} />
-                  <Route path="/commande" element={<Checkout />} />
-                  <Route path="/commande/public" element={<PublicOrder />} />
-                  <Route path="/commande/confirmation" element={<OrderConfirmation />} />
-                  <Route path="/compte" element={<Account />} />
-                  <Route path="/compte/commandes" element={<Orders />} />
-                  <Route path="/compte/commandes/:id" element={<OrderDetail />} />
-                  <Route path="/compte/adresses" element={<Addresses />} />
-                  <Route path="/compte/favoris" element={<Wishlist />} />
-                  <Route path="/shop/:slug" element={<ShopRedirect />} />
-                </Routes>
-              </Suspense>
+            <main className="pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] md:pb-0">
+              <div key={location.pathname} className="animate-page">
+                <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/catalogue" element={<Catalogue />} />
+                    <Route path="/produits/:slug" element={<Product />} />
+                    <Route path="/panier" element={<Cart />} />
+                    <Route path="/commande" element={<Checkout />} />
+                    <Route path="/commande/public" element={<PublicOrder />} />
+                    <Route path="/commande/confirmation" element={<OrderConfirmation />} />
+                    <Route path="/compte" element={<Account />} />
+                    <Route path="/compte/commandes" element={<Orders />} />
+                    <Route path="/compte/commandes/:id" element={<OrderDetail />} />
+                    <Route path="/compte/adresses" element={<Addresses />} />
+                    <Route path="/compte/favoris" element={<Wishlist />} />
+                    <Route path="/shop/:slug" element={<ShopRedirect />} />
+                  </Routes>
+                </Suspense>
+              </div>
             </main>
             {!isSellerSurface && <Footer />}
+            {!isSellerSurface && <MobileTabBar />}
           </div>
         </CartProvider>
       </AuthProvider>

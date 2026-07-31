@@ -668,7 +668,7 @@ function ProductView({ slug }) {
 
       <ReviewsSection productId={product.id} productSlug={slug} />
 
-      <div className="fixed inset-x-0 bottom-0 z-20 flex gap-3 border-t border-black/10 bg-white p-4 lg:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+var(--tabbar-safe))] z-20 flex gap-3 border-t border-black/10 bg-white p-4 md:bottom-0 lg:hidden">
         <button
           type="button"
           onClick={handleAddToCart}

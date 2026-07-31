@@ -9,6 +9,12 @@ import "./index.css";
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 if (import.meta.env.PROD && sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,

@@ -163,6 +163,21 @@ export const MenuIcon = (props) => (
   </Icon>
 );
 
+export const HomeIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V21h14V9.5" />
+  </Icon>
+);
+
+export const CartIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h8.2a2 2 0 0 0 2-1.6L21 8H6" />
+    <circle cx="9" cy="20" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="17" cy="20" r="1.5" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
 export const StoreIcon = (props) => (
   <Icon {...props}>
     <path d="m2 7 2-4h16l2 4" />
