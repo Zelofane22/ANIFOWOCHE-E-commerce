@@ -57,7 +57,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             Prefetch(
                 "images",
                 queryset=ProductImage.objects.filter(is_active=True).order_by("order", "created_at"),
-            )
+            ),
+            "option_groups__options",
         )
         .annotate(
             rating_average=Avg("reviews__rating", filter=Q(reviews__is_approved=True)),
