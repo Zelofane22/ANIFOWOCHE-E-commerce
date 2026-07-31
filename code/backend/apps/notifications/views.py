@@ -18,16 +18,19 @@ class NotificationSettingsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        # Sert les canaux activés par l'admin au frontend (choix à l'inscription).
         return Response(NotificationSettingsSerializer(NotificationSettings.get_solo()).data)
 
 
 @staff_member_required
 def backoffice_notifications_view(request):
+    # Récupère toutes les alertes avant de les supprimer : elles sont lues en une fois.
     notifications = list(BackofficeNotification.objects.all())
     notification_ids = [notification.pk for notification in notifications]
     if notification_ids:
         BackofficeNotification.objects.filter(pk__in=notification_ids).delete()
 
+    # Contexte du rendu : hérite du contexte de l'admin et ajoute les alertes lues.
     context = {
         **admin.site.each_context(request),
         "title": "Alertes backoffice",

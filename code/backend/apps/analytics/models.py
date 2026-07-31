@@ -20,4 +20,5 @@ class PageView(models.Model):
         indexes = [models.Index(fields=["created_at"])]
 
     def __str__(self):
+        # Représentation lisible : chemin visité + horodatage.
         return f"{self.path} — {self.created_at:%Y-%m-%d %H:%M}"

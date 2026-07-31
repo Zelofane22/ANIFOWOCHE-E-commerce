@@ -5,6 +5,7 @@ from apps.sellers.models import SellerProfile, Shop
 
 
 class Category(models.Model):
+    """Catégorie de produits (nom unique + slug pour les URL)."""
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=120, unique=True)
 
@@ -13,10 +14,12 @@ class Category(models.Model):
         ordering = ["name"]
 
     def __str__(self):
+        # Représentation lisible : le nom de la catégorie.
         return self.name
 
 
 class Product(models.Model):
+    """Produit commercialisé sur la vitrine, avec prix, stock, tailles et couleurs."""
     class Size(models.TextChoices):
         S = "S", "S"
         M = "M", "M"
@@ -70,18 +73,21 @@ class Product(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
+        # Représentation lisible : le nom du produit.
         return self.name
 
     def save(self, *args, **kwargs):
         # Un produit vendu au mètre n'a pas de taille (S/M/L n'a pas de sens pour un tissu).
         if self.unit == self.Unit.METRE:
             self.size = self.Size.UNIQUE
+        # Génère automatiquement un slug unique à partir du nom si absent.
         if not self.slug:
             self.slug = self._build_unique_slug(self.name)
         super().save(*args, **kwargs)
 
     @classmethod
     def _build_unique_slug(cls, name):
+        # Construction d'un slug de base puis incrémentation d'un suffixe numérique si conflit.
         base = slugify(name)[:160] or "produit"
         slug = base
         suffix = 2
@@ -92,6 +98,7 @@ class Product(models.Model):
 
 
 class OptionGroup(models.Model):
+    """Groupe d'options (ex. « Couleur », « Taille ») rattaché à un produit."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="option_groups")
     name = models.CharField(max_length=100)
     is_required = models.BooleanField(default=False)
@@ -104,10 +111,12 @@ class OptionGroup(models.Model):
         unique_together = ("product", "name")
 
     def __str__(self):
+        # Représentation lisible : groupe — produit.
         return f"{self.name} — {self.product.name}"
 
 
 class Option(models.Model):
+    """Option de vente au sein d'un groupe (supplément de prix éventuel)."""
     group = models.ForeignKey(OptionGroup, on_delete=models.CASCADE, related_name="options")
     name = models.CharField(max_length=100)
     price_xof = models.PositiveIntegerField(default=0, help_text="Supplément de prix en CFA")
@@ -118,6 +127,7 @@ class Option(models.Model):
         ordering = ["order"]
 
     def __str__(self):
+        # Représentation lisible : nom de l'option et supplément de prix.
         return f"{self.name} (+{self.price_xof})"
 
 
@@ -143,4 +153,5 @@ class ProductImage(models.Model):
         ordering = ["order", "created_at"]
 
     def __str__(self):
+        # Représentation lisible : position de l'image et produit associé.
         return f"Image #{self.order} — {self.product.name}"

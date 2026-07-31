@@ -18,12 +18,15 @@ LOW_STOCK_THRESHOLD = 10
 
 
 def _percent_change(current, previous):
+    """Calcule la variation en pourcentage entre deux périodes (None si pas de référence)."""
     if not previous:
         return None
     return round((current - previous) / previous * 100, 1)
 
 
 def dashboard_callback(request, context):
+    """Callback de l'admin Django : injecte les KPIs du tableau de bord dans le contexte."""
+    # Bornes temporelles des deux périodes comparées (actuelle et précédente).
     now = timezone.now()
     period_start = now - timedelta(days=PERIOD_DAYS)
     previous_start = now - timedelta(days=2 * PERIOD_DAYS)
@@ -31,25 +34,30 @@ def dashboard_callback(request, context):
     orders_period = Order.objects.filter(created_at__gte=period_start)
     orders_previous = Order.objects.filter(created_at__gte=previous_start, created_at__lt=period_start)
 
+    # Revenus et nombre de commandes sur les deux périodes (hors annulations).
     revenue_period = orders_period.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
     revenue_previous = orders_previous.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
 
     orders_count = orders_period.count()
     orders_count_previous = orders_previous.count()
 
+    # KPIs clients : total et nouveaux comptes par période.
     clients_qs = User.objects.filter(is_staff=False)
     clients_total = clients_qs.count()
     clients_new_period = clients_qs.filter(date_joined__gte=period_start).count()
     clients_new_previous = clients_qs.filter(date_joined__gte=previous_start, date_joined__lt=period_start).count()
 
+    # KPIs produits : total actifs et nouvelles créations par période.
     products_qs = Product.objects.filter(is_active=True)
     products_total = products_qs.count()
     products_new_period = products_qs.filter(created_at__gte=period_start).count()
     products_new_previous = products_qs.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
 
+    # Trafic : nombre de pages vues par période.
     visits_period = PageView.objects.filter(created_at__gte=period_start).count()
     visits_previous = PageView.objects.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
 
+    # Série des ventes par jour pour le graphique d'évolution.
     sales_by_day = (
         orders_period.exclude(status=Order.Status.CANCELLED)
         .annotate(day=TruncDate("created_at"))
@@ -58,6 +66,7 @@ def dashboard_callback(request, context):
         .order_by("day")
     )
 
+    # Répartition du chiffre d'affaires par catégorie (avec pourcentages).
     category_breakdown = (
         OrderItem.objects.filter(order__created_at__gte=period_start)
         .exclude(order__status=Order.Status.CANCELLED)
@@ -69,6 +78,7 @@ def dashboard_callback(request, context):
     category_total = sum(row["total"] for row in category_breakdown) or 1
     category_breakdown = list(category_breakdown)
 
+    # Top 5 des produits par chiffre d'affaires.
     top_products = (
         OrderItem.objects.filter(order__created_at__gte=period_start)
         .exclude(order__status=Order.Status.CANCELLED)
@@ -78,6 +88,7 @@ def dashboard_callback(request, context):
         .order_by("-total_revenue")[:5]
     )
 
+    # Injection de tous les KPIs et séries dans le contexte du template admin.
     context.update(
         {
             "kpi_revenue": revenue_period,

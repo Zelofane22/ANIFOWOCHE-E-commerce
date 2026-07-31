@@ -6,6 +6,8 @@ from .models import Payment
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    """Sérialise un paiement en lecture seule (tous les champs sont en lecture seule)."""
+
     class Meta:
         model = Payment
         fields = [
@@ -24,5 +26,6 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 
 class InitiatePaymentSerializer(serializers.Serializer):
+    """Valide la demande d'initiation de paiement : commande et moyen de paiement."""
     order_id = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all(), source="order")
     method = serializers.ChoiceField(choices=Payment.Method.choices)

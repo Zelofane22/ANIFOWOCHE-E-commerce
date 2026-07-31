@@ -6,6 +6,7 @@ from .models import Review
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """Sérialise un avis produit (approbation et date en lecture seule)."""
     product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), source="product", write_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
 

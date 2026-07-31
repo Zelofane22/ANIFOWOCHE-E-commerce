@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { fetchCategories, fetchProducts } from "../api/products.js";
+import BottomSheet from "../components/BottomSheet.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import Seo from "../components/Seo.jsx";
 
@@ -20,6 +21,7 @@ export default function Catalogue() {
   const [error, setError] = useState(null);
   const [searchInput, setSearchInput] = useState(search);
   const [syncedSearch, setSyncedSearch] = useState(search);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   if (search !== syncedSearch) {
     setSyncedSearch(search);
@@ -82,6 +84,78 @@ export default function Catalogue() {
   }, [activeCategory, search, unit, minPrice, maxPrice, inStockOnly, sort]);
 
   const hasActiveFilters = Boolean(unit || minPrice || maxPrice || inStockOnly || sort);
+  const activeFilterCount = [unit, minPrice, maxPrice, inStockOnly ? "stock" : "", sort].filter(
+    (value) => Boolean(value)
+  ).length;
+
+  const filterControls = (
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="text-xs font-semibold text-ink">
+        Prix min
+        <input
+          type="number"
+          min="0"
+          value={minPrice}
+          onChange={(event) => updateParams({ min_price: event.target.value })}
+          placeholder="0"
+          className="mt-1 block w-24 rounded-lg border border-black/15 px-2 py-1.5 text-sm"
+        />
+      </label>
+      <label className="text-xs font-semibold text-ink">
+        Prix max
+        <input
+          type="number"
+          min="0"
+          value={maxPrice}
+          onChange={(event) => updateParams({ max_price: event.target.value })}
+          placeholder="—"
+          className="mt-1 block w-24 rounded-lg border border-black/15 px-2 py-1.5 text-sm"
+        />
+      </label>
+      <label className="text-xs font-semibold text-ink">
+        Unité
+        <select
+          value={unit}
+          onChange={(event) => updateParams({ unit: event.target.value })}
+          className="mt-1 block rounded-lg border border-black/15 px-2 py-1.5 text-sm"
+        >
+          <option value="">Toutes</option>
+          <option value="piece">Pièce</option>
+          <option value="metre">Mètre</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2 pb-1.5 text-xs font-semibold text-ink">
+        <input
+          type="checkbox"
+          checked={inStockOnly}
+          onChange={(event) => updateParams({ in_stock: event.target.checked ? "1" : "" })}
+          className="h-4 w-4 rounded border-black/25"
+        />
+        En stock uniquement
+      </label>
+      <label className="text-xs font-semibold text-ink">
+        Trier par
+        <select
+          value={sort}
+          onChange={(event) => updateParams({ sort: event.target.value })}
+          className="mt-1 block rounded-lg border border-black/15 px-2 py-1.5 text-sm"
+        >
+          <option value="">Pertinence</option>
+          <option value="price_xof">Prix croissant</option>
+          <option value="-price_xof">Prix décroissant</option>
+        </select>
+      </label>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={() => updateParams({ unit: "", min_price: "", max_price: "", in_stock: "", sort: "" })}
+          className="pb-1.5 text-xs font-semibold text-brand-dark hover:underline"
+        >
+          Réinitialiser les filtres
+        </button>
+      )}
+    </div>
+  );
 
   if (error) return <p className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
 
@@ -146,7 +220,7 @@ export default function Catalogue() {
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
           <button
             type="button"
             onClick={() => updateParams({ category: "" })}
@@ -174,72 +248,51 @@ export default function Catalogue() {
           ))}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-black/10 pt-4">
-          <label className="text-xs font-semibold text-ink">
-            Prix min
-            <input
-              type="number"
-              min="0"
-              value={minPrice}
-              onChange={(event) => updateParams({ min_price: event.target.value })}
-              placeholder="0"
-              className="mt-1 block w-24 rounded-lg border border-black/15 px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="text-xs font-semibold text-ink">
-            Prix max
-            <input
-              type="number"
-              min="0"
-              value={maxPrice}
-              onChange={(event) => updateParams({ max_price: event.target.value })}
-              placeholder="—"
-              className="mt-1 block w-24 rounded-lg border border-black/15 px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="text-xs font-semibold text-ink">
-            Unité
-            <select
-              value={unit}
-              onChange={(event) => updateParams({ unit: event.target.value })}
-              className="mt-1 block rounded-lg border border-black/15 px-2 py-1.5 text-sm"
-            >
-              <option value="">Toutes</option>
-              <option value="piece">Pièce</option>
-              <option value="metre">Mètre</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2 pb-1.5 text-xs font-semibold text-ink">
-            <input
-              type="checkbox"
-              checked={inStockOnly}
-              onChange={(event) => updateParams({ in_stock: event.target.checked ? "1" : "" })}
-              className="h-4 w-4 rounded border-black/25"
-            />
-            En stock uniquement
-          </label>
-          <label className="text-xs font-semibold text-ink">
-            Trier par
-            <select
-              value={sort}
-              onChange={(event) => updateParams({ sort: event.target.value })}
-              className="mt-1 block rounded-lg border border-black/15 px-2 py-1.5 text-sm"
-            >
-              <option value="">Pertinence</option>
-              <option value="price_xof">Prix croissant</option>
-              <option value="-price_xof">Prix décroissant</option>
-            </select>
-          </label>
+        {/* Mobile : bouton Filtres (panneau coulissant) */}
+        <div className="mt-4 flex items-center gap-3 border-t border-black/10 pt-4 md:hidden">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+            </svg>
+            Filtres
+            {activeFilterCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
           {hasActiveFilters && (
             <button
               type="button"
               onClick={() => updateParams({ unit: "", min_price: "", max_price: "", in_stock: "", sort: "" })}
-              className="pb-1.5 text-xs font-semibold text-brand-dark hover:underline"
+              className="min-h-11 shrink-0 px-2 text-xs font-semibold text-brand-dark hover:underline"
             >
-              Réinitialiser les filtres
+              Réinitialiser
             </button>
           )}
         </div>
+
+        {/* Desktop : filtres inline */}
+        <div className="mt-4 hidden flex-wrap items-end gap-3 border-t border-black/10 pt-4 md:flex">
+          {filterControls}
+        </div>
+
+        <BottomSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtres">
+          <div className="flex flex-col gap-5">
+            {filterControls}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(false)}
+              className="w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium"
+            >
+              Voir {loading ? "…" : `${products.length} produit${products.length > 1 ? "s" : ""}`}
+            </button>
+          </div>
+        </BottomSheet>
 
         <div className="mb-4 mt-7 flex items-center justify-between">
           <div>

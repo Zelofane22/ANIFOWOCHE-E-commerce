@@ -4,6 +4,7 @@ from .models import HomeSection, SiteTheme
 
 
 class SiteThemeSerializer(serializers.ModelSerializer):
+    """Sérialise le thème du site : logo en URL absolue et palette de couleurs groupée."""
     logo = serializers.SerializerMethodField()
     colors = serializers.SerializerMethodField()
 
@@ -20,6 +21,7 @@ class SiteThemeSerializer(serializers.ModelSerializer):
         ]
 
     def get_logo(self, theme):
+        # Renvoie l'URL absolue du logo (None si non défini).
         if not theme.logo:
             return None
         request = self.context.get("request")
@@ -28,6 +30,7 @@ class SiteThemeSerializer(serializers.ModelSerializer):
         return theme.logo.url
 
     def get_colors(self, theme):
+        # Regroupe les variantes de la couleur de marque dans un objet dédié.
         return {
             "brand": theme.color_brand,
             "brand_dark": theme.color_brand_dark,
@@ -38,6 +41,7 @@ class SiteThemeSerializer(serializers.ModelSerializer):
 
 
 class HomeSectionSerializer(serializers.ModelSerializer):
+    """Sérialise une section d'accueil avec les noms exposés côté frontend."""
     type = serializers.CharField(source="section_type")
     enabled = serializers.BooleanField(source="is_enabled")
 

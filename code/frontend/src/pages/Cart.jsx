@@ -154,7 +154,7 @@ export default function Cart() {
         </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white p-4 md:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+var(--tabbar-safe))] z-20 border-t border-gray-200 bg-white p-4 md:hidden">
         <div className="mb-2 flex items-center justify-between text-sm font-medium text-ink">
           <span>Total articles</span>
           <span className="font-bold">{formatXof(subtotal)}</span>

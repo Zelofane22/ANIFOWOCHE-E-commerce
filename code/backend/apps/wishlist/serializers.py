@@ -6,12 +6,15 @@ from .models import WishlistItem
 
 
 class WishlistProductSerializer(serializers.ModelSerializer):
+    """Sérialise le produit tel qu'affiché dans la wishlist."""
+
     class Meta:
         model = Product
         fields = ["id", "name", "slug", "price_xof", "image", "stock", "is_active"]
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):
+    """Sérialise une entrée de wishlist avec son produit (écriture via product_id)."""
     product = WishlistProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(), source="product", write_only=True

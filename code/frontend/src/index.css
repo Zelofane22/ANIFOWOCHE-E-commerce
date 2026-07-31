@@ -14,9 +14,86 @@
   --font-sans: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* --- Rendu "app native" ------------------------------------------------ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   background: #ffffff;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Supprime le délai de zoom double-tap sur les contrôles tactiles. */
+* {
+  touch-action: manipulation;
+}
+
+/* Anti-zoom iOS : un champ < 16px déclenche un zoom au focus. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Masque les scrollbars des rangées horizontales (chips, galerie). */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hauteur de la barre d'onglets mobile + zone sûre (encoche / barre d'accueil). */
+:root {
+  --tabbar-h: 3.5rem;
+  --tabbar-safe: env(safe-area-inset-bottom, 0px);
+}
+
+/* Transition de page (fondu + léger glissement). */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page {
+  animation: page-in 0.18s ease-out;
+}
+
+/* Slide-up pour les panneaux du bas (bottom sheets). */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
 
 .line-clamp-2 {

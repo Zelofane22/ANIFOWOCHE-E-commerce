@@ -67,7 +67,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pt-8 pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] md:flex-row md:items-start md:justify-between md:pb-8">
         <div>
           <Link to="/" className="block w-fit overflow-hidden rounded-md">
             <img

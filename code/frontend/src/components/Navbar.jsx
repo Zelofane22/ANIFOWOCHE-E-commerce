@@ -40,7 +40,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="-ml-1 rounded-lg p-2 text-white transition hover:bg-white/10 md:hidden"
+            className="-ml-1 rounded-lg p-2.5 text-white transition hover:bg-white/10 md:hidden"
             aria-label="Ouvrir le menu"
             aria-expanded={menuOpen}
           >

@@ -16,4 +16,5 @@ class Banner(models.Model):
         ordering = ["order", "-created_at"]
 
     def __str__(self):
+        # Représentation lisible : titre de la bannière.
         return self.title

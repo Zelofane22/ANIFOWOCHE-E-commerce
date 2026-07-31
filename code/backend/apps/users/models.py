@@ -7,6 +7,7 @@ from apps.delivery.models import DeliveryZone
 
 class ClientManager(UserManager):
     def get_queryset(self):
+        # Restreint la queryset aux comptes non-staff (les clients).
         return super().get_queryset().filter(is_staff=False)
 
 
@@ -27,6 +28,7 @@ class Client(User):
 
 class AdminUserManager(UserManager):
     def get_queryset(self):
+        # Restreint la queryset aux comptes staff (les administrateurs).
         return super().get_queryset().filter(is_staff=True)
 
 
@@ -63,6 +65,7 @@ class Address(models.Model):
         ordering = ["-is_default", "-created_at"]
 
     def __str__(self):
+        # Représentation lisible : libellé ou zone, et nom du destinataire.
         return f"{self.label or self.zone.name} — {self.full_name}"
 
 
@@ -81,4 +84,5 @@ class Profile(models.Model):
     )
 
     def __str__(self):
+        # Représentation lisible : utilisateur associé au profil.
         return f"Profil de {self.user}"

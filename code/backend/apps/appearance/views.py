@@ -15,11 +15,14 @@ class SiteConfigView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        # Garantit la présence des sections d'accueil prédéfinies.
         HomeSection.ensure_defaults()
 
+        # Lecture du thème (singleton) et des sections.
         theme = SiteTheme.get_solo()
         sections = HomeSection.objects.all()
 
+        # Assemblage de la configuration complète pour le frontend.
         return Response(
             {
                 "theme": SiteThemeSerializer(theme, context={"request": request}).data,

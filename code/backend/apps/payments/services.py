@@ -11,7 +11,7 @@ from .models import Payment, PaymentSettings
 
 
 class FedaPayError(Exception):
-    pass
+    """Erreur technique lors des appels à l'API FedaPay (réseau, HTTP, réponse inattendue)."""
 
 
 class PaymentRelaunchError(Exception):
@@ -28,16 +28,19 @@ class FedaPayClient:
     """
 
     def __init__(self):
+        # Chargement de la configuration FedaPay depuis les variables d'environnement.
         self.base_url = settings.FEDAPAY_BASE_URL.rstrip("/")
         self.api_key = settings.FEDAPAY_SECRET_KEY
 
     def _headers(self):
+        # En-têtes d'authentification Bearer pour l'API FedaPay.
         return {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
     def create_transaction(self, *, amount_xof, description, callback_url, customer_phone, customer_email=""):
+        # Construction du corps de la transaction (montant, devise, client).
         payload = {
             "description": description,
             "amount": amount_xof,
@@ -49,6 +52,7 @@ class FedaPayClient:
             },
         }
         try:
+            # Création de la transaction côté FedaPay.
             response = requests.post(
                 f"{self.base_url}/v1/transactions",
                 json=payload,
@@ -61,6 +65,7 @@ class FedaPayClient:
         return response.json()
 
     def generate_token(self, transaction_id):
+        # Génération du jeton/lien de paiement d'une transaction existante.
         try:
             response = requests.post(
                 f"{self.base_url}/v1/transactions/{transaction_id}/token",
@@ -82,12 +87,14 @@ def verify_webhook_signature(raw_body: bytes, signature_header: str, secret: str
     if not signature_header:
         return False
 
+    # Parse l'en-tête de signature en paires clé=valeur.
     parts = dict(item.split("=", 1) for item in signature_header.split(",") if "=" in item)
     timestamp = parts.get("t")
     provided_signature = parts.get("s")
     if not timestamp or not provided_signature:
         return False
 
+    # Recalcule la signature attendue puis compare de manière constante.
     signed_payload = f"{timestamp}.{raw_body.decode('utf-8')}".encode("utf-8")
     expected_signature = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected_signature, provided_signature)
@@ -99,6 +106,7 @@ def start_fedapay_transaction(payment):
     statut : l'appelant décide quoi faire du paiement en cas d'échec."""
     order = payment.order
     client = FedaPayClient()
+    # Création de la transaction FedaPay pour la commande.
     transaction = client.create_transaction(
         amount_xof=payment.amount_xof,
         description=f"Commande ANIFOWOCHE #{order.pk}",
@@ -106,9 +114,11 @@ def start_fedapay_transaction(payment):
         customer_phone=order.phone,
         customer_email=order.email,
     )
+    # Récupération de l'identifiant de transaction (structure de réponse variable).
     transaction_id = transaction.get("id") or transaction.get("v1/transaction", {}).get("id")
     payment.fedapay_transaction_id = str(transaction_id) if transaction_id else ""
 
+    # Génération du lien de paiement si la transaction a été créée.
     token_data = client.generate_token(transaction_id) if transaction_id else {}
     payment.payment_url = token_data.get("url", "")
     payment.save(update_fields=["fedapay_transaction_id", "payment_url", "updated_at"])
@@ -123,27 +133,34 @@ def relaunch_payment(payment):
     une nouvelle ligne Payment sur la même commande avec une nouvelle
     transaction FedaPay, puis envoie le nouveau lien de paiement au client.
     La ligne échouée est conservée telle quelle pour l'historique."""
+    # Vérifications métier : seul FedaPay est relançable, et uniquement sur échec.
     if payment.provider != Payment.Provider.FEDAPAY:
         raise PaymentRelaunchError("Seuls les paiements en ligne (FedaPay) peuvent être relancés.")
     if payment.status not in RELAUNCHABLE_STATUSES:
         raise PaymentRelaunchError("Seuls les paiements échoués, refusés ou annulés peuvent être relancés.")
 
     order = payment.order
+    # Interdiction de relancer si la commande est déjà payée.
     if order.payments.filter(status=Payment.Status.APPROVED).exists():
         raise PaymentRelaunchError(f"La commande #{order.pk} a déjà un paiement approuvé.")
 
+    # Le moyen de paiement doit être toujours actif côté admin.
     payment_settings = PaymentSettings.get_solo()
     if not payment_settings.online_payment_enabled or not payment_settings.is_method_enabled(payment.method):
         raise PaymentRelaunchError("Ce moyen de paiement est actuellement désactivé (voir Réglages paiement).")
 
+    # Nouvelle tentative de paiement sur la même commande.
     new_payment = Payment.objects.create(order=order, method=payment.method, amount_xof=order.total_xof)
     try:
+        # Initie la nouvelle transaction FedaPay.
         start_fedapay_transaction(new_payment)
     except FedaPayError:
+        # Échec d'initiation : la nouvelle ligne est marquée en échec et signalée au backoffice.
         new_payment.status = Payment.Status.FAILED
         new_payment.save(update_fields=["status", "updated_at"])
         signal_payment_failure(new_payment)
         raise
+    # Envoi au client du nouveau lien de paiement.
     notify_payment_retry(new_payment)
     return new_payment
 
