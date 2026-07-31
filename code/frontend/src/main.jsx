@@ -29,7 +29,9 @@ if (import.meta.env.PROD && sentryDsn) {
     beforeSend(event) {
       if (event?.exception?.values?.[0]?.mechanism?.type === "auto.http.client.xhr") {
         const status = event?.contexts?.response?.status;
+        const url = event?.request?.url ?? "";
         if (status === 404) return null;
+        if (status === 401 && url.includes("/auth/me/")) return null;
       }
       return event;
     },
