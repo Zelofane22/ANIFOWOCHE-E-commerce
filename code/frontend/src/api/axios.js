@@ -15,6 +15,35 @@ const apiBaseURL = (() => {
 const apiClient = axios.create({ baseURL: apiBaseURL });
 const refreshClient = axios.create({ baseURL: apiBaseURL });
 
+export const AUTH_EXPIRED_EVENT = "anifowoche:auth-expired";
+
+let refreshPromise = null;
+
+const notifyAuthExpired = () => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+
+async function refreshAccessToken() {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+  if (!refreshPromise) {
+    refreshPromise = refreshClient
+      .post("/auth/token/refresh/", { refresh })
+      .then(({ data }) => {
+        setTokens({ access: data.access });
+        return data.access;
+      })
+      .catch((err) => {
+        console.warn("[auth] refresh token expired or invalid:", err?.response?.status ?? err?.message);
+        clearTokens();
+        notifyAuthExpired();
+        return null;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
@@ -27,17 +56,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config, response } = error;
-    if (response?.status === 401 && !config._retried && getRefreshToken()) {
+    if (response?.status === 401 && !config._retried) {
       config._retried = true;
-      try {
-        const { data } = await refreshClient.post("/auth/token/refresh/", {
-          refresh: getRefreshToken(),
-        });
-        setTokens({ access: data.access });
-        config.headers.Authorization = `Bearer ${data.access}`;
+      const access = await refreshAccessToken();
+      if (access) {
+        config.headers.Authorization = `Bearer ${access}`;
         return apiClient(config);
-      } catch {
-        clearTokens();
       }
     }
     return Promise.reject(error);

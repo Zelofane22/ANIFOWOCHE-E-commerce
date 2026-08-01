@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { useEffect, useState } from "react";
 import { fetchMe, loginUser, registerUser } from "../api/auth.js";
+import { AUTH_EXPIRED_EVENT } from "../api/axios.js";
 import { registerSeller as registerSellerApi } from "../api/seller.js";
 import { clearTokens, getAccessToken, setTokens } from "../utils/tokenStorage.js";
 import { AuthContextValue } from "./authContextValue.js";
@@ -22,8 +23,25 @@ export function AuthProvider({ children }) {
     if (!getAccessToken()) return;
     fetchMe()
       .then(applyUser)
-      .catch(() => clearTokens())
+      .catch(() => {
+        clearTokens();
+        setUser(null);
+        setSentryUser(null);
+      })
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    // Rafraîchissement impossible (refresh token invalide/expiré) : on remet
+    // l'état d'authentification à zéro pour ne pas rester « connecté » côté UI
+    // alors que tous les appels API renvoient désormais des 401.
+    const onAuthExpired = () => {
+      clearTokens();
+      setUser(null);
+      setSentryUser(null);
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
   }, []);
 
   const login = async (credentials) => {
