@@ -153,6 +153,9 @@ function ProductStatus({ product }) {
       </span>
     );
   }
+  if (product.made_to_order) {
+    return <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-bold text-green-700">Sur commande</span>;
+  }
   if ((product.stock ?? 0) <= 0) {
     return <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">Rupture</span>;
   }

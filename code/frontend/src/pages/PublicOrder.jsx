@@ -29,7 +29,7 @@ export default function PublicOrder() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchProducts({ stock__gt: 0, ordering: "-created_at" })
+    fetchProducts({ in_stock: "1", ordering: "-created_at" })
       .then((data) => setProducts((data.results ?? data).slice(0, 24)))
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoading(false));
@@ -67,7 +67,9 @@ export default function PublicOrder() {
   const updateQuantity = (productId, nextQuantity) => {
     setQuantities((current) => {
       const product = products.find((item) => item.id === productId);
-      const maxQuantity = product?.stock ?? Number.MAX_SAFE_INTEGER;
+      const maxQuantity = product?.made_to_order
+        ? Number.MAX_SAFE_INTEGER
+        : (product?.stock ?? Number.MAX_SAFE_INTEGER);
       const quantity = Math.min(maxQuantity, Math.max(0, Number(nextQuantity) || 0));
       if (quantity === 0) {
         const next = { ...current };
@@ -221,7 +223,7 @@ export default function PublicOrder() {
                           <input
                             type="number"
                             min="0"
-                            max={product.stock}
+                            max={product.made_to_order ? Number.MAX_SAFE_INTEGER : product.stock}
                             value={quantity}
                             onChange={(event) => updateQuantity(product.id, event.target.value)}
                             className="h-9 w-16 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand focus:outline-none"
@@ -235,7 +237,9 @@ export default function PublicOrder() {
                           >
                             +
                           </button>
-                          <span className="text-xs text-muted">Stock {product.stock}</span>
+                          <span className="text-xs text-muted">
+                            {product.made_to_order ? "Sur commande" : `Stock ${product.stock}`}
+                          </span>
                         </div>
                       </div>
                     </article>

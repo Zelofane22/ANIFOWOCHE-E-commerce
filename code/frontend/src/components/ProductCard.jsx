@@ -3,9 +3,11 @@ import { formatXof } from "../utils/format.js";
 import { optimizedImage } from "../utils/imageUrl.js";
 
 export default function ProductCard({ product }) {
+  const madeToOrder = Boolean(product.made_to_order);
   const stock = product.stock ?? 0;
-  const outOfStock = stock <= 0;
-  const lowStock = !outOfStock && stock <= 5;
+  const inStock = product.in_stock ?? (madeToOrder || stock > 0);
+  const outOfStock = !inStock;
+  const lowStock = !madeToOrder && !outOfStock && stock <= 5;
 
   return (
     <Link
@@ -30,13 +32,13 @@ export default function ProductCard({ product }) {
             {product.category.name}
           </span>
         )}
-        {(outOfStock || lowStock) && (
+        {(outOfStock || lowStock || madeToOrder) && (
           <span
             className={`absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm ${
-              outOfStock ? "bg-red-600" : "bg-amber-600"
+              outOfStock ? "bg-red-600" : madeToOrder ? "bg-green-600" : "bg-amber-600"
             }`}
           >
-            {outOfStock ? "Rupture" : `Plus que ${stock}`}
+            {outOfStock ? "Rupture" : madeToOrder ? "Sur commande" : `Plus que ${stock}`}
           </span>
         )}
         {product.discount_percent > 0 && (

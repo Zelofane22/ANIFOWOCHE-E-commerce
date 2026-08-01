@@ -46,7 +46,7 @@ class AccentInsensitiveSearchFilter(filters.SearchFilter):
 
 class ProductFilter(django_filters.FilterSet):
     """Filtres du catalogue public, dont « in_stock » qui inclut les produits sur commande."""
-    in_stock = django_filters.BooleanFilter(method="filter_in_stock")
+    in_stock = django_filters.CharFilter(method="filter_in_stock")
 
     class Meta:
         model = Product
@@ -59,6 +59,8 @@ class ProductFilter(django_filters.FilterSet):
 
     def filter_in_stock(self, queryset, name, value):
         # En stock : stock réel > 0 OU produit fabriqué à la commande (aucun stock).
-        if value:
+        if value.strip().lower() in ("1", "true", "yes", "on"):
             return queryset.filter(Q(stock__gt=0) | Q(made_to_order=True))
+        if value.strip().lower() in ("0", "false", "no", "off"):
+            return queryset.exclude(Q(stock__gt=0) | Q(made_to_order=True))
         return queryset

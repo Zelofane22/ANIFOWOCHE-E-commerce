@@ -74,7 +74,7 @@ export default function Catalogue() {
     if (unit) params.unit = unit;
     if (minPrice) params.price_xof__gte = minPrice;
     if (maxPrice) params.price_xof__lte = maxPrice;
-    if (inStockOnly) params.stock__gt = 0;
+    if (inStockOnly) params.in_stock = "1";
     if (sort) params.ordering = sort;
 
     fetchProducts(params)
