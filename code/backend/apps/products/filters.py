@@ -1,10 +1,45 @@
 import django_filters
-
 from django.contrib.postgres.lookups import Unaccent
 from django.db.models import Q
 from rest_framework import filters
 
 from .models import Product
+
+
+class ProductFilter(django_filters.FilterSet):
+    """Filtres du catalogue public, y compris le statut « en stock »."""
+
+    category__slug = django_filters.CharFilter(field_name="category__slug", lookup_expr="exact")
+    unit = django_filters.CharFilter(field_name="unit", lookup_expr="exact")
+    price_xof__gte = django_filters.NumberFilter(field_name="price_xof", lookup_expr="gte")
+    price_xof__lte = django_filters.NumberFilter(field_name="price_xof", lookup_expr="lte")
+    stock__gt = django_filters.NumberFilter(field_name="stock", lookup_expr="gt", method="filter_stock")
+    in_stock = django_filters.CharFilter(method="filter_in_stock")
+
+    class Meta:
+        model = Product
+        fields = [
+            "category__slug",
+            "unit",
+            "price_xof__gte",
+            "price_xof__lte",
+            "stock__gt",
+            "in_stock",
+        ]
+
+    def filter_stock(self, queryset, name, value):
+        return queryset.filter(Q(stock__gt=value) | Q(made_to_order=True))
+
+    def filter_in_stock(self, queryset, name, value):
+        normalized = (value or "").strip().lower()
+        if normalized in ("1", "true", "yes", "on"):
+            return queryset.filter(Q(stock__gt=0) | Q(made_to_order=True))
+        if normalized in ("0", "false", "no", "off"):
+            return queryset.exclude(Q(stock__gt=0) | Q(made_to_order=True))
+        return queryset
+
+
+ProductFilterSet = ProductFilter
 
 
 class AccentInsensitiveSearchFilter(filters.SearchFilter):

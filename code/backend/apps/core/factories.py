@@ -109,6 +109,7 @@ class ProductFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Product {n}")
     price_xof = 5000
     stock = 10
+    made_to_order = False
     is_active = True
 
     class Params:

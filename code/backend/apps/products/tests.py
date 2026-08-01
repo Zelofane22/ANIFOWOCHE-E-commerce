@@ -149,6 +149,21 @@ class ProductApiTests(APITestCase):
         slugs = [item["slug"] for item in response.data["results"]]
         self.assertEqual(slugs, ["pagne-wax"])
 
+    def test_in_stock_filter_includes_made_to_order_products(self):
+        ProductFactory(
+            category=self.category,
+            name="Crêpes",
+            slug="crepes",
+            price_xof=3000,
+            stock=0,
+            made_to_order=True,
+        )
+
+        response = self.client.get("/api/products/", {"stock__gt": 0})
+        slugs = [item["slug"] for item in response.data["results"]]
+
+        self.assertEqual(slugs, ["pagne-wax", "crepes"])
+
     def test_ordering_by_price(self):
         ProductFactory(
             category=self.category, name="Moins cher", slug="moins-cher", price_xof=1000, stock=5

@@ -65,7 +65,7 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0)
     made_to_order = models.BooleanField(
         default=False,
-        help_text="Produit fabriqué à la commande : pas de suivi de stock (ex. restauration).",
+        help_text="Produit fabriqué à la commande : il reste visible dans le filtre 'en stock' même si le stock est nul.",
     )
     colors = models.JSONField(
         default=list,
