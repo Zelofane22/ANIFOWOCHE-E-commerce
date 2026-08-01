@@ -193,7 +193,14 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
         "API_KEY": CLOUDINARY_API_KEY,
         "API_SECRET": CLOUDINARY_API_SECRET,
     }
-    STORAGES["default"] = {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"}
+    if DEBUG:
+        STORAGES["default"] = {
+            "BACKEND": "apps.core.storage.ReadOnlyCloudinaryStorage",
+        }
+    else:
+        STORAGES["default"] = {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -235,9 +242,6 @@ CORS_ALLOWED_ORIGINS = _append_origins(
     _normalize_origins(config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())),
     [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL],
 )
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://anifowoche-git-.*-zeloteam\.vercel\.app$",
-]
 CSRF_TRUSTED_ORIGINS = _append_origins(CSRF_TRUSTED_ORIGINS, [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL])
 
 # Notifications WhatsApp Business Cloud API (Meta). Valeurs placeholder tant

@@ -1,6 +1,10 @@
+import django_filters
+
 from django.contrib.postgres.lookups import Unaccent
 from django.db.models import Q
 from rest_framework import filters
+
+from .models import Product
 
 
 class AccentInsensitiveSearchFilter(filters.SearchFilter):
@@ -38,3 +42,25 @@ class AccentInsensitiveSearchFilter(filters.SearchFilter):
     def construct_search(self, field_name):
         # Lookup combinant unaccent et icontains pour une recherche sans accents.
         return f"{field_name}__unaccent__icontains"
+
+
+class ProductFilter(django_filters.FilterSet):
+    """Filtres du catalogue public, dont « in_stock » qui inclut les produits sur commande."""
+    in_stock = django_filters.CharFilter(method="filter_in_stock")
+
+    class Meta:
+        model = Product
+        fields = {
+            "category__slug": ["exact"],
+            "unit": ["exact"],
+            "price_xof": ["gte", "lte"],
+            "stock": ["gt"],
+        }
+
+    def filter_in_stock(self, queryset, name, value):
+        # En stock : stock réel > 0 OU produit fabriqué à la commande (aucun stock).
+        if value.strip().lower() in ("1", "true", "yes", "on"):
+            return queryset.filter(Q(stock__gt=0) | Q(made_to_order=True))
+        if value.strip().lower() in ("0", "false", "no", "off"):
+            return queryset.exclude(Q(stock__gt=0) | Q(made_to_order=True))
+        return queryset

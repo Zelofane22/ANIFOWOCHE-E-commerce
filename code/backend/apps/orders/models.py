@@ -62,6 +62,8 @@ class Order(models.Model):
         from django.utils import timezone
         # Restitution des stocks (global et par couleur) de chaque article.
         for item in self.items.all():
+            if item.product.made_to_order:
+                continue
             if item.color_name and item.product.colors:
                 colors = item.product.colors
                 for color in colors:

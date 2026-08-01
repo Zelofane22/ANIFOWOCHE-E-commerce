@@ -120,19 +120,21 @@ class OrderSerializer(serializers.ModelSerializer):
             )
             total += quantity * (unit_price + options_total)
 
-            # Décrémente le stock de la couleur choisie (si le produit a des couleurs).
-            if color_name and product.colors:
-                colors = product.colors
-                for color in colors:
-                    if color["name"] == color_name:
-                        color["stock"] = max(color.get("stock", 0) - quantity, 0)
-                        break
-                Product.objects.filter(pk=product.pk).update(colors=colors)
+            # Pas de suivi de stock pour les produits fabriqués à la commande.
+            if not product.made_to_order:
+                # Décrémente le stock de la couleur choisie (si le produit a des couleurs).
+                if color_name and product.colors:
+                    colors = product.colors
+                    for color in colors:
+                        if color["name"] == color_name:
+                            color["stock"] = max(color.get("stock", 0) - quantity, 0)
+                            break
+                    Product.objects.filter(pk=product.pk).update(colors=colors)
 
-            # Décrémente le stock global du produit.
-            Product.objects.filter(pk=product.pk).update(
-                stock=models.F("stock") - quantity
-            )
+                # Décrémente le stock global du produit.
+                Product.objects.filter(pk=product.pk).update(
+                    stock=models.F("stock") - quantity
+                )
 
         # Application de la remise coupon si un code valide a été fourni.
         discount = 0

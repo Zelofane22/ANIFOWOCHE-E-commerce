@@ -120,7 +120,9 @@ export default function PublicShop() {
             </div>
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleProducts.map((product) => (
+              {visibleProducts.map((product) => {
+                const inStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
+                return (
                 <Link
                   key={product.id}
                   to={`/${slug}/produits/${product.slug}`}
@@ -139,7 +141,7 @@ export default function PublicShop() {
                         {shop.name}
                       </div>
                     )}
-                    {product.stock <= 0 && (
+                    {!inStock && (
                       <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">
                         Rupture
                       </span>
@@ -156,7 +158,8 @@ export default function PublicShop() {
                     </span>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

@@ -69,7 +69,7 @@ export default function SellerProductDetail() {
                 {product.name?.[0] || "?"}
               </div>
             )}
-            {product.stock <= 0 && (
+            {!product.made_to_order && product.stock <= 0 && (
               <span className="absolute right-3 top-3 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
                 Rupture
               </span>
@@ -84,7 +84,7 @@ export default function SellerProductDetail() {
             )}
             <h1 className="mt-2 text-2xl font-bold text-ink">{product.name}</h1>
 
-            {product.stock > 0 && product.stock <= 10 && (
+            {!product.made_to_order && product.stock > 0 && product.stock <= 10 && (
               <p className="mt-2 text-sm font-medium text-amber-600">
                 Plus que {product.stock} en stock
               </p>

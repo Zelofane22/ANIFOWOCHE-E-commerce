@@ -91,7 +91,7 @@ Secret scanning et SCA couvrent le risque le plus concret à ce stade (clé API 
 - `config/settings.py` lit `DATABASE_URL` via `dj-database-url` si la variable est présente (cas Render), sinon retombe sur les variables `DB_*` discrètes (cas docker compose local) — aucune bascule manuelle nécessaire.
 - Déploiement automatique à chaque push sur `main`
 - Variables d'environnement à définir dans Render : `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `FRONTEND_BASE_URL`, clés API FedaPay/KkiaPay (`FEDAPAY_SECRET_KEY`, `FEDAPAY_WEBHOOK_SECRET`), variables Cloudinary et WhatsApp si activées. `DATABASE_URL`, `SECRET_KEY`, `RENDER` et `RENDER_EXTERNAL_HOSTNAME` sont générées ou injectées automatiquement par Render via le Blueprint.
-- **Base de données** : PostgreSQL Render `anifowoche-db`, déclaré dans [render.yaml](../render.yaml). Render injecte `DATABASE_URL` dans le service backend.
+- **Base de données** : PostgreSQL Render `anifowoche-db-v2`, déclaré dans [render.yaml](../render.yaml). Render injecte `DATABASE_URL` dans le service backend.
 - Détails opérationnels : [docs/render.md](render.md)
 
 ## CD — Frontend → Vercel

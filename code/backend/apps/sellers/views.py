@@ -154,7 +154,7 @@ class SellerDashboardView(APIView):
         )
 
         # Alertes de stock faible et dernières commandes reçues.
-        low_stock = seller_products.filter(stock__lte=LOW_STOCK_THRESHOLD).order_by("stock")[:5]
+        low_stock = seller_products.filter(stock__lte=LOW_STOCK_THRESHOLD).exclude(made_to_order=True).order_by("stock")[:5]
 
         recent_orders = seller_orders.prefetch_related("items__product").order_by("-created_at")[:5]
 

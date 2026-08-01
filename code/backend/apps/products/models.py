@@ -4,6 +4,10 @@ from django.utils.text import slugify
 from apps.sellers.models import SellerProfile, Shop
 
 
+# Catégories dont les produits sont fabriqués à la commande (aucun suivi de stock).
+MADE_TO_ORDER_CATEGORY_SLUGS = ("restauration",)
+
+
 class Category(models.Model):
     """Catégorie de produits (nom unique + slug pour les URL)."""
     name = models.CharField(max_length=100, unique=True)
@@ -59,6 +63,10 @@ class Product(models.Model):
     )
     size = models.CharField(max_length=10, choices=Size.choices, default=Size.UNIQUE)
     stock = models.PositiveIntegerField(default=0)
+    made_to_order = models.BooleanField(
+        default=False,
+        help_text="Produit fabriqué à la commande : pas de suivi de stock (ex. restauration).",
+    )
     colors = models.JSONField(
         default=list,
         blank=True,

@@ -4,7 +4,7 @@
 
 ## Vue d'ensemble
 
-La base PostgreSQL de production (`anifowoche-db`) est hébergée sur Render en plan **free**, qui ne
+La base PostgreSQL de production (`anifowoche-db-v2`) est hébergée sur Render en plan **free**, qui ne
 fournit **aucune sauvegarde automatique** (les backups quotidiens managés sont réservés aux plans
 payants). Deux dispositifs se complètent :
 
@@ -31,7 +31,7 @@ Tant que les secrets ne sont pas configurés, le workflow se termine en succès 
 
 | Secret | Valeur |
 |---|---|
-| `RENDER_DATABASE_URL` | **External Database URL** de `anifowoche-db` (dashboard Render → base → *Connect* → *External*). Attention : c'est bien l'URL *externe* — l'URL interne n'est joignable que depuis les services Render. |
+| `RENDER_DATABASE_URL` | **External Database URL** de `anifowoche-db-v2` (dashboard Render → base → *Connect* → *External*). Attention : c'est bien l'URL *externe* — l'URL interne n'est joignable que depuis les services Render. |
 | `BACKUP_PASSPHRASE` | Passphrase longue et aléatoire (ex. `openssl rand -base64 32`). **À conserver dans un gestionnaire de mots de passe** : sans elle, les sauvegardes sont indéchiffrables. |
 
 ## Restaurer une sauvegarde

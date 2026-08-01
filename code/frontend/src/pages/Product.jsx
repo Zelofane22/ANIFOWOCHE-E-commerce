@@ -69,8 +69,10 @@ function ProductView({ slug }) {
   if (error) return <p className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
+  const productInStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
+
   const handleAddToCart = () => {
-    if (product.stock <= 0) return;
+    if (!productInStock) return;
     const selectedColorData = selectedColor
       ? product.colors.find((c) => c.name === selectedColor)
       : null;
@@ -191,11 +193,19 @@ function ProductView({ slug }) {
   const selectedColorData = selectedColor
     ? product.colors?.find((c) => c.name === selectedColor)
     : null;
+  const madeToOrder = Boolean(product.made_to_order);
   const stock = selectedColorData ? (selectedColorData.stock ?? 0) : (product.stock ?? 0);
-  const outOfStock = stock <= 0;
-  const lowStock = !outOfStock && stock <= 5;
-  const stockLabel = outOfStock ? "Rupture de stock" : lowStock ? `Plus que ${stock} en stock` : "En stock";
-  const stockColorClass = outOfStock ? "text-red-700" : lowStock ? "text-amber-700" : "text-green-700";
+  const inStock = madeToOrder || (product.in_stock ?? stock > 0);
+  const outOfStock = !inStock;
+  const lowStock = !madeToOrder && !outOfStock && stock <= 5;
+  const stockLabel = outOfStock
+    ? "Rupture de stock"
+    : madeToOrder
+      ? "Sur commande — fait maison"
+      : lowStock
+        ? `Plus que ${stock} en stock`
+        : "En stock";
+  const stockColorClass = outOfStock ? "text-red-700" : madeToOrder ? "text-brand" : lowStock ? "text-amber-700" : "text-green-700";
 
   const productDescription =
     product.description?.trim() || `${product.name} — ${badge ?? "ANIFOWOCHE"}, livraison à Cotonou.`;
@@ -477,7 +487,7 @@ function ProductView({ slug }) {
               <QuantityStepper
                 quantity={quantity}
                 onChange={setQuantity}
-                max={stock}
+                max={madeToOrder ? Infinity : stock}
                 className="w-full justify-between sm:w-auto sm:justify-start"
               />
             </div>
@@ -493,7 +503,7 @@ function ProductView({ slug }) {
           {!unit && (
             <div className="mt-5">
               <p className="mb-2 text-sm font-semibold text-ink">Quantité</p>
-              <QuantityStepper quantity={quantity} onChange={setQuantity} max={stock} />
+              <QuantityStepper quantity={quantity} onChange={setQuantity} max={madeToOrder ? Infinity : stock} />
             </div>
           )}
 
@@ -637,7 +647,7 @@ function ProductView({ slug }) {
             </div>
             <div className="mt-5">
               <p className="mb-2 text-sm font-semibold">Quantité</p>
-              <QuantityStepper quantity={quantity} onChange={setQuantity} max={stock} className="w-full justify-between" />
+              <QuantityStepper quantity={quantity} onChange={setQuantity} max={madeToOrder ? Infinity : stock} className="w-full justify-between" />
             </div>
             <button
               type="button"

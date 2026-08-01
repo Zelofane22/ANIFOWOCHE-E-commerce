@@ -176,6 +176,52 @@ class ProductApiTests(APITestCase):
         response = self.client.get("/api/products/pagne-wax/")
         self.assertEqual(response.data["images"], [])
 
+    def test_regular_product_reports_stock_availability(self):
+        response = self.client.get("/api/products/pagne-wax/")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["made_to_order"])
+        self.assertTrue(response.data["in_stock"])
+
+        ruptured = ProductFactory(
+            category=self.category, name="Rupture", slug="rupture", price_xof=2000, stock=0
+        )
+        response_ruptured = self.client.get(f"/api/products/{ruptured.slug}/")
+        self.assertFalse(response_ruptured.data["in_stock"])
+
+    def test_made_to_order_product_is_in_stock_with_zero_stock(self):
+        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        dish = ProductFactory(
+            category=restauration,
+            name="Crêpes au miel",
+            slug="crepes-au-miel",
+            price_xof=1500,
+            stock=0,
+            made_to_order=True,
+        )
+        response = self.client.get(f"/api/products/{dish.slug}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["made_to_order"])
+        self.assertTrue(response.data["in_stock"])
+
+    def test_in_stock_filter_includes_made_to_order_products(self):
+        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        ProductFactory(
+            category=restauration,
+            name="Crêpes",
+            slug="crepes",
+            price_xof=1500,
+            stock=0,
+            made_to_order=True,
+        )
+        ProductFactory(
+            category=self.category, name="Rupture", slug="rupture", price_xof=2000, stock=0
+        )
+        response = self.client.get("/api/products/", {"in_stock": "1"})
+        slugs = [item["slug"] for item in response.data["results"]]
+        self.assertIn("crepes", slugs)
+        self.assertIn("pagne-wax", slugs)
+        self.assertNotIn("rupture", slugs)
+
 
 class SellerProductApiTests(APITestCase):
     def setUp(self):
@@ -345,6 +391,31 @@ class SellerProductApiTests(APITestCase):
 
         delete_response = self.client.delete(f"/api/seller/products/{product.slug}/images/{image_id}/")
         self.assertEqual(delete_response.status_code, 204)
+
+    def test_seller_restauration_product_is_auto_made_to_order(self):
+        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        response = self.client.post(
+            "/api/seller/products/",
+            {
+                "name": "Crêpes vendeur",
+                "description": "Fait maison",
+                "price_xof": 2500,
+                "stock": 0,
+                "category_id": restauration.id,
+                "unit": "piece",
+                "size": "UNIQUE",
+                "is_active": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        from .models import Product
+
+        product = Product.objects.get(slug="crepes-vendeur")
+        self.assertTrue(product.made_to_order)
+        self.assertTrue(response.data["made_to_order"])
+        self.assertTrue(response.data["in_stock"])
 
 
 from django.test import TestCase
