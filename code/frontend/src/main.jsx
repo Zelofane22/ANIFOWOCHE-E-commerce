@@ -31,7 +31,9 @@ if (import.meta.env.PROD && sentryDsn) {
         const status = event?.contexts?.response?.status_code ?? event?.contexts?.response?.status;
         const url = event?.request?.url ?? "";
         if (status === 404) return null;
-        if (status === 401 && (url.includes("/auth/me/") || url.includes("/auth/token/refresh/"))) return null;
+        if (status === 401 && (url.includes("/auth/me/") || url.includes("/auth/token/"))) return null;
+        const method = (event?.request?.method ?? "").toUpperCase();
+        if (status === 400 && (url.includes("/register/") || (url.includes("/seller/") && ["POST", "PATCH", "DELETE"].includes(method)))) return null;
       }
       return event;
     },

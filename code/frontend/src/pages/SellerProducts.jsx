@@ -495,6 +495,7 @@ function ProductOptionManager({ slug }) {
               <div className="grid flex-1 gap-2 sm:grid-cols-4">
                 <input
                   type="text"
+                  maxLength={100}
                   value={group.name}
                   onChange={(e) => handleUpdateGroup(group.id, { name: e.target.value })}
                   className={groupInput}
@@ -547,6 +548,7 @@ function ProductOptionManager({ slug }) {
                   <div key={opt.id} className="flex items-center gap-2 rounded-md bg-white px-2.5 py-1.5">
                     <input
                       type="text"
+                      maxLength={100}
                       value={opt.name}
                       onChange={(e) => handleUpdateOption(group.id, opt.id, { name: e.target.value })}
                       className="min-w-0 flex-1 rounded border border-black/15 px-2 py-1 text-xs outline-none focus:border-brand"
