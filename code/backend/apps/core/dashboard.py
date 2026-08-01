@@ -118,7 +118,7 @@ def dashboard_callback(request, context):
             "recent_orders": Order.objects.order_by("-created_at")[:5],
             "top_products": list(top_products),
             "low_stock_products": Product.objects.filter(
-                is_active=True, stock__lte=LOW_STOCK_THRESHOLD
+                is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False
             ).order_by("stock")[:5],
             "recent_payments": Payment.objects.select_related("order").order_by("-created_at")[:5],
             "period_days": PERIOD_DAYS,

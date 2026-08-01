@@ -3,7 +3,7 @@ from django.db.models.functions import Now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
-from .filters import AccentInsensitiveSearchFilter
+from .filters import AccentInsensitiveSearchFilter, ProductFilter
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -70,13 +70,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend, AccentInsensitiveSearchFilter, filters.OrderingFilter]
-    # Filtres exposés à l'API (catégorie, unité, fourchette de prix, stock).
-    filterset_fields = {
-        "category__slug": ["exact"],
-        "unit": ["exact"],
-        "price_xof": ["gte", "lte"],
-        "stock": ["gt"],
-    }
+    # Filtres exposés à l'API (catégorie, unité, fourchette de prix, stock, en stock).
+    filterset_class = ProductFilter
     search_fields = ["name", "description"]
     ordering_fields = ["price_xof", "created_at"]
 

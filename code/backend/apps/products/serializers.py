@@ -2,7 +2,14 @@ from rest_framework import serializers
 
 from apps.sellers.models import Shop
 
-from .models import Category, Option, OptionGroup, Product, ProductImage
+from .models import (
+    MADE_TO_ORDER_CATEGORY_SLUGS,
+    Category,
+    Option,
+    OptionGroup,
+    Product,
+    ProductImage,
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -86,6 +93,8 @@ class ProductSerializer(serializers.ModelSerializer):
     review_count = serializers.IntegerField(read_only=True, default=0)
     discount_percent = serializers.IntegerField(read_only=True, allow_null=True, default=None)
     discounted_price_xof = serializers.SerializerMethodField()
+    made_to_order = serializers.BooleanField(read_only=True)
+    in_stock = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
     option_groups = OptionGroupSerializer(many=True, read_only=True)
 
@@ -103,6 +112,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "unit",
             "size",
             "stock",
+            "made_to_order",
+            "in_stock",
             "colors",
             "image",
             "images",
@@ -131,13 +142,17 @@ class ProductSerializer(serializers.ModelSerializer):
             return None
         return round(product.price_xof * (100 - percent) / 100)
 
+    def get_in_stock(self, product):
+        # Disponible si le produit est fabriqué à la commande (aucun stock) ou s'il reste du stock.
+        return bool(product.made_to_order or product.stock > 0)
+
 
 class SellerProductSerializer(ProductSerializer):
     """Sérialiseur côté vendeur : ajoute la liaison boutique et la protection d'appartenance."""
     shop_id = serializers.PrimaryKeyRelatedField(source="shop", queryset=Shop.objects.all(), write_only=True, required=False)
 
     class Meta(ProductSerializer.Meta):
-        read_only_fields = ["slug", "created_at", "updated_at"]
+        read_only_fields = ["slug", "made_to_order", "created_at", "updated_at"]
 
     def validate(self, attrs):
         # Interdit de rattacher le produit à une boutique qui n'appartient pas au vendeur.
@@ -145,6 +160,12 @@ class SellerProductSerializer(ProductSerializer):
         seller = self.context.get("seller")
         if shop and seller and shop.seller != seller:
             raise serializers.ValidationError({"shop_id": "Ce shop ne vous appartient pas."})
+        # Les produits de catégorie « sur commande » (ex. restauration) n'ont pas de stock.
+        category = attrs.get("category")
+        if category is None and self.instance:
+            category = self.instance.category
+        if category and category.slug in MADE_TO_ORDER_CATEGORY_SLUGS:
+            attrs["made_to_order"] = True
         return attrs
 
     def create(self, validated_data):

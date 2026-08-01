@@ -159,6 +159,58 @@ class OrderApiTests(APITestCase):
         self.assertEqual(Order.objects.count(), 0)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_ordering_made_to_order_product_does_not_decrement_stock(self, mock_post):
+        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        dish = ProductFactory(
+            category=restauration,
+            name="Crêpes",
+            slug="crepes",
+            price_xof=1500,
+            stock=0,
+            made_to_order=True,
+        )
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": dish.id, "quantity": 3}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        dish.refresh_from_db()
+        self.assertEqual(dish.stock, 0)
+
+    def test_ordering_physical_product_decrements_stock(self):
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": self.product.id, "quantity": 3}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 7)
+
+    def test_cancelling_made_to_order_order_does_not_restore_stock(self):
+        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        dish = ProductFactory(
+            category=restauration,
+            name="Crêpes",
+            slug="crepes",
+            price_xof=1500,
+            stock=0,
+            made_to_order=True,
+        )
+        order = OrderFactory(customer=self.regular_user)
+        order.items.create(product=dish, quantity=2, unit_price_xof=1500)
+        order.cancel("Annulation test")
+        dish.refresh_from_db()
+        self.assertEqual(dish.stock, 0)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_order_without_coupon_has_zero_discount(self, mock_post):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
