@@ -12,13 +12,14 @@ Error: ImportError: cannot import name 'notify_payment_retry'
 - Root cause: apps/payments/services.py:8 imports notify_payment_retry but it doesn't exist in apps/notifications/services.py
 - Fix:
 ✅ DONE — `notify_payment_retry` implémenté dans apps/notifications/services.py (commit 0f712b5, US-34) et déployé en prod le 2026-07-31. Import résolu, 0 événement Sentry sur 14 jours. Issue PYTHON-DJANGO-9 marquée resolved.
-🟠 HIGH: Frontend Dynamic Module Loading Failures (3 issues, 4 events)
+🟠 HIGH: Frontend Dynamic Module Loading Failures (3 issues, 4 events)  ✅
 Error: TypeError: Failed to fetch dynamically imported module
 - Root cause: Vite code-splitting generates new chunk hashes on each deploy. Browser caches old HTML but requests old chunk files that no longer exist on CDN.
 - Fix:
 1. Ensure index.html is NOT cached (add Cache-Control: no-cache for HTML)
 2. Verify Vercel serves static assets with long-term cache (Cache-Control: public, max-age=31536000, immutable)
 3. Consider adding service worker with stale-while-revalidate for graceful fallback
+✅ DONE — headers Cache-Control ajoutés dans vercel.json : `/assets/*` → `public, max-age=31536000, immutable` (était `max-age=14400, must-revalidate`), `/sw.js` et HTML (SPA + index.html) → `no-cache`. Service worker (public/sw.js, v2) : stale-while-revalidate sur /assets/ avec fallback vers le cache si la réponse réseau n'est pas 2xx (chunk devenu 404 → ancien chunk servi au lieu d'un crash), mise à jour de la copie cache uniquement sur réponse ok. Fallback JS ajouté dans main.jsx : sur `Failed to fetch dynamically imported module` / `Importing a module script failed` → reload automatique une seule fois (flag sessionStorage) pour récupérer le HTML frais et les nouveaux chunks. À déployer en prod pour vérifier 0 événement Sentry sur 24h, puis marquer les issues resolved.
 🟡 MEDIUM: Authentication 401 Errors (2 issues, 22 events)  ✅
 Error: HTTP Client Error with status code: 401 on /api/auth/me/
 - Root cause: JWT access token expired, refresh token flow failing, or token not sent
@@ -31,7 +32,7 @@ Error: HTTP Client Error with status code: 401 on /api/auth/me/
 📋 Implementation Priority Order
 1. Database URL fix (blocks all backend functionality)  ✅
 2. Missing import fix (breaks payment flow)  ✅
-3. Frontend caching/config (affects all users on new deploys)
+3. Frontend caching/config (affects all users on new deploys)  ✅
 4. Auth token refresh (improves UX, reduces 401s)  ✅
 5. Remaining HTTP errors (case-by-case)
 

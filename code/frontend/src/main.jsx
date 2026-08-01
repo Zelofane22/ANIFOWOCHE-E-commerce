@@ -38,6 +38,38 @@ if (import.meta.env.PROD && sentryDsn) {
   });
 }
 
+if (import.meta.env.PROD) {
+  const CHUNK_RELOAD_KEY = "anifowoche:chunk-reload";
+
+  const CHUNK_ERROR_PATTERNS = [
+    "Failed to fetch dynamically imported module",
+    "Error loading dynamically imported module",
+    "Importing a module script failed",
+  ];
+
+  function isChunkError(message) {
+    return CHUNK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+  }
+
+  function reloadOnceOnChunkError() {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY)) return;
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+    window.location.reload();
+  }
+
+  window.addEventListener("error", (event) => {
+    if (isChunkError(event.message || event.reason?.message || "")) {
+      reloadOnceOnChunkError();
+    }
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    if (isChunkError(event.reason?.message || "")) {
+      reloadOnceOnChunkError();
+    }
+  });
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
