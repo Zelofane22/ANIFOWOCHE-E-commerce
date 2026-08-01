@@ -14,7 +14,7 @@ Le backend est prêt pour un déploiement Render via le Blueprint [render.yaml](
 - Runtime : Python
 - Build command : `./build.sh`
 - Start command : `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT`
-- Base de données : PostgreSQL Render `anifowoche-db`
+- Base de données : PostgreSQL Render `anifowoche-db-v2`
 
 Le script [code/backend/build.sh](../code/backend/build.sh) installe les dépendances, collecte les fichiers statiques et applique les migrations.
 
