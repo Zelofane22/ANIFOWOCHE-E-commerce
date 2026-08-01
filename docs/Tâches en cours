@@ -1,25 +1,43 @@
-# Amélioration du script de test backend — Tâches en cours
+Action Plan: Resolve Sentry Unresolved Issues
+Based on analysis of 13 unresolved issues (62 total events), here are the root causes and fixes:
+🔴 CRITICAL: Database Connection Failures (5 issues, 33 events)
+Error: OperationalError: failed to resolve host 'dpg-d92gj728qa3s73dcdccg-a'
+- Root cause: Django settings reference old Render PostgreSQL hostname (dpg-d92gj728qa3s73dcdccg-a) but current DB is dpg-d9mg3tlaeets739v2nl0-a. Also, Render free tier DB spins down after inactivity.
+- Fix:
+1. Update DATABASE_URL in Render backend env vars to current DB connection string
+2. Add CONN_MAX_AGE = 60 and CONN_HEALTH_CHECKS = True in Django settings for connection persistence
+3. Consider upgrading DB plan from free to starter to prevent spin-down
+🔴 CRITICAL: Missing Import in payments/services.py (1 issue, 2 events)  ✅
+Error: ImportError: cannot import name 'notify_payment_retry'
+- Root cause: apps/payments/services.py:8 imports notify_payment_retry but it doesn't exist in apps/notifications/services.py
+- Fix:
+✅ DONE — `notify_payment_retry` implémenté dans apps/notifications/services.py (commit 0f712b5, US-34) et déployé en prod le 2026-07-31. Import résolu, 0 événement Sentry sur 14 jours. Issue PYTHON-DJANGO-9 marquée resolved.
+🟠 HIGH: Frontend Dynamic Module Loading Failures (3 issues, 4 events)
+Error: TypeError: Failed to fetch dynamically imported module
+- Root cause: Vite code-splitting generates new chunk hashes on each deploy. Browser caches old HTML but requests old chunk files that no longer exist on CDN.
+- Fix:
+1. Ensure index.html is NOT cached (add Cache-Control: no-cache for HTML)
+2. Verify Vercel serves static assets with long-term cache (Cache-Control: public, max-age=31536000, immutable)
+3. Consider adding service worker with stale-while-revalidate for graceful fallback
+🟡 MEDIUM: Authentication 401 Errors (2 issues, 22 events)  ✅
+Error: HTTP Client Error with status code: 401 on /api/auth/me/
+- Root cause: JWT access token expired, refresh token flow failing, or token not sent
+- Fix:
+✅ DONE — refresh token déjà géré mais interceptor amélioré : single-flight (une seule requête refresh concurrente), log console.warn en cas d'échec, et event `AUTH_EXPIRED_EVENT` dispatché pour que AuthContext réinitialise l'état (le user restait « connecté » côté UI après échec de refresh). Filter Sentry beforeSend corrigé : lisait `contexts.response.status` au lieu de `status_code` → les 401 sur /auth/me/ et /auth/token/refresh/ sont désormais bien filtrés. Auth = Bearer en localStorage (pas de cookies) → AUTH_COOKIE_* non applicables.
+🟢 LOW: Other HTTP Errors
+- 400 on /register: Validate request payload, add better error messages
+- 500 on /seller/dashboard: Check server logs, likely unhandled exception
 
-## Statut global
+📋 Implementation Priority Order
+1. Database URL fix (blocks all backend functionality)  ✅
+2. Missing import fix (breaks payment flow)  ✅
+3. Frontend caching/config (affects all users on new deploys)
+4. Auth token refresh (improves UX, reduces 401s)  ✅
+5. Remaining HTTP errors (case-by-case)
 
-| Étape | Statut |
-|-------|--------|
-| Ajout `factory-boy` | ✅ Terminé |
-| Création de `apps/core/factories.py` (27 factories) | ✅ Terminé |
-| Création de `conftest.py` (fixtures pytest) | ✅ Terminé |
-| Refactoring des 14 fichiers de tests | ✅ Terminé |
-| Vérification (272/272 tests OK) | ✅ Terminé |
-| Migration vers pytest + pytest-django + pytest-cov | ✅ Terminé |
-| Ajout coverage.py en CI avec seuil 80% | ✅ Terminé |
-| Ajout des tests de l'app `analytics` | ✅ Terminé |
-| Ajout des tests unitaires modèles | ✅ Terminé |
-| Ajout des tests serializers isolés | ✅ Terminé |
-| Ajout des tests admin (12 apps) | ✅ Terminé |
-| Ajout `pytest-xdist` pour exécution parallèle | ✅ Terminé |
-| Mise à jour AGENTS.md (272 tests) | ✅ Terminé |
-
----
-
-## Tâches restantes
-
-Aucune — toutes les tâches de la feuille de route ont été complétées.
+✅ Verification Steps
+After each fix:
+- Deploy to staging/preview
+- Trigger the affected endpoints
+- Confirm no new Sentry events for 24h
+- Mark Sentry issues as resolved
