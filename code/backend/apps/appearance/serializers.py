@@ -13,9 +13,6 @@ class SiteThemeSerializer(serializers.ModelSerializer):
         fields = [
             "site_name",
             "logo",
-            "hero_eyebrow",
-            "hero_title",
-            "hero_subtitle",
             "trust_arguments",
             "colors",
         ]
