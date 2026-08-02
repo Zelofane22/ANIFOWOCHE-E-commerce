@@ -24,7 +24,6 @@ class SiteThemeAdmin(ModelAdmin):
                 )
             },
         ),
-        ("Héro", {"fields": ("hero_eyebrow", "hero_title", "hero_subtitle")}),
         ("Confiance", {"fields": ("trust_arguments",)}),
     )
 
@@ -37,7 +36,7 @@ class SiteThemeAdmin(ModelAdmin):
 
 @admin.register(HomeSection)
 class HomeSectionAdmin(ModelAdmin):
-    """Les 4 sections d'accueil sont prédéfinies : l'admin ne fait que les
+    """Les 3 sections d'accueil sont prédéfinies : l'admin ne fait que les
     activer/désactiver et les ordonner (ni ajout ni suppression)."""
 
     list_display = ["section_type", "is_enabled", "order"]

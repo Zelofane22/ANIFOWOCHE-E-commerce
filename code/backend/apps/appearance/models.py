@@ -5,10 +5,9 @@ class SiteTheme(models.Model):
     """Réglages d'apparence du site (CMS d'apparence, US-50/US-51) — singleton
     (une seule ligne, toujours pk=1).
 
-    Regroupe l'identité de la boutique (nom, logo), la palette de couleurs de la
-    marque et les textes de la section héro de la page d'accueil. Le frontend
-    récupère ces valeurs via /api/site-config/ pour habiller l'interface sans
-    redéploiement."""
+    Regroupe l'identité de la boutique (nom, logo) et la palette de couleurs de
+    la marque. Le frontend récupère ces valeurs via /api/site-config/ pour
+    habiller l'interface sans redéploiement."""
 
     site_name = models.CharField(max_length=100, default="ANIFOWOCHE")
     logo = models.ImageField(upload_to="appearance/", blank=True, null=True)
@@ -37,17 +36,6 @@ class SiteTheme(models.Model):
         max_length=7,
         default="#fffaf0",
         help_text="Variante très pâle de la couleur de marque, au format hex #rrggbb.",
-    )
-
-    hero_eyebrow = models.CharField(max_length=100, blank=True, default="Collection Cotonou")
-    hero_title = models.CharField(max_length=200, blank=True, default="Tissus, vêtements & accessoires")
-    hero_subtitle = models.CharField(
-        max_length=500,
-        blank=True,
-        default=(
-            "Des pièces sélectionnées pour le quotidien, les cérémonies et les "
-            "sorties, avec paiement mobile money et livraison à domicile sur Cotonou."
-        ),
     )
 
     trust_arguments = models.JSONField(
@@ -87,11 +75,10 @@ class HomeSection(models.Model):
     """Section prédéfinie et pilotable de la page d'accueil (US-53).
 
     L'admin ne crée ni ne supprime de sections : il active/désactive et
-    ordonne les 4 sections prédéfinies. ensure_defaults() garantit leur
+    ordonne les 3 sections prédéfinies. ensure_defaults() garantit leur
     présence."""
 
     class SectionType(models.TextChoices):
-        HERO = "hero", "Héro / carrousel"
         TRUST = "trust", "Arguments de confiance"
         CATEGORIES = "categories", "Catégories"
         FEATURED = "featured", "Produits mis en avant"
@@ -111,10 +98,9 @@ class HomeSection(models.Model):
 
     @classmethod
     def ensure_defaults(cls):
-        """Crée les 4 sections prédéfinies si elles sont absentes, dans l'ordre
-        hero, trust, categories, featured (order 0..3)."""
+        """Crée les 3 sections prédéfinies si elles sont absentes, dans l'ordre
+        trust, categories, featured (order 0..2)."""
         defaults_order = [
-            cls.SectionType.HERO,
             cls.SectionType.TRUST,
             cls.SectionType.CATEGORIES,
             cls.SectionType.FEATURED,

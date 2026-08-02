@@ -19,14 +19,13 @@ class SiteThemeSingletonTests(TestCase):
 
 
 class HomeSectionDefaultsTests(TestCase):
-    def test_ensure_defaults_creates_four_ordered_sections(self):
+    def test_ensure_defaults_creates_three_ordered_sections(self):
         HomeSection.ensure_defaults()
         sections = list(HomeSection.objects.all())
-        self.assertEqual(len(sections), 4)
+        self.assertEqual(len(sections), 3)
         self.assertEqual(
             [s.section_type for s in sections],
             [
-                HomeSection.SectionType.HERO,
                 HomeSection.SectionType.TRUST,
                 HomeSection.SectionType.CATEGORIES,
                 HomeSection.SectionType.FEATURED,
@@ -36,7 +35,7 @@ class HomeSectionDefaultsTests(TestCase):
     def test_ensure_defaults_is_idempotent(self):
         HomeSection.ensure_defaults()
         HomeSection.ensure_defaults()
-        self.assertEqual(HomeSection.objects.count(), 4)
+        self.assertEqual(HomeSection.objects.count(), 3)
 
 
 class AppearanceAdminTests(TestCase):
