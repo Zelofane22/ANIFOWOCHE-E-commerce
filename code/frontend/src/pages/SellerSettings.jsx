@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { fetchDeliveryZones } from "../api/delivery.js";
 import { getSellerProfile, updateSellerProfile } from "../api/seller.js";
 import { CheckIcon } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
@@ -22,6 +23,7 @@ export default function SellerSettings() {
   const navigate = useNavigate();
   const { loading, isAuthenticated } = useAuth();
   const [seller, setSeller] = useState(null);
+  const [deliveryZones, setDeliveryZones] = useState([]);
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -33,8 +35,9 @@ export default function SellerSettings() {
       navigate("/login", { replace: true });
       return;
     }
-    getSellerProfile()
-      .then((data) => {
+    Promise.all([getSellerProfile(), fetchDeliveryZones()])
+      .then(([data, zonesData]) => {
+        setDeliveryZones(zonesData.results ?? zonesData);
         setSeller(data);
         setForm({
           display_name: data.display_name,
@@ -46,6 +49,7 @@ export default function SellerSettings() {
             whatsapp_phone: data.shop.whatsapp_phone,
             city: data.shop.city || "",
             description: data.shop.description || "",
+            delivery_zone_ids: (data.shop.delivery_zones || []).map((zone) => zone.id),
             is_published: data.shop.is_published,
           },
         });
@@ -56,6 +60,12 @@ export default function SellerSettings() {
   }, [isAuthenticated, loading, navigate]);
 
   const updateShop = (patch) => setForm((current) => ({ ...current, shop: { ...current.shop, ...patch } }));
+
+  const toggleDeliveryZone = (zoneId) => {
+    const selected = form.shop.delivery_zone_ids || [];
+    const next = selected.includes(zoneId) ? selected.filter((id) => id !== zoneId) : [...selected, zoneId];
+    updateShop({ delivery_zone_ids: next });
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -136,6 +146,19 @@ export default function SellerSettings() {
                 onChange={(e) => updateShop({ description: e.target.value })}
               />
             </Field>
+          </div>
+          <div className="mt-5 rounded-lg border border-black/10 bg-gray-50 p-4">
+            <h3 className="text-sm font-bold text-ink">Zones de livraison couvertes</h3>
+            <p className="mt-1 text-xs text-muted">Les clients verront ces zones sur votre vitrine.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {deliveryZones.map((zone) => (
+                <label key={zone.id} className="flex items-center gap-2 text-sm text-ink">
+                  <input type="checkbox" checked={(form.shop.delivery_zone_ids || []).includes(zone.id)} onChange={() => toggleDeliveryZone(zone.id)} className="h-4 w-4 accent-brand" />
+                  <span>{zone.name}</span>
+                </label>
+              ))}
+            </div>
+            {deliveryZones.length === 0 && <p className="mt-2 text-xs text-muted">Aucune zone active configurée.</p>}
           </div>
         </section>
 

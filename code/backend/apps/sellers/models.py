@@ -33,6 +33,7 @@ class Shop(models.Model):
     whatsapp_phone = models.CharField(max_length=30)
     city = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
+    delivery_zones = models.ManyToManyField("delivery.DeliveryZone", blank=True, related_name="shops")
     is_published = models.BooleanField(default=True)
     visible_on_main_store = models.BooleanField(
         default=True,

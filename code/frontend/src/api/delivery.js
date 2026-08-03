@@ -8,3 +8,6 @@ export const fetchDeliverySlots = () =>
 
 export const createDelivery = (payload) =>
   apiClient.post("/delivery/", payload).then((res) => res.data);
+
+export const geolocateZone = (payload) =>
+  apiClient.post("/delivery/geolocate/", payload).then((res) => res.data);

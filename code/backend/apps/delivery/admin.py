@@ -7,7 +7,7 @@ from .models import Delivery, DeliverySlot, DeliveryZone
 
 @admin.register(DeliveryZone)
 class DeliveryZoneAdmin(ModelAdmin):
-    list_display = ["name", "fee_xof", "is_active"]
+    list_display = ["name", "fee_xof", "latitude", "longitude", "radius_km", "is_active"]
     list_filter = ["is_active"]
 
 

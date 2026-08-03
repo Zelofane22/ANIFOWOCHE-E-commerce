@@ -8,6 +8,14 @@ class DeliveryZone(models.Model):
 
     name = models.CharField(max_length=100, unique=True)
     fee_xof = models.PositiveIntegerField(default=0, help_text="Frais de livraison en XOF")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    radius_km = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=3,
+        help_text="Rayon couvert autour du point central, en kilomètres",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

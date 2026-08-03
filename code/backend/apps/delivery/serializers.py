@@ -5,12 +5,17 @@ from apps.orders.models import Order
 from .models import Delivery, DeliverySlot, DeliveryZone
 
 
+class GeolocateZoneSerializer(serializers.Serializer):
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+
+
 class DeliveryZoneSerializer(serializers.ModelSerializer):
     """Sérialise une zone de livraison avec ses frais."""
 
     class Meta:
         model = DeliveryZone
-        fields = ["id", "name", "fee_xof", "is_active"]
+        fields = ["id", "name", "fee_xof", "latitude", "longitude", "radius_km", "is_active"]
 
 
 class DeliverySlotSerializer(serializers.ModelSerializer):

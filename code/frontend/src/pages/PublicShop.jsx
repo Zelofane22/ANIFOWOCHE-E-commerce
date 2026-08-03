@@ -70,6 +70,18 @@ export default function PublicShop() {
           <p className="text-sm font-semibold text-brand-dark">Boutique publique</p>
           <h2 className="mt-2 text-2xl font-bold text-ink">{shop.name}</h2>
           {shop.description && <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{shop.description}</p>}
+          {shop.delivery_zones?.length > 0 && (
+            <div className="mt-5 border-t border-black/10 pt-4">
+              <h3 className="text-sm font-bold text-ink">Zones de livraison couvertes</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {shop.delivery_zones.map((zone) => (
+                  <span key={zone.id} className="rounded-full bg-brand-pale px-3 py-1.5 text-xs font-semibold text-brand-dark">
+                    {zone.name} · {formatXof(zone.fee_xof)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
         <section className="mt-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
