@@ -8,5 +8,6 @@ router.register("zones", DeliveryZoneViewSet, basename="delivery-zone")
 router.register("slots", DeliverySlotViewSet, basename="delivery-slot")
 router.register("", DeliveryViewSet, basename="delivery")
 
-urlpatterns = router.urls
-urlpatterns += [path("geolocate/", GeolocateZoneView.as_view(), name="delivery-geolocate")]
+urlpatterns = [
+    path("geolocate/", GeolocateZoneView.as_view(), name="delivery-geolocate"),
+] + router.urls
