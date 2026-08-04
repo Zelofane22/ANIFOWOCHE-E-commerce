@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from apps.core.factories import CategoryFactory, CouponFactory, OrderFactory, ProductFactory, UserFactory
+from apps.core.factories import CategoryFactory, CouponFactory, DeliveryZoneFactory, OrderFactory, ProductFactory, UserFactory
 from apps.core.models import StoreSettings
 
 from .models import Order
@@ -50,6 +50,23 @@ class OrderApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Order.objects.count(), 1)
         self.assertIsNone(Order.objects.get().customer)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_create_order_with_delivery_zone_adds_fee(self, mock_post):
+        zone = DeliveryZoneFactory(name="Zone Commande Test", fee_xof=500)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+22990000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": self.product.id, "quantity": 2}],
+            "delivery_zone_id": zone.id,
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["total_xof"], 4500)
+        self.assertEqual(response.data["delivery_zone"]["id"], zone.id)
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_zone_id, zone.id)
 
     def test_create_order_blocked_during_maintenance_mode(self):
         StoreSettings.objects.update_or_create(pk=1, defaults={"maintenance_mode": True})

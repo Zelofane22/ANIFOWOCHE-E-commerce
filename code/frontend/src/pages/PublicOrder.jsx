@@ -5,7 +5,7 @@ import { fetchProducts } from "../api/products.js";
 import Seo from "../components/Seo.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 
 const INITIAL_FORM = {
   fullName: "",
@@ -193,8 +193,8 @@ export default function PublicOrder() {
                     >
                       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-brand-pale">
                         {product.image ? (
-                          <img
-                            src={optimizedImage(product.image, 180)}
+                          <ProductImage
+                            src={product.image}
                             alt={product.name}
                             className="h-full w-full object-cover"
                             loading="lazy"

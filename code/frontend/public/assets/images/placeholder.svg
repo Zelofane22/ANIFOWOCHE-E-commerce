@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Image indisponible">
+  <rect width="400" height="400" fill="#f6efe7"/>
+  <g fill="none" stroke="#b38b5a" stroke-width="5" opacity="0.7">
+    <rect x="120" y="120" width="160" height="160" rx="8"/>
+    <circle cx="235" cy="165" r="18"/>
+    <path d="M120 270 L170 220 L205 250 L245 205 L280 235"/>
+  </g>
+  <text x="200" y="320" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" fill="#b38b5a" text-anchor="middle" font-weight="600">ANIFOWOCHE</text>
+</svg>

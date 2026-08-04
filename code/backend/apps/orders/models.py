@@ -29,6 +29,14 @@ class Order(models.Model):
     city = models.CharField(max_length=100, default="Cotonou")
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    delivery_zone = models.ForeignKey(
+        "delivery.DeliveryZone",
+        on_delete=models.SET_NULL,
+        related_name="orders",
+        null=True,
+        blank=True,
+        verbose_name="zone de livraison",
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.RECEIVED)
     coupon_code = models.CharField(max_length=30, blank=True, default="")
     discount_xof = models.PositiveIntegerField(default=0)

@@ -34,7 +34,7 @@ import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 
 const CATEGORY_FIELD_CONFIG = {
   restauration: { stock: false, unit: false, size: false, colors: false },
@@ -283,8 +283,8 @@ function ProductGallery({ slug, colors }) {
           {sorted.map((img, index) => (
             <div key={img.id} className="group relative overflow-hidden rounded-lg border border-black/10 bg-brand-pale">
               <div className="aspect-square">
-                <img
-                  src={optimizedImage(img.image, 300)}
+                <ProductImage
+                  src={img.image}
                   alt={img.alt_text || ""}
                   className="h-full w-full object-cover"
                 />
@@ -759,8 +759,8 @@ export default function SellerProducts() {
               <div className="flex items-center gap-3">
                 <div className="flex aspect-square w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-black/10 bg-brand-pale text-brand-dark">
                   {form.imagePreview ? (
-                    <img
-                      src={optimizedImage(form.imagePreview, 180)}
+                    <ProductImage
+                      src={form.imagePreview}
                       alt=""
                       className="h-full w-full object-cover"
                     />
@@ -955,8 +955,8 @@ export default function SellerProducts() {
                 <article key={product.id} className="grid gap-4 py-4 sm:grid-cols-[82px_1fr_auto] sm:items-center">
                   <div className="aspect-square w-20 overflow-hidden rounded-lg bg-brand-pale">
                     {product.image ? (
-                      <img
-                        src={optimizedImage(product.image, 180)}
+                      <ProductImage
+                        src={product.image}
                         alt={product.name}
                         className="h-full w-full object-cover"
                       />

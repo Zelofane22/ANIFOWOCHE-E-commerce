@@ -10,6 +10,7 @@ import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 import { absoluteUrl } from "../utils/siteUrl.js";
 
 export default function Product() {
@@ -266,7 +267,7 @@ function ProductView({ slug }) {
               aria-label="Image produit sélectionnée"
             >
               {currentImage ? (
-                <img src={optimizedImage(currentImage.image, 120)} alt="" className="h-full w-full object-cover" />
+                <ProductImage src={currentImage.image} alt="" className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-brand-dark">
                   ANI
@@ -278,7 +279,7 @@ function ProductView({ slug }) {
           <div className="min-w-0 flex-1">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-pale">
               {currentImage ? (
-                <img src={optimizedImage(currentImage.image, 800)} alt={product.name} className="h-full w-full object-cover" />
+                <ProductImage src={currentImage.image} alt={product.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-lg font-bold text-brand-dark">
                   ANIFOWOCHE

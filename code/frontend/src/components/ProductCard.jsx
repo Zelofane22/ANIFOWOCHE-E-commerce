@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { formatXof } from "../utils/format.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "./ProductImage.jsx";
 
 export default function ProductCard({ product }) {
   const madeToOrder = Boolean(product.made_to_order);
@@ -16,8 +16,8 @@ export default function ProductCard({ product }) {
     >
       <div className="relative aspect-square w-full overflow-hidden bg-brand-pale">
         {product.image ? (
-          <img
-            src={optimizedImage(product.image, 400)}
+          <ProductImage
+            src={product.image}
             alt={product.name}
             loading="lazy"
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
