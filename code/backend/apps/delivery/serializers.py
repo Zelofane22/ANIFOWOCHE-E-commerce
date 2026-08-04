@@ -6,8 +6,8 @@ from .models import Delivery, DeliverySlot, DeliveryZone
 
 
 class GeolocateZoneSerializer(serializers.Serializer):
-    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
-    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    latitude = serializers.DecimalField(max_digits=12, decimal_places=6)
+    longitude = serializers.DecimalField(max_digits=12, decimal_places=6)
 
 
 class DeliveryZoneSerializer(serializers.ModelSerializer):

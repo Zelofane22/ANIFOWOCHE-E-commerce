@@ -118,7 +118,7 @@ export default function Checkout() {
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
       async ({ coords: position }) => {
-        const nextCoordinates = { latitude: position.latitude, longitude: position.longitude };
+        const nextCoordinates = { latitude: parseFloat(position.latitude.toFixed(6)), longitude: parseFloat(position.longitude.toFixed(6)) };
         setCoordinates(nextCoordinates);
         try {
           const result = await geolocateZone(nextCoordinates);
