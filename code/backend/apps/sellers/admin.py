@@ -15,3 +15,4 @@ class ShopAdmin(admin.ModelAdmin):
     list_filter = ["is_published", "visible_on_main_store", "city"]
     search_fields = ["name", "slug", "whatsapp_phone"]
     prepopulated_fields = {"slug": ("name",)}
+    filter_horizontal = ["delivery_zones"]

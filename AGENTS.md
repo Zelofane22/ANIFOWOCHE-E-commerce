@@ -94,7 +94,8 @@ Après toute tâche sur un worktree :
 
 ## Modèle et effort
 
-Avant d'exécuter une tâche, identifier le modèle adapté. Sortie : `Model : <nom> | Effort : <niveau>`. Attendre confirmation avant d'exécuter.
+Avant d'exécuter une tâche, identifier le modèle (disponible dans la liste des models opencode go) adapté. 
+Sortie : `Model : <nom> | Effort : <niveau>`. Attendre confirmation avant d'exécuter.
 
 ### Multi-agents
 Utiliser le mode multi-agents pour les grosses tâches full-stack.

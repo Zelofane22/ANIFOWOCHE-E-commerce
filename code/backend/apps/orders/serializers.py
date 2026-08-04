@@ -52,6 +52,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "email",
             "address",
             "city",
+            "latitude",
+            "longitude",
             "status",
             "coupon_code",
             "discount_xof",

@@ -9,4 +9,7 @@ class PageViewCreateView(CreateAPIView):
     """Enregistre anonymement une vue de page (tracking frontend, accès public)."""
     queryset = PageView.objects.all()
     serializer_class = PageViewSerializer
+    # Pas d'authentification : un token JWT expire dans le header Authorization
+    # ne doit pas faire echouer le tracking anonyme avec un 401.
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]

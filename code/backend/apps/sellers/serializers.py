@@ -6,6 +6,8 @@ from django.db import transaction
 from django.db.models import Prefetch, Q
 from rest_framework import serializers
 
+from apps.delivery.models import DeliveryZone
+from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.notifications.services import notify_order_cancellation
 from apps.orders.models import Order
 from apps.users.backends import normalize_phone
@@ -25,6 +27,14 @@ def seller_frontend_base_url():
 
 class ShopSerializer(serializers.ModelSerializer):
     """Sérialise une boutique, avec son lien public complet."""
+    delivery_zones = DeliveryZoneSerializer(many=True, read_only=True)
+    delivery_zone_ids = serializers.PrimaryKeyRelatedField(
+        source="delivery_zones",
+        queryset=DeliveryZone.objects.filter(is_active=True),
+        many=True,
+        required=False,
+        write_only=True,
+    )
     public_path = serializers.CharField(read_only=True)
     public_url = serializers.SerializerMethodField()
 
@@ -37,6 +47,8 @@ class ShopSerializer(serializers.ModelSerializer):
             "whatsapp_phone",
             "city",
             "description",
+            "delivery_zones",
+            "delivery_zone_ids",
             "is_published",
             "public_path",
             "public_url",
@@ -85,9 +97,12 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         shop_data = validated_data.pop("shop", None)
         instance = super().update(instance, validated_data)
         if shop_data:
+            delivery_zones = shop_data.pop("delivery_zones", None)
             shop_serializer = ShopSerializer(instance.shop, data=shop_data, partial=True)
             shop_serializer.is_valid(raise_exception=True)
             shop_serializer.save()
+            if delivery_zones is not None:
+                instance.shop.delivery_zones.set(delivery_zones)
         return instance
 
 
@@ -207,12 +222,13 @@ class SellerDashboardSerializer(serializers.Serializer):
 
 class PublicShopSerializer(serializers.ModelSerializer):
     """Sérialise la vitrine publique d'une boutique avec ses produits."""
+    delivery_zones = DeliveryZoneSerializer(many=True, read_only=True)
     public_path = serializers.CharField(read_only=True)
     products = serializers.SerializerMethodField()
 
     class Meta:
         model = Shop
-        fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "public_path", "products"]
+        fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "delivery_zones", "public_path", "products"]
 
     def get_products(self, shop):
         # Produits actifs de la boutique (ou du vendeur), avec images, triés par mise à jour.

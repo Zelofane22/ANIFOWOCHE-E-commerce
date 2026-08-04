@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
-import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
+import { createDelivery, fetchDeliverySlots, fetchDeliveryZones, geolocateZone } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
 import { initiatePayment } from "../api/payments.js";
 import { fetchStoreStatus } from "../api/store.js";
@@ -36,12 +36,16 @@ export default function Checkout() {
   const [slots, setSlots] = useState([]);
   const [zoneId, setZoneId] = useState(null);
   const [slotId, setSlotId] = useState(null);
+  const [coordinates, setCoordinates] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState(null);
   const [loadingDeliveryOptions, setLoadingDeliveryOptions] = useState(true);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [step, setStep] = useState(1);
 
   const [fullName, setFullName] = useState(user?.username ?? "");
   const [notes, setNotes] = useState("");
+  const [addressLine, setAddressLine] = useState("");
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].value);
   const [submitting, setSubmitting] = useState(false);
@@ -103,6 +107,35 @@ export default function Checkout() {
     setPhone(address.phone);
     setFullName(address.full_name);
     setNotes(address.notes);
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("La geolocalisation n est pas disponible sur cet appareil.");
+      return;
+    }
+    setLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords: position }) => {
+        const nextCoordinates = { latitude: position.latitude, longitude: position.longitude };
+        setCoordinates(nextCoordinates);
+        try {
+          const result = await geolocateZone(nextCoordinates);
+          if (result.zone) setZoneId(result.zone.id);
+          else setLocationError("Aucune zone ne couvre cette position. Selectionnez une zone manuellement.");
+        } catch (err) {
+          setLocationError(extractErrorMessage(err));
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setLocationError("Position inaccessible. Autorisez la geolocalisation ou selectionnez une zone manuellement.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
   };
 
   if (authLoading || !isAuthenticated) {
@@ -189,7 +222,7 @@ export default function Checkout() {
 
     const zone = selectedZone;
     const slot = selectedSlot;
-    const address = `${zone.name} — créneau : ${slot.label}${notes.trim() ? ` — ${notes.trim()}` : ""}`;
+    const address = [zone.name, addressLine.trim(), "créneau : " + slot.label, notes.trim()].filter(Boolean).join(" — ");
 
     try {
       const order = await createOrder({
@@ -198,6 +231,7 @@ export default function Checkout() {
         email: user?.email ?? "",
         address,
         city: "Cotonou",
+        ...(coordinates ?? {}),
         coupon_code: appliedCoupon?.code ?? "",
         items: items.map((item) => ({
           product_id: item.id,
@@ -337,6 +371,25 @@ export default function Checkout() {
                     </select>
                   )}
                 </label>
+
+                <label className="block text-sm font-semibold text-ink">
+                  Adresse ou repère
+                  <input type="text" value={addressLine} onChange={(event) => setAddressLine(event.target.value)} placeholder="Rue, maison, repère proche..." className={inputClass} />
+                </label>
+
+                <div className="rounded-lg border border-brand/20 bg-brand-pale px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">Localiser l’adresse</p>
+                      <p className="mt-1 text-xs text-muted">La position servira à confirmer la zone de livraison.</p>
+                    </div>
+                    <button type="button" onClick={handleUseLocation} disabled={locating} className="rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60">
+                      {locating ? "Localisation..." : "Utiliser ma position"}
+                    </button>
+                  </div>
+                  {coordinates && <p className="mt-2 text-xs text-green-700">Position enregistrée : {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}</p>}
+                  {locationError && <p className="mt-2 text-xs text-red-600">{locationError}</p>}
+                </div>
 
                 <label className="block text-sm font-semibold text-ink">
                   Indications complémentaires
