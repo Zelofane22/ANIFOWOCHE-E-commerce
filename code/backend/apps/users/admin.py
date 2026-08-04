@@ -63,6 +63,8 @@ class ClientAdmin(BaseUserAdmin, ModelAdmin):
     )
     readonly_fields = ["last_login", "date_joined"]
     actions = [send_welcome_email]
+    date_hierarchy = "date_joined"
+    ordering = ["-date_joined"]
 
     def get_inlines(self, request, obj=None):
         # Pas d'inlines sur le formulaire d'ajout : l'utilisateur n'existe

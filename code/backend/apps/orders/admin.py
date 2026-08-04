@@ -17,4 +17,6 @@ class OrderAdmin(ModelAdmin):
     list_filter = ["status", "city"]
     search_fields = ["full_name", "phone", "email"]
     readonly_fields = ["reference"]
+    date_hierarchy = "created_at"
+    ordering = ["-created_at"]
     inlines = [OrderItemInline]

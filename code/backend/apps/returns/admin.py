@@ -10,3 +10,4 @@ class ReturnRequestAdmin(ModelAdmin):
     list_display = ["id", "order", "status", "refund_amount_xof", "created_at"]
     list_filter = ["status"]
     search_fields = ["order__full_name"]
+    ordering = ["-created_at"]

@@ -10,6 +10,7 @@ class PageViewAdmin(ModelAdmin):
     list_display = ["path", "referrer", "session_key", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["path", "session_key"]
+    date_hierarchy = "created_at"
 
     def has_add_permission(self, request):
         return False

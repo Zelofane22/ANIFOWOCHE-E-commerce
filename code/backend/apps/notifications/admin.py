@@ -33,6 +33,7 @@ class NotificationAdmin(ModelAdmin):
     search_fields = ["recipient_phone", "recipient_email"]
     readonly_fields = ["provider_message_id", "error_detail"]
     actions = [resend_notifications]
+    ordering = ["-created_at"]
 
 
 @admin.register(NotificationSettings)

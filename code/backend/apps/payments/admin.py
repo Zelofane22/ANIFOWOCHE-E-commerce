@@ -44,6 +44,8 @@ class PaymentAdmin(ModelAdmin):
     search_fields = ["order__full_name", "fedapay_transaction_id"]
     readonly_fields = ["last_webhook_payload"]
     actions = [relaunch_payments]
+    date_hierarchy = "created_at"
+    ordering = ["-created_at"]
 
 
 @admin.register(PaymentSettings)
