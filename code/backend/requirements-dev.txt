@@ -8,7 +8,7 @@
 pyngrok>=8.1.2
 
 # Factories pour les tests (remplace les setUp() manuels)
-factory-boy>=3.3
+factory-boy>=3.3.3
 
 # Test runner + coverage
 pytest>=8.0
