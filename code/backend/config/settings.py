@@ -285,6 +285,13 @@ def _pending_setting_requests_badge(request):
     return count or None
 
 
+def _pending_payments_badge(request):
+    from apps.payments.models import Payment
+
+    count = Payment.objects.filter(status=Payment.Status.PENDING).count()
+    return count or None
+
+
 UNFOLD = {
     "SITE_TITLE": "ANIFOWOCHE Admin",
     "SITE_HEADER": "ANIFOWOCHE",
@@ -343,6 +350,7 @@ UNFOLD = {
                         "title": "Paiements",
                         "icon": "payments",
                         "link": reverse_lazy("admin:payments_payment_changelist"),
+                        "badge": _pending_payments_badge,
                     },
                     {
                         "title": "Livraisons",

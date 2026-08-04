@@ -9,6 +9,7 @@ from .models import Category, Option, OptionGroup, Product, ProductImage
 class CategoryAdmin(ModelAdmin):
     list_display = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
+    ordering = ["name"]
 
 
 class ProductImageInline(TabularInline):
