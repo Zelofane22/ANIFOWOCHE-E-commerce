@@ -24,7 +24,7 @@ class DeliveryApiTests(APITestCase):
         self.zone = DeliveryZoneFactory(name="Zone Test", fee_xof=500)
         self.slot = DeliverySlotFactory(label="Créneau Test", start_time="08:00", end_time="12:00")
         self.order = OrderFactory(
-            full_name="Client", phone="+22990000000", email="client@example.com", address="Akpakpa", total_xof=1000
+            full_name="Client", phone="+2290190000000", email="client@example.com", address="Akpakpa", total_xof=1000
         )
         self.staff_user = UserFactory(username="admin", is_staff=True)
 

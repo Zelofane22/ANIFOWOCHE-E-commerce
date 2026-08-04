@@ -1,6 +1,7 @@
 /**
  * Normalise un numéro WhatsApp pour wa.me en s'assurant qu'il contient
  * l'indicatif pays (229 par défaut pour le Bénin).
+ * Le numéro béninois doit commencer par 01 (10 chiffres).
  * @param {string} phone
  * @returns {string}
  */
@@ -19,9 +20,10 @@ export function formatWhatsappPhone(phone) {
     return digits;
   }
 
-  // Numéro local béninois 10 chiffres commençant par 0 : 01 XX XX XX XX.
-  if (digits.length === 10 && digits.startsWith("0")) {
-    return `229${digits.slice(1)}`;
+  // Numéro local béninois 10 chiffres commençant par 01 : 01 XX XX XX XX.
+  // On garde le 0 pour former 22901XXXXXXXX.
+  if (digits.length === 10 && digits.startsWith("01")) {
+    return `229${digits}`;
   }
 
   // Numéro court sans indicatif : on ajoute 229.

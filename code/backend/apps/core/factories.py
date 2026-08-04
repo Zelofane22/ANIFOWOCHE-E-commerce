@@ -83,7 +83,7 @@ class SellerProfileFactory(factory.django.DjangoModelFactory):
 
     user = factory.SubFactory(UserFactory)
     display_name = factory.Sequence(lambda n: f"Seller {n}")
-    phone = factory.Sequence(lambda n: f"+2299000000{n:02d}")
+    phone = factory.Sequence(lambda n: f"+229019000000{n:02d}")
 
 
 class ShopFactory(factory.django.DjangoModelFactory):
@@ -94,7 +94,7 @@ class ShopFactory(factory.django.DjangoModelFactory):
 
     seller = factory.SubFactory(SellerProfileFactory)
     name = factory.Sequence(lambda n: f"Shop {n}")
-    whatsapp_phone = factory.Sequence(lambda n: f"+2299000000{n:02d}")
+    whatsapp_phone = factory.Sequence(lambda n: f"+229019000000{n:02d}")
 
 
 class ProductFactory(factory.django.DjangoModelFactory):
@@ -156,7 +156,7 @@ class OrderFactory(factory.django.DjangoModelFactory):
 
     customer = None
     full_name = "Client"
-    phone = "+22990000000"
+    phone = "+2290190000000"
     address = "Cotonou"
     total_xof = 0
     status = Order.Status.RECEIVED

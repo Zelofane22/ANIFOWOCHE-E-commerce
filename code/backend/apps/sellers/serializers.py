@@ -10,7 +10,7 @@ from apps.delivery.models import DeliveryZone
 from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.notifications.services import notify_order_cancellation
 from apps.orders.models import Order
-from apps.users.backends import normalize_phone
+from apps.users.backends import validate_benin_phone
 from apps.users.serializers import UserSerializer
 from apps.products.models import Product, ProductImage
 from apps.products.serializers import ProductSerializer
@@ -75,8 +75,8 @@ class ShopSerializer(serializers.ModelSerializer):
         return slug
 
     def validate_whatsapp_phone(self, value):
-        # Normalise le numéro WhatsApp au format international.
-        return normalize_phone(value) if value else value
+        # Normalise et valide le numéro WhatsApp au format +22901XXXXXXXX.
+        return validate_benin_phone(value)
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):
@@ -89,8 +89,8 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "plan"]
 
     def validate_phone(self, value):
-        # Normalise le numéro de téléphone au format international.
-        return normalize_phone(value) if value else value
+        # Normalise et valide le numéro de téléphone au format +22901XXXXXXXX.
+        return validate_benin_phone(value)
 
     def update(self, instance, validated_data):
         # Mise à jour du profil puis de la boutique imbriquée (si fournie).
@@ -175,8 +175,8 @@ class SellerRegisterSerializer(serializers.Serializer):
         return value
 
     def validate_phone(self, value):
-        # Normalise le numéro de téléphone au format international.
-        return normalize_phone(value)
+        # Normalise et valide le numéro de téléphone au format +22901XXXXXXXX.
+        return validate_benin_phone(value)
 
     def validate_shop_slug(self, value):
         # Slug de boutique normalisé et unique.

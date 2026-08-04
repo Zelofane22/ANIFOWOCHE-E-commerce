@@ -97,10 +97,10 @@ class AuthApiTests(APITestCase):
         user = UserFactory(username="loginphone")
         user.set_password("SuperSecret123!")
         user.save()
-        ProfileFactory(user=user, phone="+22991112233")
+        ProfileFactory(user=user, phone="+2290191112233")
         login_response = self.client.post(
             "/api/auth/token/",
-            {"username": "+22991112233", "password": "SuperSecret123!"},
+            {"username": "+2290191112233", "password": "SuperSecret123!"},
             format="json",
         )
         self.assertEqual(login_response.status_code, 200)
@@ -109,7 +109,7 @@ class AuthApiTests(APITestCase):
         user = UserFactory(username="loginphone2")
         user.set_password("SuperSecret123!")
         user.save()
-        ProfileFactory(user=user, phone="+22991112233")
+        ProfileFactory(user=user, phone="+2290191112233")
         login_response = self.client.post(
             "/api/auth/token/",
             {"username": "+229 91 11 22 33", "password": "SuperSecret123!"},
@@ -167,16 +167,16 @@ class AuthApiTests(APITestCase):
             "email": "avecpref@example.com",
             "password": "SuperSecret123!",
             "password2": "SuperSecret123!",
-            "phone": "+22991112233",
+            "phone": "+2290191112233",
             "notification_channel": "email",
         }
         response = self.client.post("/api/auth/register/", payload, format="json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["user"]["notification_channel"], "email")
-        self.assertEqual(response.data["user"]["phone"], "+22991112233")
+        self.assertEqual(response.data["user"]["phone"], "+2290191112233")
         profile = Profile.objects.get(user__username="avecpref")
         self.assertEqual(profile.notification_channel, Profile.NotificationChannel.EMAIL)
-        self.assertEqual(profile.phone, "+22991112233")
+        self.assertEqual(profile.phone, "+2290191112233")
 
     @mock.patch("apps.users.views.ResendClient.send_email", return_value="resend-reset-id")
     def test_password_reset_request_sends_link_without_exposing_account_lookup(self, mock_send_email):

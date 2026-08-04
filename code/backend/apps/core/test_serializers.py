@@ -23,7 +23,7 @@ class OrderSerializerValidationTests(TestCase):
     def test_empty_items_rejected(self):
         serializer = OrderSerializer(data={
             "full_name": "Test",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Cotonou",
             "items": [],
         })
@@ -33,7 +33,7 @@ class OrderSerializerValidationTests(TestCase):
     def test_valid_order_data(self):
         serializer = OrderSerializer(data={
             "full_name": "Jean",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Cotonou",
             "items": [{"product_id": self.product.pk, "quantity": 1}],
         })
@@ -41,7 +41,7 @@ class OrderSerializerValidationTests(TestCase):
 
     def test_missing_full_name(self):
         serializer = OrderSerializer(data={
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Cotonou",
             "items": [{"product_id": self.product.pk, "quantity": 1}],
         })
@@ -61,7 +61,7 @@ class OrderSerializerValidationTests(TestCase):
         coupon = CouponFactory(code="TEST10", is_active=True, max_uses=5)
         serializer = OrderSerializer(data={
             "full_name": "Jean",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Cotonou",
             "items": [{"product_id": self.product.pk, "quantity": 1}],
             "coupon_code": "TEST10",
@@ -71,7 +71,7 @@ class OrderSerializerValidationTests(TestCase):
     def test_invalid_coupon_code(self):
         serializer = OrderSerializer(data={
             "full_name": "Jean",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Cotonou",
             "items": [{"product_id": self.product.pk, "quantity": 1}],
             "coupon_code": "NONEXISTENT",
@@ -82,7 +82,7 @@ class OrderSerializerValidationTests(TestCase):
     def test_blank_coupon_code_is_valid(self):
         serializer = OrderSerializer(data={
             "full_name": "Jean",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Cotonou",
             "items": [{"product_id": self.product.pk, "quantity": 1}],
             "coupon_code": "",
@@ -139,7 +139,7 @@ class SellerRegisterSerializerTests(TestCase):
             "password": "Str0ngP@ss!",
             "password2": "Str0ngP@ss!",
             "display_name": "Mon Shop",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "shop_name": "Boutique Tissus",
         }
         data.update(overrides)

@@ -35,7 +35,7 @@ User = get_user_model()
 class NotificationServiceTests(TestCase):
     def setUp(self):
         self.order = OrderFactory(
-            full_name="Client", phone="+22990000000", email="client@example.com",
+            full_name="Client", phone="+2290190000000", email="client@example.com",
             address="Cotonou", total_xof=1000,
         )
 
@@ -96,7 +96,7 @@ class NotificationServiceTests(TestCase):
         user = UserFactory(username="emailfan", email="fan@example.com")
         ProfileFactory(user=user, notification_channel=Profile.NotificationChannel.EMAIL)
         order = OrderFactory(
-            customer=user, full_name="Fan", phone="+22990000001", email="fan@example.com",
+            customer=user, full_name="Fan", phone="+2290190000001", email="fan@example.com",
             address="Cotonou", total_xof=2000,
         )
 
@@ -118,7 +118,7 @@ class NotificationServiceTests(TestCase):
         user = UserFactory(username="noemail")
         ProfileFactory(user=user, notification_channel=Profile.NotificationChannel.EMAIL)
         order = OrderFactory(
-            customer=user, full_name="Sans Email", phone="+22990000002", address="Cotonou", total_xof=1500
+            customer=user, full_name="Sans Email", phone="+2290190000002", address="Cotonou", total_xof=1500
         )
 
         notification = notify_order_confirmation(order)
@@ -130,10 +130,10 @@ class NotificationServiceTests(TestCase):
         NotificationSettings.objects.update_or_create(pk=1, defaults={"whatsapp_enabled": True})
         user = UserFactory(username="whatsappfan")
         ProfileFactory(
-            user=user, phone="+22990000009", notification_channel=Profile.NotificationChannel.WHATSAPP
+            user=user, phone="+2290190000009", notification_channel=Profile.NotificationChannel.WHATSAPP
         )
         order = OrderFactory(
-            customer=user, full_name="Fan WhatsApp", phone="+22990000009", email="fan@example.com",
+            customer=user, full_name="Fan WhatsApp", phone="+2290190000009", email="fan@example.com",
             address="Cotonou", total_xof=1800,
         )
 
@@ -151,10 +151,10 @@ class NotificationServiceTests(TestCase):
         NotificationSettings.objects.update_or_create(pk=1, defaults={"sms_enabled": True})
         user = UserFactory(username="smsfan")
         ProfileFactory(
-            user=user, phone="+22990000010", notification_channel=Profile.NotificationChannel.SMS
+            user=user, phone="+2290190000010", notification_channel=Profile.NotificationChannel.SMS
         )
         order = OrderFactory(
-            customer=user, full_name="Fan SMS", phone="+22990000010", address="Cotonou", total_xof=1200
+            customer=user, full_name="Fan SMS", phone="+2290190000010", address="Cotonou", total_xof=1200
         )
 
         notification = notify_order_confirmation(order)
@@ -166,7 +166,7 @@ class NotificationServiceTests(TestCase):
 
     def test_notify_account_created_defaults_to_email(self):
         user = UserFactory(username="newuser", email="new@example.com")
-        ProfileFactory(user=user, phone="+22990000003")
+        ProfileFactory(user=user, phone="+2290190000003")
 
         response = mock.Mock()
         response.raise_for_status.return_value = None

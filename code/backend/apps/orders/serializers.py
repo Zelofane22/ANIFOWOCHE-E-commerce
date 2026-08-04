@@ -7,6 +7,7 @@ from apps.products.models import Product
 from apps.delivery.models import DeliveryZone
 from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.promotions.models import Coupon
+from apps.users.backends import validate_benin_phone
 
 from .models import Order, OrderItem
 
@@ -98,12 +99,16 @@ class OrderSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Code coupon invalide ou expiré.")
         return code
 
+    def validate_phone(self, value):
+        # Normalise et valide le numéro de téléphone au format +22901XXXXXXXX.
+        return validate_benin_phone(value)
+
     def create(self, validated_data):
         # Extraction des articles et du code coupon hors des champs de la commande.
         items_data = validated_data.pop("items")
         coupon_code = validated_data.pop("coupon_code", "") or ""
         delivery_zone = validated_data.pop("delivery_zone", None)
-        # Rattachage au client s'il est authentifié.
+        # Rattachement au client s'il est authentifié.
         request = self.context.get("request")
         customer = request.user if request and request.user.is_authenticated else None
 

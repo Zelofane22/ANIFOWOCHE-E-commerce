@@ -25,10 +25,10 @@ class ReturnRequestApiTests(APITestCase):
         self.staff_user = UserFactory(username="admin", is_staff=True)
 
         self.order = OrderFactory(
-            customer=self.owner, full_name="Owner", phone="+22990000000", address="Fidjrossè", total_xof=2000
+            customer=self.owner, full_name="Owner", phone="+2290190000000", address="Fidjrossè", total_xof=2000
         )
         self.other_order = OrderFactory(
-            customer=self.other_user, full_name="Other", phone="+22990000001", address="Akpakpa", total_xof=2000
+            customer=self.other_user, full_name="Other", phone="+2290190000001", address="Akpakpa", total_xof=2000
         )
 
     def test_owner_can_request_return_for_own_order(self):
