@@ -417,6 +417,22 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "Vendeurs",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Profils vendeurs",
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:sellers_sellerprofile_changelist"),
+                    },
+                    {
+                        "title": "Boutiques",
+                        "icon": "store",
+                        "link": reverse_lazy("admin:sellers_shop_changelist"),
+                    },
+                ],
+            },
+            {
                 "title": "Communication",
                 "separator": True,
                 "items": [
