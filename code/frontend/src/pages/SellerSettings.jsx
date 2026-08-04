@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { getSellerProfile, updateSellerProfile } from "../api/seller.js";
@@ -28,6 +28,7 @@ export default function SellerSettings() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const slugEditedRef = useRef(false);
 
   useEffect(() => {
     if (loading) return;
@@ -121,10 +122,37 @@ export default function SellerSettings() {
           <h2 className="mt-8 text-lg font-bold text-ink">Boutique publique</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Nom de boutique">
-              <input className={inputClass} required value={form.shop.name} onChange={(e) => updateShop({ name: e.target.value })} />
+              <input
+                className={inputClass}
+                required
+                value={form.shop.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  if (!slugEditedRef.current) {
+                    const generatedSlug = name
+                      .toLowerCase()
+                      .normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "")
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, "")
+                      .substring(0, 150) || "boutique";
+                    updateShop({ name, slug: generatedSlug });
+                  } else {
+                    updateShop({ name });
+                  }
+                }}
+              />
             </Field>
             <Field label="Slug">
-              <input className={inputClass} required value={form.shop.slug} onChange={(e) => updateShop({ slug: e.target.value })} />
+              <input
+                className={inputClass}
+                required
+                value={form.shop.slug}
+                onChange={(e) => {
+                  slugEditedRef.current = true;
+                  updateShop({ slug: e.target.value });
+                }}
+              />
             </Field>
             <Field label="WhatsApp boutique">
               <input

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://anifowoche.com/sitemap.xml
+Sitemap: https://localhost:5173/sitemap.xml
