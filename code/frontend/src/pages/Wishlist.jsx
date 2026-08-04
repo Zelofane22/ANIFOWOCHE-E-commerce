@@ -5,7 +5,7 @@ import { AccountBreadcrumb, RequireAccount } from "../components/account/common.
 import { HeartIcon, TrashIcon } from "../components/icons.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 
 function WishlistContent() {
   const [items, setItems] = useState(null);
@@ -72,8 +72,8 @@ function WishlistContent() {
                 className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-brand-pale"
               >
                 {item.product.image && (
-                  <img
-                    src={optimizedImage(item.product.image, 200)}
+                  <ProductImage
+                    src={item.product.image}
                     alt={item.product.name}
                     className="h-full w-full object-cover"
                     loading="lazy"

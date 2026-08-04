@@ -4,6 +4,8 @@ from rest_framework import serializers
 from apps.notifications.services import notify_order_confirmation
 from apps.payments.serializers import PaymentSerializer
 from apps.products.models import Product
+from apps.delivery.models import DeliveryZone
+from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.promotions.models import Coupon
 
 from .models import Order, OrderItem
@@ -40,6 +42,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     """Sérialise une commande complète (articles, coupon, infos de paiement) et gère sa création."""
     items = OrderItemSerializer(many=True)
+    delivery_zone_id = serializers.PrimaryKeyRelatedField(
+        queryset=DeliveryZone.objects.all(), source="delivery_zone", write_only=True, required=False
+    )
+    delivery_zone = DeliveryZoneSerializer(read_only=True)
     coupon_code = serializers.CharField(required=False, allow_blank=True, default="")
     payment_info = serializers.SerializerMethodField()
 
@@ -54,6 +60,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "city",
             "latitude",
             "longitude",
+            "delivery_zone",
+            "delivery_zone_id",
             "status",
             "coupon_code",
             "discount_xof",
@@ -94,6 +102,7 @@ class OrderSerializer(serializers.ModelSerializer):
         # Extraction des articles et du code coupon hors des champs de la commande.
         items_data = validated_data.pop("items")
         coupon_code = validated_data.pop("coupon_code", "") or ""
+        delivery_zone = validated_data.pop("delivery_zone", None)
         # Rattachage au client s'il est authentifié.
         request = self.context.get("request")
         customer = request.user if request and request.user.is_authenticated else None
@@ -150,7 +159,12 @@ class OrderSerializer(serializers.ModelSerializer):
         # Enregistrement du total après remise.
         order.discount_xof = discount
         order.total_xof = max(total - discount, 0)
-        order.save(update_fields=["total_xof", "discount_xof", "coupon_code"])
+        update_fields = ["total_xof", "discount_xof", "coupon_code"]
+        if delivery_zone:
+            order.delivery_zone = delivery_zone
+            order.total_xof += delivery_zone.fee_xof
+            update_fields.extend(["delivery_zone", "total_xof"])
+        order.save(update_fields=update_fields)
 
         # Notification de confirmation au client.
         notify_order_confirmation(order)

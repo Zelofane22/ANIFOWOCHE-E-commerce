@@ -4,7 +4,7 @@ import { fetchCategories, fetchProducts } from "../api/products.js";
 import ProductCard from "../components/ProductCard.jsx";
 import Seo from "../components/Seo.jsx";
 import { useSiteConfig } from "../context/useSiteConfig.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 
 // Arguments de confiance par défaut (fallback si theme.trust_arguments est vide).
 const DEFAULT_TRUST_ARGUMENTS = [
@@ -180,9 +180,9 @@ function CategoryCard({ category, products }) {
 
       <div className="absolute inset-0">
         {images.map((src, i) => (
-          <img
+          <ProductImage
             key={`${category.slug}-${i}`}
-            src={optimizedImage(src, 700)}
+            src={src}
             alt=""
             loading="lazy"
             className={`absolute inset-0 h-full w-full object-cover transition-all duration-700 ${

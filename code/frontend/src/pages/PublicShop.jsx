@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { getPublicShop } from "../api/seller.js";
 import { PackageIcon, StoreIcon } from "../components/icons.jsx";
 import { formatXof } from "../utils/format.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 
 export default function PublicShop() {
   const { slug } = useParams();
@@ -57,12 +57,9 @@ export default function PublicShop() {
               {shop.city && <p className="text-sm text-muted">{shop.city}</p>}
             </div>
           </div>
-          <a
-            href={`https://wa.me/${shop.whatsapp_phone.replace("+", "")}`}
-            className="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium"
-          >
-            WhatsApp
-          </a>
+          <span className="hidden text-sm text-muted sm:inline">
+            Sélectionnez un produit pour commander
+          </span>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">
@@ -142,8 +139,8 @@ export default function PublicShop() {
                 >
                   <div className="relative aspect-square bg-brand-pale">
                     {product.image ? (
-                      <img
-                        src={optimizedImage(product.image, 360)}
+                      <ProductImage
+                        src={product.image}
                         alt={product.name}
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                         loading="lazy"

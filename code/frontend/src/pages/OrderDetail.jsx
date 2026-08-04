@@ -24,7 +24,7 @@ import {
 } from "../components/icons.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
-import { optimizedImage } from "../utils/imageUrl.js";
+import ProductImage from "../components/ProductImage.jsx";
 
 const TIMELINE_STEPS = [
   { status: "received", label: "Commande reçue" },
@@ -398,8 +398,8 @@ function OrderDetailContent() {
                 <div key={item.id} className="flex gap-4">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-brand-pale">
                     {item.product_image && (
-                      <img
-                        src={optimizedImage(item.product_image, 200)}
+                      <ProductImage
+                        src={item.product_image}
                         alt={item.product_name}
                         className="h-full w-full object-cover"
                         loading="lazy"
