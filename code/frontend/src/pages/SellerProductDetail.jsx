@@ -39,7 +39,7 @@ export default function SellerProductDetail() {
       .catch(() => setNotFound(true));
   }, [shopSlug, productSlug]);
 
-  const deliveryZones = shop?.delivery_zones ?? [];
+  const deliveryZones = useMemo(() => shop?.delivery_zones ?? [], [shop?.delivery_zones]);
   const zone = useMemo(
     () => deliveryZones.find((z) => String(z.id) === String(selectedZone)),
     [deliveryZones, selectedZone]

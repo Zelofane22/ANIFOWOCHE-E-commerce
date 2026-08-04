@@ -17,7 +17,7 @@ export default function PublicShop() {
       .catch(() => setNotFound(true));
   }, [slug]);
 
-  const products = shop?.products ?? [];
+  const products = useMemo(() => shop?.products ?? [], [shop?.products]);
   const categories = useMemo(() => {
     const bySlug = new Map();
     products.forEach((product) => {
