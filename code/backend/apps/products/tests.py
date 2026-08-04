@@ -31,7 +31,7 @@ class PublicProductVisibilityTests(APITestCase):
         )
         self.free_user = UserFactory(username="free_vendeur")
         self.free_seller = SellerProfileFactory(
-            user=self.free_user, display_name="Free Shop", phone="+22990000001"
+            user=self.free_user, display_name="Free Shop", phone="+2290190000001"
         )
         self.free_product = ProductFactory(
             seller=self.free_seller,
@@ -43,7 +43,7 @@ class PublicProductVisibilityTests(APITestCase):
         )
         self.paid_user = UserFactory(username="paid_vendeur")
         self.paid_seller = SellerProfileFactory(
-            user=self.paid_user, display_name="Paid Shop", phone="+22990000002", plan="paid"
+            user=self.paid_user, display_name="Paid Shop", phone="+2290190000002", plan="paid"
         )
         self.paid_product = ProductFactory(
             seller=self.paid_seller,
@@ -245,23 +245,23 @@ class SellerProductApiTests(APITestCase):
         self.seller = SellerProfileFactory(
             user=self.user,
             display_name="Afi Boutique",
-            phone="+22990000000",
+            phone="+2290190000000",
         )
         ShopFactory(
             seller=self.seller,
             name="Afi Wax",
-            whatsapp_phone="+22990000000",
+            whatsapp_phone="+2290190000000",
         )
         self.other_user = UserFactory(username="autre")
         self.other_seller = SellerProfileFactory(
             user=self.other_user,
             display_name="Autre Boutique",
-            phone="+22991000000",
+            phone="+2290191000000",
         )
         ShopFactory(
             seller=self.other_seller,
             name="Autre Shop",
-            whatsapp_phone="+22991000000",
+            whatsapp_phone="+2290191000000",
         )
         self.client.force_authenticate(user=self.user)
 

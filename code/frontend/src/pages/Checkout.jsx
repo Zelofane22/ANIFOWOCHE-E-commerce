@@ -383,7 +383,11 @@ export default function Checkout() {
                       <p className="text-sm font-semibold text-ink">Localiser l’adresse</p>
                       <p className="mt-1 text-xs text-muted">La position servira à confirmer la zone de livraison.</p>
                     </div>
-                    <button type="button" onClick={handleUseLocation} disabled={locating} className="rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60">
+                    <button 
+                      type="button" 
+                      onClick={handleUseLocation} 
+                      disabled={locating} 
+                      className="rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60">
                       {locating ? "Localisation..." : "Utiliser ma position"}
                     </button>
                   </div>

@@ -27,7 +27,7 @@ class OrderApiTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": self.product.id, "quantity": 3}],
         }
@@ -42,7 +42,7 @@ class OrderApiTests(APITestCase):
     def test_anonymous_can_create_public_order(self, mock_post):
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": self.product.id, "quantity": 1}],
         }
@@ -56,7 +56,7 @@ class OrderApiTests(APITestCase):
         zone = DeliveryZoneFactory(name="Zone Commande Test", fee_xof=500)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": self.product.id, "quantity": 2}],
             "delivery_zone_id": zone.id,
@@ -72,7 +72,7 @@ class OrderApiTests(APITestCase):
         StoreSettings.objects.update_or_create(pk=1, defaults={"maintenance_mode": True})
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": self.product.id, "quantity": 1}],
         }
@@ -82,7 +82,7 @@ class OrderApiTests(APITestCase):
 
     def test_create_order_requires_at_least_one_item(self):
         self.client.force_authenticate(user=self.regular_user)
-        payload = {"full_name": "Jean", "phone": "+22990000000", "address": "Fidjrossè", "items": []}
+        payload = {"full_name": "Jean", "phone": "+2290190000000", "address": "Fidjrossè", "items": []}
         response = self.client.post("/api/orders/", payload, format="json")
         self.assertEqual(response.status_code, 400)
 
@@ -98,7 +98,7 @@ class OrderApiTests(APITestCase):
             "/api/orders/",
             {
                 "full_name": "Jean",
-                "phone": "+22990000000",
+                "phone": "+2290190000000",
                 "address": "Fidjrossè",
                 "items": [{"product_id": self.product.id, "quantity": 1}],
             },
@@ -127,7 +127,7 @@ class OrderApiTests(APITestCase):
             "/api/orders/",
             {
                 "full_name": "Jean",
-                "phone": "+22990000000",
+                "phone": "+2290190000000",
                 "address": "Fidjrossè",
                 "items": [{"product_id": self.product.id, "quantity": 1}],
             },
@@ -149,7 +149,7 @@ class OrderApiTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "coupon_code": "promo10",
             "items": [{"product_id": self.product.id, "quantity": 5}],
@@ -166,7 +166,7 @@ class OrderApiTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "coupon_code": "DOESNOTEXIST",
             "items": [{"product_id": self.product.id, "quantity": 1}],
@@ -189,7 +189,7 @@ class OrderApiTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": dish.id, "quantity": 3}],
         }
@@ -202,7 +202,7 @@ class OrderApiTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": self.product.id, "quantity": 3}],
         }
@@ -232,7 +232,7 @@ class OrderApiTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         payload = {
             "full_name": "Jean Client",
-            "phone": "+22990000000",
+            "phone": "+2290190000000",
             "address": "Fidjrossè",
             "items": [{"product_id": self.product.id, "quantity": 1}],
         }

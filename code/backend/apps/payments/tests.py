@@ -44,7 +44,7 @@ class PaymentApiTests(APITestCase):
         self.owner = UserFactory(username="owner")
         self.other_user = UserFactory(username="other")
         self.order = OrderFactory(
-            customer=self.owner, full_name="Client", phone="+22990000000", address="Cotonou", total_xof=1000
+            customer=self.owner, full_name="Client", phone="+2290190000000", address="Cotonou", total_xof=1000
         )
         OrderItemFactory(order=self.order, product=self.product, quantity=1, unit_price_xof=1000)
         self.staff_user = UserFactory(username="admin", is_staff=True)
@@ -219,7 +219,7 @@ class PaymentApiTests(APITestCase):
 
     def test_owner_sees_only_own_payments_in_list(self):
         other_order = OrderFactory(
-            customer=self.other_user, full_name="Autre", phone="+22990000001", address="Cotonou", total_xof=500
+            customer=self.other_user, full_name="Autre", phone="+2290190000001", address="Cotonou", total_xof=500
         )
         PaymentFactory(order=self.order, method="mtn", amount_xof=1000)
         PaymentFactory(order=other_order, method="moov", amount_xof=500)
@@ -253,7 +253,7 @@ class PaymentRelaunchTests(APITestCase):
         self.order = OrderFactory(
             customer=self.customer,
             full_name="Cliente",
-            phone="+22990000000",
+            phone="+2290190000000",
             email="cliente@example.com",
             address="Cotonou",
             total_xof=1000,

@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from apps.delivery.models import DeliveryZone
 
-from .backends import normalize_phone
+from .backends import validate_benin_phone
 from .models import Address, Profile
 
 User = get_user_model()
@@ -65,8 +65,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone(self, value):
-        # Normalise le numéro de téléphone au format international.
-        return normalize_phone(value) if value else value
+        # Normalise et valide le numéro de téléphone au format +22901XXXXXXXX.
+        if not value:
+            return value
+        return validate_benin_phone(value)
 
     def validate(self, attrs):
         # Contrôle que les deux mots de passe correspondent.
@@ -97,7 +99,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    """Valide la réinitialisation du mot de passe (uid + token) puis l'applique."""
+    """Valide la réinitialisation de mot de passe (uid + token) puis l'applique."""
     uid = serializers.CharField()
     token = serializers.CharField()
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -149,3 +151,9 @@ class AddressSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["created_at"]
+
+    def validate_phone(self, value):
+        # Normalise et valide le numéro de téléphone au format +22901XXXXXXXX.
+        if not value:
+            return value
+        return validate_benin_phone(value)
