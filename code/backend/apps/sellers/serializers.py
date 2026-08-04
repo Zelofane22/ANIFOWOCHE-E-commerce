@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch, Q
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from apps.delivery.models import DeliveryZone
@@ -78,6 +79,21 @@ class ShopSerializer(serializers.ModelSerializer):
         # Normalise et valide le numéro WhatsApp au format +22901XXXXXXXX.
         return validate_benin_phone(value)
 
+
+    def validate(self, attrs):
+        if not self.instance:
+            return attrs
+        name_changed = "name" in attrs and attrs["name"] != self.instance.name
+        slug_explicitly_set = "slug" in attrs and attrs.get("slug") != self.instance.slug
+        if name_changed and not slug_explicitly_set:
+            base = slugify(attrs["name"])[:150] or "boutique"
+            slug = base
+            suffix = 2
+            while Shop.objects.filter(slug=slug).exclude(pk=self.instance.pk).exists():
+                slug = f"{base}-{suffix}"
+                suffix += 1
+            attrs["slug"] = slug
+        return attrs
 
 class SellerProfileSerializer(serializers.ModelSerializer):
     """Sérialise le profil vendeur en incluant sa boutique."""
