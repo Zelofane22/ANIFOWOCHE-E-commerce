@@ -1,9 +1,15 @@
+import tempfile
 import requests
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.test import TestCase
+from django.core.management import call_command
+from django.test import TestCase, override_settings
+
+from apps.core.management.commands import seed_e2e
+from apps.delivery.models import DeliverySlot, DeliveryZone
+from apps.products.models import Category, Product
 
 from apps.core.factories import (
     SettingChangeRequestFactory,
@@ -331,3 +337,48 @@ class SettingsHubPaymentCardTests(TestCase):
         self.assertIn('<span class="anw-settings-label">Paiement à la livraison</span>', payments_card)
         self.assertEqual(payments_card.count("anw-status-off"), 3)
         self.assertEqual(payments_card.count("anw-status-on"), 1)
+
+
+class SeedE2ECommandTests(TestCase):
+    """La commande seed_e2e crée les données attendues et reste idempotente."""
+
+    def setUp(self):
+        # Les images générées par le seed ne doivent pas polluer le vrai MEDIA_ROOT.
+        self._media_override = override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+        self._media_override.enable()
+        self.addCleanup(self._media_override.disable)
+
+    def test_seed_creates_expected_e2e_data(self):
+        call_command("seed_e2e")
+
+        client_user = User.objects.get(username=seed_e2e.CLIENT_USERNAME)
+        self.assertEqual(client_user.email, seed_e2e.CLIENT_EMAIL)
+        self.assertTrue(client_user.check_password(seed_e2e.CLIENT_PASSWORD))
+        self.assertEqual(client_user.profile.phone, seed_e2e.CLIENT_PHONE)
+
+        seller_user = User.objects.get(username=seed_e2e.SELLER_USERNAME)
+        self.assertTrue(seller_user.check_password(seed_e2e.SELLER_PASSWORD))
+        self.assertEqual(seller_user.seller_profile.display_name, seed_e2e.SELLER_DISPLAY_NAME)
+        self.assertEqual(seller_user.seller_profile.shop.slug, seed_e2e.SHOP_SLUG)
+
+        category = Category.objects.get(slug=seed_e2e.CATEGORY_SLUG)
+        products = Product.objects.filter(category=category)
+        self.assertEqual(products.count(), len(seed_e2e.PRODUCTS))
+        for product in products:
+            self.assertTrue(product.image, "Chaque produit doit avoir une image de couverture.")
+            self.assertEqual(product.images.count(), 2)
+            self.assertTrue(product.seller_id and product.shop_id)
+
+        self.assertTrue(DeliveryZone.objects.filter(is_active=True).exists())
+        self.assertTrue(DeliverySlot.objects.filter(is_active=True).exists())
+        self.assertTrue(PaymentSettings.get_solo().cash_on_delivery_enabled)
+
+    def test_seed_is_idempotent(self):
+        call_command("seed_e2e")
+        call_command("seed_e2e")
+
+        self.assertEqual(User.objects.filter(username=seed_e2e.CLIENT_USERNAME).count(), 1)
+        self.assertEqual(User.objects.filter(username=seed_e2e.SELLER_USERNAME).count(), 1)
+        self.assertEqual(Category.objects.filter(slug=seed_e2e.CATEGORY_SLUG).count(), 1)
+        self.assertEqual(Product.objects.count(), len(seed_e2e.PRODUCTS))
+        self.assertEqual(Product.objects.filter(slug=seed_e2e.PRODUCTS[0]["slug"]).count(), 1)

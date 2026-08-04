@@ -81,6 +81,21 @@ class PageViewApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 201)
 
+    def test_expired_or_invalid_token_does_not_return_401(self):
+        """Un Bearer token invalide/expire ne doit pas casser le tracking (401).
+
+        Regression JAVASCRIPT-REACT-4 : l'intercepteur axios joint le token a
+        toutes les requetes ; JWTAuthentication echouait avant AllowAny.
+        """
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer invalid.expired.token")
+        response = self.client.post(
+            "/api/analytics/pageview/",
+            {"path": "/compte", "session_key": "sess401"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(PageView.objects.get().path, "/compte")
+
 
 class PageViewAdminTests(TestCase):
     """Tests admin pour PageView."""

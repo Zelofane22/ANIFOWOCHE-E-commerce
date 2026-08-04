@@ -25,16 +25,20 @@ Error: HTTP Client Error with status code: 401 on /api/auth/me/
 - Root cause: JWT access token expired, refresh token flow failing, or token not sent
 - Fix:
 ✅ DONE — refresh token déjà géré mais interceptor amélioré : single-flight (une seule requête refresh concurrente), log console.warn en cas d'échec, et event `AUTH_EXPIRED_EVENT` dispatché pour que AuthContext réinitialise l'état (le user restait « connecté » côté UI après échec de refresh). Filter Sentry beforeSend corrigé : lisait `contexts.response.status` au lieu de `status_code` → les 401 sur /auth/me/ et /auth/token/refresh/ sont désormais bien filtrés. Auth = Bearer en localStorage (pas de cookies) → AUTH_COOKIE_* non applicables.
-🟢 LOW: Other HTTP Errors
+🟢 LOW: Other HTTP Errors  ✅
 - 400 on /register: Validate request payload, add better error messages
 - 500 on /seller/dashboard: Check server logs, likely unhandled exception
+✅ DONE — Cas par cas (2026-08-03) :
+1. JAVASCRIPT-REACT-4 (401 POST /api/analytics/pageview/, 23 events, transaction /compte) : ROOT CAUSE — intercepteur axios joint `Authorization: Bearer <token>` a TOUTES les requetes, y compris le ping pageview anonyme ; avec un token expire, JWTAuthentication echouait AVANT le check AllowAny → 401. Fix : `authentication_classes = []` sur PageViewCreateView (endpoint public de tracking, ne doit jamais authentifier) + test de regression `test_expired_or_invalid_token_does_not_return_401`. 280/280 tests backend OK. A deployer puis verifier 0 event 24h avant de marquer resolved.
+2. JAVASCRIPT-REACT-J (400 POST /api/seller/register/) : erreur de validation metier normale (doublon username/email/slug, mots de passe, telephone) — deja affichee a l'utilisateur via extractErrorMessage (SellerAuth.jsx) et deja filtree dans beforeSend Sentry (main.jsx ligne 36 : 400 + url contient "/register/"). Resolved, rien a faire.
+3. JAVASCRIPT-REACT-F (500 /seller/dashboard) : en realite 500 sur POST /api/auth/token/refresh/ le 31/07 19:59 — pendant la panne DB (item #1). Logs Render : 0 erreur 5xx depuis le 01/08. Resolved, rien a faire.
 
 📋 Implementation Priority Order
 1. Database URL fix (blocks all backend functionality)  ✅
 2. Missing import fix (breaks payment flow)  ✅
 3. Frontend caching/config (affects all users on new deploys)  ✅
 4. Auth token refresh (improves UX, reduces 401s)  ✅
-5. Remaining HTTP errors (case-by-case)
+5. Remaining HTTP errors (case-by-case)  ✅
 
 ✅ Verification Steps
 After each fix:
