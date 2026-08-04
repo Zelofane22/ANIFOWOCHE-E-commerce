@@ -82,8 +82,8 @@ export default function SellerProductDetail() {
       async (position) => {
         try {
           const result = await geolocateZone({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: parseFloat(position.coords.latitude.toFixed(6)),
+            longitude: parseFloat(position.coords.longitude.toFixed(6)),
           });
           const matchedZone = result?.zone;
           if (
