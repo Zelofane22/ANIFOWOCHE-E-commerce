@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { fetchDeliveryZones } from "../api/delivery.js";
-import { getSellerProfile, updateSellerProfile } from "../api/seller.js";
+import { checkShopSlugAvailability, getSellerProfile, updateSellerProfile } from "../api/seller.js";
 import { CheckIcon } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
@@ -9,6 +9,15 @@ import { extractErrorMessage } from "../utils/apiError.js";
 
 const inputClass =
   "w-full rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/20";
+
+const toSlug = (value) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 150);
 
 function Field({ label, children }) {
   return (
@@ -28,7 +37,10 @@ export default function SellerSettings() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [slugError, setSlugError] = useState(null);
+  const [slugChecking, setSlugChecking] = useState(false);
   const slugEditedRef = useRef(false);
+  const slugRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (loading) return;
@@ -60,6 +72,31 @@ export default function SellerSettings() {
       });
   }, [isAuthenticated, loading, navigate]);
 
+  const shopSlug = form?.shop?.slug ?? "";
+  const savedSlug = seller?.shop?.slug ?? "";
+
+  useEffect(() => {
+    const requestId = ++slugRequestIdRef.current;
+    if (!shopSlug || shopSlug === savedSlug) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSlugChecking(true);
+      checkShopSlugAvailability(shopSlug)
+        .then((result) => {
+          if (slugRequestIdRef.current !== requestId) return;
+          setSlugError(result.available ? null : "Ce lien boutique est déjà utilisé.");
+        })
+        .catch(() => {
+          if (slugRequestIdRef.current === requestId) setSlugError(null);
+        })
+        .finally(() => {
+          if (slugRequestIdRef.current === requestId) setSlugChecking(false);
+        });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [shopSlug, savedSlug]);
+
   const updateShop = (patch) => setForm((current) => ({ ...current, shop: { ...current.shop, ...patch } }));
 
   const toggleDeliveryZone = (zoneId) => {
@@ -76,9 +113,16 @@ export default function SellerSettings() {
     try {
       const data = await updateSellerProfile(form);
       setSeller(data);
+      setSlugError(null);
+      setSlugChecking(false);
       setSuccess("Boutique mise à jour.");
     } catch (err) {
-      setError(extractErrorMessage(err));
+      const slugMessages = err?.response?.data?.shop?.slug;
+      if (Array.isArray(slugMessages) && slugMessages.length > 0) {
+        setSlugError(slugMessages[0]);
+      } else {
+        setError(extractErrorMessage(err));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -129,30 +173,36 @@ export default function SellerSettings() {
                 onChange={(e) => {
                   const name = e.target.value;
                   if (!slugEditedRef.current) {
-                    const generatedSlug = name
-                      .toLowerCase()
-                      .normalize("NFD")
-                      .replace(/[\u0300-\u036f]/g, "")
-                      .replace(/[^a-z0-9]+/g, "-")
-                      .replace(/^-+|-+$/g, "")
-                      .substring(0, 150) || "boutique";
-                    updateShop({ name, slug: generatedSlug });
+                    setSlugError(null);
+                    setSlugChecking(false);
+                    updateShop({ name, slug: toSlug(name) || "boutique" });
                   } else {
                     updateShop({ name });
                   }
                 }}
               />
             </Field>
-            <Field label="Slug">
+            <Field label="Slug (lien de la boutique)">
               <input
-                className={inputClass}
+                className={`${inputClass} ${slugError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                 required
                 value={form.shop.slug}
                 onChange={(e) => {
                   slugEditedRef.current = true;
-                  updateShop({ slug: e.target.value });
+                  setSlugError(null);
+                  setSlugChecking(false);
+                  updateShop({ slug: toSlug(e.target.value) });
                 }}
               />
+              {slugError ? (
+                <p className="mt-1.5 text-xs font-medium text-red-600">{slugError}</p>
+              ) : (
+                <p className="mt-1.5 text-xs text-muted">
+                  {slugChecking
+                    ? "Vérification de la disponibilité..."
+                    : `Lien public de votre boutique : /shop/${form.shop.slug || "..."}`}
+                </p>
+              )}
             </Field>
             <Field label="WhatsApp boutique">
               <input
@@ -213,7 +263,7 @@ export default function SellerSettings() {
           {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || Boolean(slugError)}
             className="mt-4 w-full rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
           >
             {submitting ? "Enregistrement..." : "Enregistrer"}

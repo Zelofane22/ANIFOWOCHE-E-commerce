@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -78,6 +79,22 @@ class SellerProfileView(generics.RetrieveUpdateAPIView):
             return self.request.user.seller_profile
         except SellerProfile.DoesNotExist:
             raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+
+class ShopSlugAvailabilityView(APIView):
+    """Indique si un slug de boutique est disponible (la boutique du vendeur est exclue)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Slug normalisé puis comparaison hors boutique du vendeur connecté.
+        slug = slugify(request.query_params.get("slug", ""))[:180]
+        if not slug:
+            return Response({"slug": "", "available": False})
+        queryset = Shop.objects.filter(slug=slug)
+        seller = getattr(request.user, "seller_profile", None)
+        if seller is not None:
+            queryset = queryset.exclude(seller=seller)
+        return Response({"slug": slug, "available": not queryset.exists()})
 
 
 class SellerDashboardView(APIView):

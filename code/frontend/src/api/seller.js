@@ -8,6 +8,9 @@ export const getSellerProfile = () => apiClient.get("/seller/profile/").then((re
 export const updateSellerProfile = (data) =>
   apiClient.patch("/seller/profile/", data).then((res) => res.data);
 
+export const checkShopSlugAvailability = (slug) =>
+  apiClient.get("/seller/shop/slug-availability/", { params: { slug } }).then((res) => res.data);
+
 export const getSellerDashboard = () => apiClient.get("/seller/dashboard/").then((res) => res.data);
 
 export const getSellerOrders = () => apiClient.get("/seller/orders/").then((res) => res.data);

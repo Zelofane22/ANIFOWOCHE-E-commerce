@@ -14,6 +14,7 @@ from .views import (
     SellerProfileView,
     SellerRegisterView,
     SellerOrderViewSet,
+    ShopSlugAvailabilityView,
 )
 
 router = DefaultRouter()
@@ -35,6 +36,7 @@ urlpatterns = [
     path("seller/products/<slug:product_slug>/option-groups/<int:group_pk>/options/<int:pk>/", option_detail, name="seller-option-detail"),
     path("seller/register/", SellerRegisterView.as_view(), name="seller-register"),
     path("seller/profile/", SellerProfileView.as_view(), name="seller-profile"),
+    path("seller/shop/slug-availability/", ShopSlugAvailabilityView.as_view(), name="seller-shop-slug-availability"),
     path("seller/dashboard/", SellerDashboardView.as_view(), name="seller-dashboard"),
     path("seller/orders/<int:order_id>/relance-paiement/", SellerPaymentRelaunchView.as_view(), name="seller-payment-relaunch"),
     path("seller/orders/<int:order_id>/confirmer-paiement/", SellerConfirmPaymentView.as_view(), name="seller-confirm-payment"),
