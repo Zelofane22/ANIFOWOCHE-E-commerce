@@ -239,7 +239,7 @@ export default function SellerOrderDetail() {
                       id="seller-order-status"
                       value={statusSelection}
                       onChange={(event) => setStatusSelection(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                      className="mt-2 min-h-11 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
                     >
                       {Object.entries(ORDER_STATUS).map(([status, cfg]) => (
                         <option key={status} value={status}>
@@ -258,7 +258,7 @@ export default function SellerOrderDetail() {
                       }
                     }}
                     disabled={saving || statusSelection === order.status}
-                    className="w-full rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+                    className="min-h-11 w-full rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {saving ? "Enregistrement..." : "Mettre à jour"}
                   </button>
@@ -303,7 +303,7 @@ export default function SellerOrderDetail() {
                           type="button"
                           onClick={handleConfirmPayment}
                           disabled={confirming}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {confirming ? "Confirmation en cours..." : "Confirmer le paiement reçu"}
                         </button>
@@ -321,7 +321,7 @@ export default function SellerOrderDetail() {
                           )}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
                         >
                           <SendIcon size={15} />
                           Relancer le paiement (WhatsApp)
@@ -334,7 +334,7 @@ export default function SellerOrderDetail() {
                           type="button"
                           onClick={handleRelaunchPayment}
                           disabled={relaunching}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <RefreshCwIcon size={15} />
                           {relaunching ? "Relance en cours..." : "Relancer le paiement"}
@@ -373,7 +373,7 @@ export default function SellerOrderDetail() {
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
                   >
                     <SendIcon size={15} />
                     Confirmer la commande
@@ -386,7 +386,7 @@ export default function SellerOrderDetail() {
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
                     >
                       <SendIcon size={15} />
                       Relancer le paiement (WhatsApp)
@@ -399,7 +399,7 @@ export default function SellerOrderDetail() {
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
                   >
                     <SendIcon size={15} />
                     Rupture de stock

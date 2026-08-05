@@ -154,7 +154,7 @@ export default function SellerOrders() {
             <div className="space-y-4">
               {filteredOrders.map((order) => (
                 <article key={order.id} className="rounded-2xl border border-black/10 bg-[#fbfaf7] p-4 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">Commande</p>
                       <p className="mt-1 font-mono text-sm text-ink">ANW-{order.id}</p>
@@ -187,7 +187,7 @@ export default function SellerOrders() {
                         id={`order-status-${order.id}`}
                         value={statusSelection[order.id] ?? order.status}
                         onChange={(event) => handleStatusChange(order.id, event.target.value)}
-                        className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                        className="min-h-11 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 sm:w-auto"
                       >
                         {Object.entries(ORDER_STATUS).map(([status, cfg]) => (
                           <option key={status} value={status}>
@@ -196,7 +196,7 @@ export default function SellerOrders() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                       <a
                         href={whatsappUrl(
                           order.phone,
@@ -204,14 +204,14 @@ export default function SellerOrders() {
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50"
-                        title="Contacter sur WhatsApp"
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50"
                       >
                         <MessageSquareIcon size={16} />
+                        <span className="sm:hidden">WhatsApp</span>
                       </a>
                       <Link
                         to={`/orders/${order.id}`}
-                        className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
                       >
                         Voir le détail
                       </Link>
@@ -229,7 +229,7 @@ export default function SellerOrders() {
                           savingOrderIds.includes(order.id) ||
                           (statusSelection[order.id] ?? order.status) === order.status
                         }
-                        className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {savingOrderIds.includes(order.id) ? "Enregistrement..." : "Mettre à jour"}
                       </button>

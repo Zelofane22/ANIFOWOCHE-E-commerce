@@ -264,7 +264,7 @@ export default function SellerSettings() {
           <button
             type="submit"
             disabled={submitting || Boolean(slugError)}
-            className="mt-4 w-full rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
+            className="mt-4 w-full rounded-lg bg-brand px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-brand-medium disabled:opacity-60 sticky bottom-[calc(var(--tabbar-h)+var(--tabbar-safe)+1rem)] lg:static lg:shadow-none"
           >
             {submitting ? "Enregistrement..." : "Enregistrer"}
           </button>
