@@ -104,6 +104,13 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         fields = ["id", "display_name", "phone", "city", "plan", "shop", "created_at", "updated_at"]
         read_only_fields = ["created_at", "updated_at", "plan"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Propage la boutique au sérialiseur imbriqué : sans instance, la validation
+        # d'unicité du slug rejetterait le propre slug de la boutique lors d'une mise à jour.
+        if self.instance is not None:
+            self.fields["shop"].instance = getattr(self.instance, "shop", None)
+
     def validate_phone(self, value):
         # Normalise et valide le numéro de téléphone au format +22901XXXXXXXX.
         return validate_benin_phone(value)

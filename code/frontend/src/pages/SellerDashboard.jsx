@@ -78,7 +78,7 @@ function SalesChart({ data }) {
             style={{ height: `${(point.total / maxVal) * 140}px`, minHeight: point.total > 0 ? 4 : 0 }}
             title={`${point.day}: ${formatXOF(point.total)}`}
           />
-          {data.length <= 31 && (
+          {data.length <= 14 && (
             <span className="text-[10px] text-muted" style={{ writingMode: "vertical-lr", textOrientation: "mixed" }}>
               {point.day}
             </span>
@@ -141,17 +141,17 @@ export default function SellerDashboard() {
             Votre boutique est prête à recevoir des produits. Ajoutez vos articles, gardez le stock à jour
             et partagez le lien public quand le catalogue est publié.
           </p>
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium sm:inline-flex sm:w-auto w-full"
             >
               <PackageIcon size={15} />
               Gérer les produits
             </Link>
             <Link
               to="/settings"
-              className="inline-flex items-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark sm:inline-flex sm:w-auto w-full"
             >
               <SettingsIcon size={15} />
               Paramètres boutique
@@ -160,7 +160,7 @@ export default function SellerDashboard() {
               href={publicUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark sm:inline-flex sm:w-auto w-full"
             >
               <ExternalLinkIcon size={15} />
               Voir la boutique
@@ -182,7 +182,7 @@ export default function SellerDashboard() {
         </div>
       </section>
 
-      <section className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label="Revenu (30j)" value={kpi.revenue} format={formatXOF} Icon={DollarSignIcon} change={kpi.revenue_change} />
         <KPICard label="Commandes (30j)" value={kpi.orders} Icon={LayoutDashboardIcon} change={kpi.orders_change} />
         <KPICard label="Produits" value={metrics.products} Icon={PackageIcon} />
@@ -282,7 +282,7 @@ export default function SellerDashboard() {
               <Link
                 key={order.id}
                 to={`/orders/${order.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-black/5 px-4 py-3 transition hover:bg-gray-50"
+                className="flex flex-col gap-2 rounded-lg border border-black/5 px-4 py-3 transition hover:bg-gray-50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   <StatusBadge status={order.status} />

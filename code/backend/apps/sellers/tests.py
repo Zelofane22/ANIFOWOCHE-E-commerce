@@ -95,6 +95,70 @@ class SellerApiTests(APITestCase):
         self.assertEqual(seller.display_name, "Afi Seller")
         self.assertEqual(seller.shop.name, "Afi Mode")
 
+    def test_seller_profile_update_accepts_unchanged_shop_slug(self):
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+2290190000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=user)
+
+        patch_response = self.client.patch(
+            "/api/seller/profile/",
+            {
+                "display_name": "Afi Seller",
+                "shop": {"name": "Afi Wax", "slug": "afi-wax", "city": "Cotonou"},
+            },
+            format="json",
+        )
+
+        self.assertEqual(patch_response.status_code, 200)
+        seller.refresh_from_db()
+        seller.shop.refresh_from_db()
+        self.assertEqual(seller.display_name, "Afi Seller")
+        self.assertEqual(seller.shop.slug, "afi-wax")
+
+    def test_seller_profile_update_rejects_slug_taken_by_other_shop(self):
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+2290190000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+2290190000000")
+        other_user = UserFactory(username="autre")
+        other_seller = SellerProfileFactory(user=other_user, display_name="Autre", phone="+2290191000000")
+        ShopFactory(seller=other_seller, name="Mode Elite", whatsapp_phone="+2290191000000")
+        self.client.force_authenticate(user=user)
+
+        patch_response = self.client.patch(
+            "/api/seller/profile/",
+            {"shop": {"name": "Afi Wax", "slug": "mode-elite"}},
+            format="json",
+        )
+
+        self.assertEqual(patch_response.status_code, 400)
+        self.assertIn("slug", patch_response.data["shop"])
+
+    def test_shop_slug_availability_endpoint(self):
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+2290190000000")
+        ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+2290190000000")
+        other_user = UserFactory(username="autre")
+        other_seller = SellerProfileFactory(user=other_user, display_name="Autre", phone="+2290191000000")
+        ShopFactory(seller=other_seller, name="Mode Elite", whatsapp_phone="+2290191000000")
+        self.client.force_authenticate(user=user)
+
+        own = self.client.get("/api/seller/shop/slug-availability/", {"slug": "afi-wax"})
+        self.assertEqual(own.status_code, 200)
+        self.assertTrue(own.data["available"])
+
+        taken = self.client.get("/api/seller/shop/slug-availability/", {"slug": "mode-elite"})
+        self.assertEqual(taken.status_code, 200)
+        self.assertFalse(taken.data["available"])
+
+        free = self.client.get("/api/seller/shop/slug-availability/", {"slug": "nouvelle-boutique"})
+        self.assertEqual(free.status_code, 200)
+        self.assertTrue(free.data["available"])
+
+        self.client.force_authenticate(user=None)
+        anonymous = self.client.get("/api/seller/shop/slug-availability/", {"slug": "afi-wax"})
+        self.assertEqual(anonymous.status_code, 401)
+
     def test_public_shop_is_available_by_slug(self):
         user = UserFactory(username="vendeuse")
         seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+2290190000000")

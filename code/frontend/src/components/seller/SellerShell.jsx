@@ -9,15 +9,40 @@ import {
 } from "../icons.jsx";
 import { useAuth } from "../../context/useAuth.js";
 
+const navItems = [
+  { to: "/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
+  { to: "/orders", label: "Commandes", Icon: TruckIcon },
+  { to: "/products", label: "Produits", Icon: PackageIcon },
+  { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
+];
+
+function SellerMobileTabBar() {
+  return (
+    <nav
+      aria-label="Navigation vendeur"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-white lg:hidden"
+      style={{ paddingBottom: "var(--tabbar-safe)" }}
+    >
+      <div className="mx-auto flex h-[var(--tabbar-h)] max-w-lg items-stretch">
+        {navItems.map(({ to, label, Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-semibold text-muted transition active:scale-95"
+            style={({ isActive }) => (isActive ? { color: "#c99f08" } : undefined)}
+          >
+            <Icon size={22} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 export default function SellerShell({ children, title, seller }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const navItems = [
-    { to: "/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
-    { to: "/orders", label: "Commandes", Icon: TruckIcon },
-    { to: "/products", label: "Produits", Icon: PackageIcon },
-    { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
-  ];
 
   const handleLogout = () => {
     logout();
@@ -64,32 +89,20 @@ export default function SellerShell({ children, title, seller }) {
               <p className="text-xs font-semibold text-muted">{seller?.shop?.name ?? "Boutique vendeur"}</p>
               <h1 className="text-xl font-bold text-ink">{title}</h1>
             </div>
-            <nav className="flex gap-1 lg:hidden">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  aria-label={item.label}
-                  className={({ isActive }) =>
-                    `rounded-lg p-2 transition ${isActive ? "bg-brand-light text-brand-dark" : "text-muted"}`
-                  }
-                >
-                  <item.Icon size={19} />
-                </NavLink>
-              ))}
-              <button
-                type="button"
-                onClick={handleLogout}
-                aria-label="Se déconnecter"
-                className="rounded-lg p-2 text-muted"
-              >
-                <LogOutIcon size={19} />
-              </button>
-            </nav>
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Se déconnecter"
+              className="rounded-lg p-2 text-muted transition hover:bg-gray-100 hover:text-ink"
+            >
+              <LogOutIcon size={19} />
+            </button>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] lg:pb-6 sm:px-6">{children}</main>
       </div>
+
+      <SellerMobileTabBar />
     </div>
   );
 }

@@ -137,7 +137,7 @@ export default function SellerAuth() {
             <button
               type="button"
               onClick={() => switchMode("login")}
-              className={`rounded-md px-3 py-2 transition ${
+              className={`rounded-md px-3 py-3 transition ${
                 mode === "login" ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
@@ -146,7 +146,7 @@ export default function SellerAuth() {
             <button
               type="button"
               onClick={() => switchMode("register")}
-              className={`rounded-md px-3 py-2 transition ${
+              className={`rounded-md px-3 py-3 transition ${
                 mode === "register" ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
@@ -178,7 +178,7 @@ export default function SellerAuth() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
               >
                 {submitting ? "Connexion..." : "Entrer dans mon espace"}
                 <ArrowRightIcon size={15} />
@@ -282,7 +282,7 @@ export default function SellerAuth() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
               >
                 {submitting ? "Création..." : "Créer mon espace vendeur"}
                 <ArrowRightIcon size={15} />

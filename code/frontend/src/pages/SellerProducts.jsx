@@ -100,7 +100,7 @@ function AddColorForm({ onAdd }) {
   };
 
   return (
-    <div className="mt-3 flex flex-wrap items-end gap-2">
+    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
       <label className="block text-xs font-medium text-ink">
         Couleur
         <input
@@ -289,7 +289,7 @@ function ProductGallery({ slug, colors }) {
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-0 transition group-hover:opacity-100">
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100">
                 <button
                   type="button"
                   onClick={() => handleReorder(img.id, "up")}
@@ -321,7 +321,7 @@ function ProductGallery({ slug, colors }) {
                 <select
                   value={img.color_name || ""}
                   onChange={(event) => handleColorChange(img.id, event.target.value)}
-                  className="absolute inset-x-0 top-0 w-full bg-white/90 px-1 py-0.5 text-[10px] font-medium text-ink opacity-0 transition group-hover:opacity-100"
+                  className="absolute inset-x-0 top-0 w-full bg-white/90 px-1 py-0.5 text-[10px] font-medium text-ink opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100"
                 >
                   <option value="">Toutes les couleurs</option>
                   {colors.map((c) => (
@@ -492,7 +492,7 @@ function ProductOptionManager({ slug }) {
         {groups.map((group) => (
           <div key={group.id} className="rounded-lg border border-black/10 bg-[#fbfaf7] p-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="grid flex-1 gap-2 sm:grid-cols-4">
+              <div className="grid flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <input
                   type="text"
                   maxLength={100}
@@ -724,7 +724,7 @@ export default function SellerProducts() {
       <section className="grid gap-5 lg:grid-cols-[390px_1fr]">
         <div className="flex flex-col gap-5">
           <form onSubmit={handleSubmit} className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-bold text-ink">
                 {editingSlug ? "Modifier le produit" : "Nouveau produit"}
@@ -756,7 +756,7 @@ export default function SellerProducts() {
               />
             </Field>
             <Field label="Image principale">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="flex aspect-square w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-black/10 bg-brand-pale text-brand-dark">
                   {form.imagePreview ? (
                     <ProductImage
@@ -978,11 +978,11 @@ export default function SellerProducts() {
                       <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted">{product.description}</p>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
                     <button
                       type="button"
                       onClick={() => startEdit(product)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-black/15 px-3 py-2 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+                      className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-black/15 px-3 py-2 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
                     >
                       <EditIcon size={15} />
                       Modifier
@@ -991,7 +991,7 @@ export default function SellerProducts() {
                       <button
                         type="button"
                         onClick={() => handleArchive(product)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50"
+                        className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50"
                       >
                         <TrashIcon size={15} />
                         Archiver
