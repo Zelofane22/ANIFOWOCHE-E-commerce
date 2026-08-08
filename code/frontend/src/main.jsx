@@ -27,13 +27,18 @@ if (import.meta.env.PROD && sentryDsn) {
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
     beforeSend(event) {
+      const message = event?.exception?.values?.[0]?.value ?? "";
+      if (
+        message.includes("Failed to fetch dynamically imported module") ||
+        message.includes("Error loading dynamically imported module") ||
+        message.includes("Importing a module script failed")
+      )
+        return null;
       if (event?.exception?.values?.[0]?.mechanism?.type === "auto.http.client.xhr") {
         const status = event?.contexts?.response?.status_code ?? event?.contexts?.response?.status;
         const url = event?.request?.url ?? "";
         if (status === 404) return null;
         if (status === 401 && (url.includes("/auth/me/") || url.includes("/auth/token/"))) return null;
-        const method = (event?.request?.method ?? "").toUpperCase();
-        if (status === 400 && (url.includes("/register/") || (url.includes("/seller/") && ["POST", "PATCH", "DELETE"].includes(method)))) return null;
       }
       return event;
     },
