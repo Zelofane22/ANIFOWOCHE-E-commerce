@@ -14,6 +14,7 @@ const apiBaseURL = (() => {
 
 const apiClient = axios.create({ baseURL: apiBaseURL });
 const refreshClient = axios.create({ baseURL: apiBaseURL });
+const publicClient = axios.create({ baseURL: apiBaseURL });
 
 export const AUTH_EXPIRED_EVENT = "anifowoche:auth-expired";
 
@@ -68,4 +69,5 @@ apiClient.interceptors.response.use(
   }
 );
 
+export { publicClient };
 export default apiClient;
