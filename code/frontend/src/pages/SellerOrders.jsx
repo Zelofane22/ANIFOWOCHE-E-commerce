@@ -236,7 +236,7 @@ export default function SellerOrders() {
                     </div>
                   </div>
                   {statusErrors[order.id] ? (
-                    <p className="mt-2 text-sm text-red-600">{statusErrors[order.id]}</p>
+                    <p role="alert" className="mt-2 text-sm text-red-600">{statusErrors[order.id]}</p>
                   ) : null}
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {order.items?.map((item) => (

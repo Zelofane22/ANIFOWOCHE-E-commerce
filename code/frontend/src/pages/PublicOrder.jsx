@@ -17,7 +17,7 @@ const INITIAL_FORM = {
 };
 
 const inputClass =
-  "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-500 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15";
+  "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 export default function PublicOrder() {
   const navigate = useNavigate();
@@ -226,7 +226,7 @@ export default function PublicOrder() {
                             max={product.made_to_order ? Number.MAX_SAFE_INTEGER : product.stock}
                             value={quantity}
                             onChange={(event) => updateQuantity(product.id, event.target.value)}
-                            className="h-9 w-16 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand focus:outline-none"
+                            className="h-9 w-16 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand"
                             aria-label={`Quantité ${product.name}`}
                           />
                           <button

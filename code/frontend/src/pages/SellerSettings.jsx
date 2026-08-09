@@ -195,7 +195,7 @@ export default function SellerSettings() {
                 }}
               />
               {slugError ? (
-                <p className="mt-1.5 text-xs font-medium text-red-600">{slugError}</p>
+                <p role="alert" className="mt-1.5 text-xs font-medium text-red-600">{slugError}</p>
               ) : (
                 <p className="mt-1.5 text-xs text-muted">
                   {slugChecking
@@ -255,7 +255,7 @@ export default function SellerSettings() {
             {seller.shop.public_url}
           </p>
           {success && (
-            <p className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            <p role="status" aria-live="polite" className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
               <CheckIcon size={15} />
               {success}
             </p>

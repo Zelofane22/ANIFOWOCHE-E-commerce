@@ -218,7 +218,7 @@ function ReturnSection({ order, returnRequest, onCreated }) {
               required
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm font-normal focus:border-brand focus:outline-none"
+              className="mt-1 block w-full rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm font-normal focus:border-brand"
             >
               <option value="">Sélectionnez un motif…</option>
               {RETURN_REASONS.map((r) => (
@@ -235,10 +235,10 @@ function ReturnSection({ order, returnRequest, onCreated }) {
               onChange={(e) => setComment(e.target.value)}
               rows={3}
               placeholder="Décrivez le problème en détail si nécessaire…"
-              className="mt-1 block w-full resize-none rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm font-normal focus:border-brand focus:outline-none"
+              className="mt-1 block w-full resize-none rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm font-normal focus:border-brand"
             />
           </label>
-          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -300,7 +300,7 @@ function OrderDetailContent() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-6">
         <AccountBreadcrumb to="/compte/commandes" label="Vos commandes" />
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
       </div>
     );
   }

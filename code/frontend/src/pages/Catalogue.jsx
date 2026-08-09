@@ -157,7 +157,7 @@ export default function Catalogue() {
     </div>
   );
 
-  if (error) return <p className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
+  if (error) return <p role="alert" className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
 
   return (
     <div>

@@ -146,7 +146,7 @@ export default function OrderConfirmation() {
             ))}
           </div>
 
-          {retryError && <p className="mt-3 text-sm text-red-600">{retryError}</p>}
+          {retryError && <p role="alert" className="mt-3 text-sm text-red-600">{retryError}</p>}
 
           <button
             type="button"

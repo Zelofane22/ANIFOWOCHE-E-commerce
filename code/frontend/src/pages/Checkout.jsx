@@ -285,7 +285,7 @@ export default function Checkout() {
   };
 
   const inputClass =
-    "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15";
+    "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/15";
 
   return (
     <form onSubmit={handlePay} className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
@@ -303,7 +303,11 @@ export default function Checkout() {
         <span className={step === 2 ? "font-semibold text-brand-dark" : ""}>Paiement</span>
       </div>
 
-      {error && <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
         <div>
@@ -386,8 +390,16 @@ export default function Checkout() {
                       {locating ? "Localisation..." : "Utiliser ma position"}
                     </button>
                   </div>
-                  {coordinates && <p className="mt-2 text-xs text-green-700">Position enregistrée : {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}</p>}
-                  {locationError && <p className="mt-2 text-xs text-red-600">{locationError}</p>}
+                  {coordinates && (
+                    <p aria-live="polite" className="mt-2 text-xs text-green-700">
+                      Position enregistrée : {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}
+                    </p>
+                  )}
+                  {locationError && (
+                    <p role="alert" className="mt-2 text-xs text-red-600">
+                      {locationError}
+                    </p>
+                  )}
                 </div>
 
                 <label className="block text-sm font-semibold text-ink">
@@ -587,7 +599,7 @@ export default function Checkout() {
                   onChange={(event) => setCouponCode(event.target.value)}
                   placeholder="Code coupon"
                   disabled={!!appliedCoupon}
-                  className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand focus:outline-none disabled:bg-gray-50"
+                  className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand disabled:bg-gray-50"
                 />
                 {appliedCoupon ? (
                   <button
@@ -608,9 +620,13 @@ export default function Checkout() {
                   </button>
                 )}
               </div>
-              {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
+              {couponError && (
+                <p role="alert" className="mt-1.5 text-xs text-red-600">
+                  {couponError}
+                </p>
+              )}
               {appliedCoupon && (
-                <p className="mt-1.5 text-xs font-medium text-green-700">
+                <p aria-live="polite" className="mt-1.5 text-xs font-medium text-green-700">
                   Code « {appliedCoupon.code} » appliqué (-{appliedCoupon.discount_percent}%)
                 </p>
               )}

@@ -59,7 +59,11 @@ function AddressesContent() {
         Gérez vos adresses de livraison pour commander plus rapidement.
       </p>
 
-      {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
       {addresses === null && (
         <div className="mb-6 h-24 animate-pulse rounded-xl border border-black/10 bg-brand-pale" />
@@ -106,34 +110,50 @@ function AddressesContent() {
       <div className="rounded-xl border border-black/10 bg-white p-5">
         <h2 className="mb-4 font-bold text-ink">Ajouter une adresse</h2>
         <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2">
+          <label htmlFor="address-label" className="text-sm font-semibold text-ink">
+            Libellé (ex. Maison)
+          </label>
           <input
+            id="address-label"
             type="text"
-            placeholder="Libellé (ex. Maison)"
+            placeholder="Maison, Bureau…"
             value={form.label}
             onChange={(e) => setForm({ ...form, label: e.target.value })}
-            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:outline-none"
+            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
+          <label htmlFor="address-fullname" className="text-sm font-semibold text-ink">
+            Nom complet
+          </label>
           <input
+            id="address-fullname"
             type="text"
-            placeholder="Nom complet"
+            placeholder="Votre nom complet"
             required
             value={form.full_name}
             onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:outline-none"
+            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
+          <label htmlFor="address-phone" className="text-sm font-semibold text-ink">
+            Téléphone
+          </label>
           <input
+            id="address-phone"
             type="tel"
-            placeholder="Téléphone"
+            placeholder="+229 01 XX XX XX XX"
             required
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:outline-none"
+            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
+          <label htmlFor="address-zone" className="text-sm font-semibold text-ink">
+            Quartier (Cotonou)
+          </label>
           <select
+            id="address-zone"
             required
             value={form.zone}
             onChange={(e) => setForm({ ...form, zone: e.target.value })}
-            className="rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm focus:border-brand focus:outline-none"
+            className="rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           >
             <option value="">Quartier (Cotonou)</option>
             {zones.map((zone) => (
@@ -142,12 +162,16 @@ function AddressesContent() {
               </option>
             ))}
           </select>
+          <label htmlFor="address-notes" className="text-sm font-semibold text-ink sm:col-span-2">
+            Indications complémentaires
+          </label>
           <input
+            id="address-notes"
             type="text"
-            placeholder="Indications complémentaires (ex. près de la pharmacie)"
+            placeholder="Ex. : près de la pharmacie"
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:outline-none sm:col-span-2"
+            className="rounded-lg border border-black/15 px-3 py-2.5 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20 sm:col-span-2"
           />
           <button
             type="submit"

@@ -85,7 +85,7 @@ function OrdersList() {
             placeholder="Rechercher une commande ou un produit…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-black/15 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-brand focus:outline-none"
+            className="w-full rounded-lg border border-black/15 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-brand"
           />
         </div>
         <div className="flex items-center gap-1 self-start rounded-lg border border-black/15 bg-white p-1">
@@ -109,7 +109,7 @@ function OrdersList() {
         </div>
       </div>
 
-      {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       {orders === null && (
         <div className="flex flex-col gap-4">
