@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { fetchProductBySlug } from "../api/products.js";
 import { createReview, fetchProductReviews } from "../api/reviews.js";
@@ -34,7 +34,7 @@ function ProductView({ slug }) {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [optionErrors, setOptionErrors] = useState({});
 
-  useEffect(() => {
+  const loadProduct = useCallback(() => {
     fetchProductBySlug(slug)
       .then(setProduct)
       .catch((err) => {
@@ -45,6 +45,17 @@ function ProductView({ slug }) {
         }
       });
   }, [slug]);
+
+  useEffect(() => {
+    loadProduct();
+  }, [loadProduct]);
+
+  const handleRetry = () => {
+    setError(null);
+    setNotFound(false);
+    setProduct(null);
+    loadProduct();
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !product) return;
@@ -68,7 +79,20 @@ function ProductView({ slug }) {
       </div>
     );
   }
-  if (error) return <p role="alert" className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
+  if (error)
+    return (
+      <div role="alert" className="px-4 py-16 text-center">
+        <p className="font-semibold text-red-600">Impossible de charger ce produit pour le moment.</p>
+        <p className="mt-2 text-sm text-muted">Vérifiez votre connexion puis réessayez.</p>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-6 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
   const productInStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
@@ -529,7 +553,7 @@ function ProductView({ slug }) {
             </div>
           )}
 
-          <div className="mt-5 rounded-[10px] bg-[#fafaf8] p-4">
+          <div className="mt-5 rounded-[10px] bg-surface p-4">
             <p className="text-sm font-semibold text-ink">Description</p>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
               {product.description || "Description"}
@@ -798,7 +822,7 @@ function ReviewsSection({ productId, productSlug }) {
         </ul>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-[10px] bg-[#fafaf8] p-4">
+      <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-[10px] bg-surface p-4">
         <p className="text-sm font-semibold text-ink">Laisser un avis</p>
         {submitted && (
           <p role="status" aria-live="polite" className="mt-2 text-sm text-green-700">

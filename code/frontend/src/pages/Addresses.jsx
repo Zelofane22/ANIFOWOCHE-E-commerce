@@ -13,6 +13,7 @@ function AddressesContent() {
   const [form, setForm] = useState(emptyAddressForm);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingId, setConfirmingId] = useState(null);
 
   const loadAddresses = () => getAddresses().then((data) => setAddresses(data.results ?? data));
 
@@ -30,8 +31,10 @@ function AddressesContent() {
     try {
       await deleteAddress(id);
       setAddresses((current) => current.filter((address) => address.id !== id));
+      setConfirmingId(null);
     } catch (err) {
       setError(extractErrorMessage(err));
+      setConfirmingId(null);
     }
   };
 
@@ -95,13 +98,37 @@ function AddressesContent() {
                 {address.zone_name}
                 {address.notes ? ` — ${address.notes}` : ""}
               </p>
-              <button
-                type="button"
-                onClick={() => handleDelete(address.id)}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-red-600 transition hover:underline"
-              >
-                <TrashIcon size={13} /> Supprimer
-              </button>
+              {confirmingId === address.id ? (
+                <div className="mt-3 rounded-md bg-red-50 p-3">
+                  <p aria-live="polite" className="text-sm font-medium text-red-700">
+                    Confirmer la suppression ?
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(address.id)}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingId(null)}
+                      className="rounded-lg border border-black/15 px-3 py-1.5 text-sm font-semibold text-ink transition hover:border-black/30"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingId(address.id)}
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-red-600 transition hover:underline"
+                >
+                  <TrashIcon size={13} /> Supprimer
+                </button>
+              )}
             </div>
           ))}
         </div>

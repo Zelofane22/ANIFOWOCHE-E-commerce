@@ -101,7 +101,7 @@ export default function SellerAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2] px-4 py-8 text-ink">
+    <div className="min-h-screen bg-surface-muted px-4 py-8 text-ink">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="hidden lg:block">
           <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-dark">

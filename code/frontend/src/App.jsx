@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import { pingPageView } from "./api/analytics.js";
 import Footer from "./components/Footer.jsx";
 import MobileTabBar from "./components/MobileTabBar.jsx";
+import PageSkeleton from "./components/PageSkeleton.jsx";
 import Navbar from "./components/Navbar.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
@@ -53,7 +54,7 @@ export default function App() {
       <AuthProvider>
         <div className="min-h-screen bg-white text-ink">
           <main>
-            <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
+            <Suspense fallback={<PageSkeleton />}>
               <Routes>
                 <Route path="/" element={<SellerLanding />} />
                 <Route path="/login" element={<SellerAuth />} />
@@ -83,7 +84,7 @@ export default function App() {
             {!isSellerSurface && <Navbar />}
             <main className="pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] md:pb-0">
               <div key={location.pathname} className="animate-page">
-                <Suspense fallback={<div className="min-h-[430px]" aria-busy="true" />}>
+                <Suspense fallback={<PageSkeleton />}>
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/catalogue" element={<Catalogue />} />

@@ -6,8 +6,8 @@ function Tab({ to, label, Icon, badge = 0 }) {
   return (
     <NavLink
       to={to}
-      className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-semibold text-white/60 transition active:scale-95"
-      style={({ isActive }) => (isActive ? { color: "#c99f08" } : undefined)}
+      className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-semibold text-white/60 transition active:scale-95"
+      style={({ isActive }) => (isActive ? { color: "var(--color-brand)" } : undefined)}
     >
       <span className="relative flex items-center justify-center">
         <Icon size={22} />

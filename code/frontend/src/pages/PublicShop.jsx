@@ -32,7 +32,7 @@ export default function PublicShop() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center">
+      <div className="min-h-screen bg-surface-muted px-4 py-10 text-center">
         <StoreIcon size={34} className="mx-auto text-muted" />
         <h1 className="mt-4 text-xl font-bold text-ink">Boutique introuvable</h1>
         <Link to="/register" className="mt-5 inline-block rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white">
@@ -42,10 +42,10 @@ export default function PublicShop() {
     );
   }
 
-  if (!shop) return <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>;
+  if (!shop) return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2] text-ink">
+    <div className="min-h-screen bg-surface-muted text-ink">
       <header className="border-b border-black/10 bg-white px-4 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
           <div className="flex items-center gap-3">

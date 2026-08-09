@@ -17,6 +17,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.core.models import SettingChangeRequest
+from apps.core.store_scope import (
+    get_main_store_shop,
+    scoped_orders,
+    scoped_products,
+)
 from apps.notifications.models import NotificationSettings
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import PaymentSettings
@@ -81,11 +86,13 @@ def reports_view(request):
     duration = end - start
     previous_start = start - duration
     previous_end = start
-    valid_orders = Order.objects.filter(created_at__gte=start, created_at__lt=end).exclude(status=Order.Status.CANCELLED)
-    previous_valid_orders = Order.objects.filter(created_at__gte=previous_start, created_at__lt=previous_end).exclude(status=Order.Status.CANCELLED)
+    main_shop = get_main_store_shop()
+    store_orders = scoped_orders(main_shop)
+    valid_orders = store_orders.filter(created_at__gte=start, created_at__lt=end).exclude(status=Order.Status.CANCELLED)
+    previous_valid_orders = store_orders.filter(created_at__gte=previous_start, created_at__lt=previous_end).exclude(status=Order.Status.CANCELLED)
     revenue_by_month = valid_orders.annotate(day=TruncDate("created_at")).values("day").annotate(total=Sum("total_xof")).order_by("day")
-    top_products = OrderItem.objects.filter(order__created_at__gte=start, order__created_at__lt=end).exclude(order__status=Order.Status.CANCELLED).annotate(subtotal=F("quantity") * F("unit_price_xof")).values("product__name").annotate(total_revenue=Sum("subtotal"), total_quantity=Sum("quantity")).order_by("-total_revenue")[:10]
-    category_breakdown = OrderItem.objects.filter(order__created_at__gte=start, order__created_at__lt=end).exclude(order__status=Order.Status.CANCELLED).annotate(subtotal=F("quantity") * F("unit_price_xof")).values("product__category__name").annotate(total=Sum("subtotal")).order_by("-total")
+    top_products = OrderItem.objects.filter(order__in=valid_orders).annotate(subtotal=F("quantity") * F("unit_price_xof")).values("product__name").annotate(total_revenue=Sum("subtotal"), total_quantity=Sum("quantity")).order_by("-total_revenue")[:10]
+    category_breakdown = OrderItem.objects.filter(order__in=valid_orders).annotate(subtotal=F("quantity") * F("unit_price_xof")).values("product__category__name").annotate(total=Sum("subtotal")).order_by("-total")
     revenue = valid_orders.aggregate(total=Sum("total_xof"))["total"] or 0
     previous_revenue = previous_valid_orders.aggregate(total=Sum("total_xof"))["total"] or 0
     order_count = valid_orders.count()
@@ -112,7 +119,7 @@ def reports_view(request):
         "revenue_by_month": [{"month": row["day"].strftime("%d/%m/%Y"), "total": row["total"]} for row in revenue_by_month],
         "top_products": list(top_products),
         "category_breakdown": list(category_breakdown),
-        "total_products": Product.objects.filter(is_active=True).count(),
+        "total_products": scoped_products(main_shop).filter(is_active=True).count(),
         "period": period,
         "period_start": start_date.isoformat(),
         "period_end": end_date.isoformat(),

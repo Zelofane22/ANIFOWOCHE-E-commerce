@@ -334,7 +334,7 @@ function ProductGallery({ slug, colors }) {
         </div>
       )}
 
-      <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-black/15 bg-[#fbfaf7] px-4 py-6 text-sm font-medium text-muted transition hover:border-brand hover:text-brand-dark">
+      <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-black/15 bg-surface-raised px-4 py-6 text-sm font-medium text-muted transition hover:border-brand hover:text-brand-dark">
         <PlusIcon size={16} />
         {uploading ? "Ajout en cours..." : "Ajouter des images"}
         <input
@@ -490,7 +490,7 @@ function ProductOptionManager({ slug }) {
 
       <div className="mt-4 space-y-4">
         {groups.map((group) => (
-          <div key={group.id} className="rounded-lg border border-black/10 bg-[#fbfaf7] p-3">
+          <div key={group.id} className="rounded-lg border border-black/10 bg-surface-raised p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="grid flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <input
@@ -716,7 +716,7 @@ export default function SellerProducts() {
   };
 
   if (loading || !seller) {
-    return <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>;
+    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
   }
 
   return (
@@ -858,7 +858,7 @@ export default function SellerProducts() {
               {form.colors.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {form.colors.map((color, index) => (
-                    <div key={index} className="flex items-center gap-2 rounded-lg bg-[#fbfaf7] px-3 py-2">
+                    <div key={index} className="flex items-center gap-2 rounded-lg bg-surface-raised px-3 py-2">
                       <span
                         className="h-5 w-5 shrink-0 rounded-full border border-black/10"
                         style={{ backgroundColor: color.hex }}

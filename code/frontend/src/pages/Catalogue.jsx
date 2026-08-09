@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { fetchCategories, fetchProducts } from "../api/products.js";
 import BottomSheet from "../components/BottomSheet.jsx";
@@ -67,7 +67,7 @@ export default function Catalogue() {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     const params = {};
     if (activeCategory) params.category__slug = activeCategory;
     if (search.trim()) params.search = search.trim();
@@ -82,6 +82,16 @@ export default function Catalogue() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [activeCategory, search, unit, minPrice, maxPrice, inStockOnly, sort]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    loadProducts();
+  };
 
   const hasActiveFilters = Boolean(unit || minPrice || maxPrice || inStockOnly || sort);
   const activeFilterCount = [unit, minPrice, maxPrice, inStockOnly ? "stock" : "", sort].filter(
@@ -157,7 +167,20 @@ export default function Catalogue() {
     </div>
   );
 
-  if (error) return <p role="alert" className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
+  if (error)
+    return (
+      <div role="alert" className="px-4 py-16 text-center">
+        <p className="font-semibold text-red-600">Impossible de charger les produits pour le moment.</p>
+        <p className="mt-2 text-sm text-muted">Vérifiez votre connexion puis réessayez.</p>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-6 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
 
   return (
     <div>
@@ -316,6 +339,15 @@ export default function Catalogue() {
             </div>
             <p className="font-semibold text-ink">Aucun produit trouvé</p>
             <p className="mt-1 text-sm">Essayez d'autres filtres ou une autre recherche.</p>
+            <button
+              type="button"
+              onClick={() =>
+                updateParams({ category: "", search: "", unit: "", min_price: "", max_price: "", in_stock: "", sort: "" })
+              }
+              className="mt-5 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+            >
+              Voir tout le catalogue
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">

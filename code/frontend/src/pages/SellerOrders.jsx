@@ -113,7 +113,7 @@ export default function SellerOrders() {
   };
 
   if (loading || !seller) {
-    return <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>;
+    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
   }
 
   return (
@@ -184,7 +184,7 @@ export default function SellerOrders() {
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
-                <article key={order.id} className="rounded-2xl border border-black/10 bg-[#fbfaf7] p-4 shadow-sm">
+                <article key={order.id} className="rounded-2xl border border-black/10 bg-surface-raised p-4 shadow-sm">
                   <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">Commande</p>
