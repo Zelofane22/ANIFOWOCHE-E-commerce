@@ -7,7 +7,7 @@ Directives pour agents IA sur ce projet ANIFOWOCHE E-commerce.
 - **Toute commande liée au projet doit être exécutée via Docker Compose.** Cela inclut les tests, builds, lint, migrations, scripts Python/Node, exécution du backend/frontend et toute manipulation du runtime.
 - **Ne jamais exécuter d'outils locaux** pour ce projet (`python`, `pip`, `npm`, `manage.py`, `vite`, `pytest`, `psql`, etc.) sauf si la commande est explicitement fournie par Docker Compose via `docker compose -f code/docker-compose.yml ...`.
 - Si une commande doit être lancée dans un service, utiliser `docker compose -f code/docker-compose.yml exec <service> <cmd>` ou `docker compose -f code/docker-compose.yml run --rm <service> <cmd>`.
-- Toute modification du projet doit être fais dans un worktree temporaire puis commit&push sur la branche Develop
+- Toute modification du projet doit être fais dans un worktree temporaire puis commit sur la branche Develop
 - Cette règle est prioritaire sur toute habitude locale ou tentative d'exécution directe.
 
 ## Environnement d'exécution
