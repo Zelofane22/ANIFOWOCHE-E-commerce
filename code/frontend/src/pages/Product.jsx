@@ -529,7 +529,7 @@ function ProductView({ slug }) {
             </div>
           )}
 
-          <div className="mt-5 rounded-[10px] bg-[#fafaf8] p-4">
+          <div className="mt-5 rounded-[10px] bg-surface p-4">
             <p className="text-sm font-semibold text-ink">Description</p>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
               {product.description || "Description"}
@@ -798,7 +798,7 @@ function ReviewsSection({ productId, productSlug }) {
         </ul>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-[10px] bg-[#fafaf8] p-4">
+      <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-[10px] bg-surface p-4">
         <p className="text-sm font-semibold text-ink">Laisser un avis</p>
         {submitted && (
           <p role="status" aria-live="polite" className="mt-2 text-sm text-green-700">

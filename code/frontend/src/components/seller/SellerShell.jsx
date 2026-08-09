@@ -29,7 +29,7 @@ function SellerMobileTabBar() {
             key={to}
             to={to}
             className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-semibold text-muted transition active:scale-95"
-            style={({ isActive }) => (isActive ? { color: "#c99f08" } : undefined)}
+            style={({ isActive }) => (isActive ? { color: "var(--color-brand)" } : undefined)}
           >
             <Icon size={22} />
             <span>{label}</span>
@@ -50,7 +50,7 @@ export default function SellerShell({ children, title, seller }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2] text-ink">
+    <div className="min-h-screen bg-surface-muted text-ink">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-black/10 bg-white px-4 py-5 lg:block">
         <Link to="/dashboard" className="flex items-center gap-2 text-base font-bold text-ink">
           <StoreIcon size={21} className="text-brand-dark" />
