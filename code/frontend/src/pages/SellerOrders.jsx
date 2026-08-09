@@ -19,6 +19,7 @@ export default function SellerOrders() {
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState(null);
   const [statusSelection, setStatusSelection] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState([]);
   const [statusErrors, setStatusErrors] = useState({});
@@ -46,8 +47,9 @@ export default function SellerOrders() {
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
     const query = search.trim().toLowerCase();
-    if (!query) return orders;
     return orders.filter((order) => {
+      if (statusFilter && order.status !== statusFilter) return false;
+      if (!query) return true;
       return (
         order.full_name.toLowerCase().includes(query) ||
         order.phone.toLowerCase().includes(query) ||
@@ -55,7 +57,7 @@ export default function SellerOrders() {
         order.items?.some((item) => item.product_name?.toLowerCase().includes(query))
       );
     });
-  }, [orders, search]);
+  }, [orders, search, statusFilter]);
 
   const statusCounts = useMemo(() => {
     if (!orders) return {};
@@ -135,6 +137,35 @@ export default function SellerOrders() {
                 className="w-full rounded-lg border border-black/10 bg-white px-10 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-1.5 rounded-lg border border-black/15 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setStatusFilter(null)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                statusFilter === null ? "bg-brand text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Toutes{orders ? ` (${orders.length})` : ""}
+            </button>
+            {[
+              { key: "received", label: "Reçues" },
+              { key: "prepared", label: "En préparation" },
+              { key: "delivered", label: "Livrées" },
+              { key: "cancelled", label: "Annulées" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setStatusFilter(key)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  statusFilter === key ? "bg-brand text-white" : "text-muted hover:text-ink"
+                }`}
+              >
+                {label}{statusCounts[key] != null ? ` (${statusCounts[key]})` : ""}
+              </button>
+            ))}
           </div>
 
           {orders === null ? (
