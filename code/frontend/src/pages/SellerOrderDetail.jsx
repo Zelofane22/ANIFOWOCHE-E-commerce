@@ -139,7 +139,7 @@ export default function SellerOrderDetail() {
 
   if (loading || pageLoading || !seller || !order) {
     return (
-      <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>
+      <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>
     );
   }
 
@@ -177,7 +177,7 @@ export default function SellerOrderDetail() {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
             <div className="space-y-4">
-              <div className="rounded-2xl border border-black/10 bg-[#fbfaf7] p-4">
+              <div className="rounded-2xl border border-black/10 bg-surface-raised p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-ink">
                   <FileTextIcon size={15} className="text-brand-dark" />
                   Résumé commande
@@ -201,7 +201,7 @@ export default function SellerOrderDetail() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {order.items?.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-black/10 bg-[#fbfaf7] p-3">
+                    <div key={item.id} className="rounded-xl border border-black/10 bg-surface-raised p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-ink">{item.product_name}</p>
@@ -287,13 +287,13 @@ export default function SellerOrderDetail() {
                     Paiement
                   </div>
                   <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex items-center justify-between rounded-xl bg-[#fbfaf7] px-3 py-2">
+                    <div className="flex items-center justify-between rounded-xl bg-surface-raised px-3 py-2">
                       <span className="text-muted">Statut</span>
                       <span className={`font-semibold ${order.payment_info.status === "approved" ? "text-green-700" : order.payment_info.status === "failed" || order.payment_info.status === "declined" || order.payment_info.status === "canceled" ? "text-red-600" : ""}`}>
                         {PAYMENT_STATUS_LABEL[order.payment_info.status] ?? order.payment_info.status}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between rounded-xl bg-[#fbfaf7] px-3 py-2">
+                    <div className="flex items-center justify-between rounded-xl bg-surface-raised px-3 py-2">
                       <span className="text-muted">Mode</span>
                       <span className="font-semibold text-ink">{PAYMENT_METHOD_LABEL[order.payment_info.method] ?? order.payment_info.method}</span>
                     </div>

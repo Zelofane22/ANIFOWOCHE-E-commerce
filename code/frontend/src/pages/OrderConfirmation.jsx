@@ -53,9 +53,9 @@ const PAYMENT_CONTENT = {
 };
 
 const TONE_STYLES = {
-  success: { badge: "bg-brand", stroke: "#1A1A1A", path: "m5 13 4 4L19 7" },
-  pending: { badge: "bg-amber-100", stroke: "#92400E", path: "M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" },
-  failed: { badge: "bg-red-100", stroke: "#B91C1C", path: "M6 6l12 12M18 6 6 18" },
+  success: { badge: "bg-brand", stroke: "var(--color-ink)", path: "m5 13 4 4L19 7" },
+  pending: { badge: "bg-amber-100", stroke: "var(--color-warning-dark)", path: "M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" },
+  failed: { badge: "bg-red-100", stroke: "var(--color-error-dark)", path: "M6 6l12 12M18 6 6 18" },
 };
 
 const RETRYABLE_STATUSES = ["declined", "canceled", "closed", "timeout", "failed"];

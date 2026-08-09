@@ -134,7 +134,7 @@ export default function SellerProductDetail() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center">
+      <div className="min-h-screen bg-surface-muted px-4 py-10 text-center">
         <StoreIcon size={34} className="mx-auto text-muted" />
         <h1 className="mt-4 text-xl font-bold text-ink">Produit introuvable</h1>
         <Link
@@ -148,7 +148,7 @@ export default function SellerProductDetail() {
   }
 
   if (!product) {
-    return <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>;
+    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
   }
 
   const whatsappMessage = order
@@ -157,7 +157,7 @@ export default function SellerProductDetail() {
   const whatsappUrl = buildWhatsappUrl(shop?.whatsapp_phone, whatsappMessage);
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2] text-ink">
+    <div className="min-h-screen bg-surface-muted text-ink">
       <header className="border-b border-black/10 bg-white px-4 py-3">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <Link to={`/${shopSlug}`} className="text-sm text-muted hover:text-brand transition">
@@ -221,7 +221,7 @@ export default function SellerProductDetail() {
                     >
                       <span
                         className="inline-block h-4 w-4 rounded-full border border-black/10"
-                        style={{ backgroundColor: color.hex || "#ccc" }}
+                        style={{ backgroundColor: color.hex || "var(--color-neutral)" }}
                       />
                       <span>{color.name}</span>
                       {color.stock !== undefined && (

@@ -9,7 +9,7 @@ export default function ShopRedirect() {
   }, [slug]);
 
   return (
-    <div className="min-h-screen bg-[#f7f6f2] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-muted flex items-center justify-center px-4">
       <p className="text-muted">Redirection vers la boutique...</p>
     </div>
   );

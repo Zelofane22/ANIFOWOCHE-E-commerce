@@ -129,7 +129,7 @@ export default function SellerSettings() {
   };
 
   if (loading || !seller || !form) {
-    return <div className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-center text-muted">Chargement...</div>;
+    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
   }
 
   return (

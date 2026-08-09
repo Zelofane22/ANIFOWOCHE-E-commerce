@@ -221,7 +221,7 @@ function HeroSection() {
 
 function PainPointsSection() {
   return (
-    <section className="border-b border-black/10 bg-[#f7f6f2] py-16">
+    <section className="border-b border-black/10 bg-surface-muted py-16">
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-ink md:text-3xl">
@@ -310,7 +310,7 @@ function FeaturesSection() {
 
 function HowItWorksSection() {
   return (
-    <section className="border-y border-black/10 bg-[#f7f6f2] py-16 md:py-20">
+    <section className="border-y border-black/10 bg-surface-muted py-16 md:py-20">
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-ink md:text-3xl">
