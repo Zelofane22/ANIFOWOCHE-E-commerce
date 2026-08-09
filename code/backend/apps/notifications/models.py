@@ -108,6 +108,8 @@ class BackofficeNotification(models.Model):
     action_url = models.CharField(max_length=255, blank=True, default="")
     source = models.CharField(max_length=80, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
