@@ -15,7 +15,13 @@ from .models import Order, OrderItem
 class OrderItemSerializer(serializers.ModelSerializer):
     """Sérialise une ligne de commande avec un aperçu du produit associé."""
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source="product", write_only=True
+        queryset=Product.objects.all(),
+        source="product",
+        write_only=True,
+        # Message lisible si le produit n'existe plus au catalogue (évite le
+        # brut DRF « Clé primaire « NN » non valide - l'objet n'existe pas. »)
+        # — issue JAVASCRIPT-REACT-S.
+        error_messages={"does_not_exist": "Ce produit n'est plus disponible au catalogue."},
     )
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_slug = serializers.SlugField(source="product.slug", read_only=True)

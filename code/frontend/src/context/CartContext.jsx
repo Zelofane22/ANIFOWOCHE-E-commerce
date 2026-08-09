@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fetchProducts } from "../api/products.js";
 import { CartContextValue } from "./cartContextValue.js";
 const STORAGE_KEY = "anifowoche_cart";
 
@@ -11,10 +12,19 @@ function readInitialCart() {
   }
 }
 
+// Vrai si deux paniers sont identiques (on évite les re-render inutiles).
+function cartsEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((item, i) => JSON.stringify(item) === JSON.stringify(b[i]));
+}
+
 export function CartProvider({ children }) {
   const [items, setItems] = useState(readInitialCart);
-
+  // Ref miroir des items pour lire la valeur courante dans reconcileCart
+  // sans dépendance au tableau items (callback stable au montage).
+  const itemsRef = useRef(items);
   useEffect(() => {
+    itemsRef.current = items;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
@@ -73,6 +83,40 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setItems([]);
 
+  // Réconcilie le panier localStorage avec le catalogue live : met à jour
+  // id/prix/image des produits existants et retire ceux qui ne sont plus au
+  // catalogue (produit supprimé/désactivé). Évite le 400 « Clé primaire … non
+  // valide » à la commande (issue JAVASCRIPT-REACT-S). Sans effet si le panier
+  // est vide ou si l'API est injoignable (on garde le panier tel quel).
+  const reconcileCart = useCallback(async () => {
+    const snapshot = itemsRef.current;
+    if (!snapshot || snapshot.length === 0) return;
+    try {
+      const data = await fetchProducts({ page_size: 200 });
+      const results = Array.isArray(data) ? data : data?.results ?? [];
+      const bySlug = new Map(results.map((p) => [p.slug, p]));
+      setItems((current) => {
+        const next = [];
+        for (const item of current) {
+          const live = bySlug.get(item.slug);
+          if (!live) continue;
+          next.push({
+            ...item,
+            id: live.id,
+            name: live.name,
+            price_xof: live.price_xof,
+            unit: live.unit,
+            size: live.size,
+            image: live.image,
+          });
+        }
+        return cartsEqual(next, current) ? current : next;
+      });
+    } catch {
+      // Catalogue injoignable : on conserve le panier en l'état.
+    }
+  }, []);
+
   const itemCount = useMemo(
     () => items.reduce((total, item) => total + item.quantity, 0),
     [items]
@@ -93,6 +137,7 @@ export function CartProvider({ children }) {
     updateQuantity,
     removeItem,
     clearCart,
+    reconcileCart,
     itemCount,
     subtotal,
   };
