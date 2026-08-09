@@ -5,8 +5,10 @@ from django.contrib.auth import get_user_model
 from django.db.models import F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.urls import reverse
 
 from apps.analytics.models import PageView
+from apps.core.models import SettingChangeRequest
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
 from apps.products.models import Product
@@ -34,30 +36,25 @@ def dashboard_callback(request, context):
     orders_period = Order.objects.filter(created_at__gte=period_start)
     orders_previous = Order.objects.filter(created_at__gte=previous_start, created_at__lt=period_start)
 
-    # Revenus et nombre de commandes sur les deux périodes (hors annulations).
     revenue_period = orders_period.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
     revenue_previous = orders_previous.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
 
     orders_count = orders_period.count()
     orders_count_previous = orders_previous.count()
 
-    # KPIs clients : total et nouveaux comptes par période.
     clients_qs = User.objects.filter(is_staff=False)
     clients_total = clients_qs.count()
     clients_new_period = clients_qs.filter(date_joined__gte=period_start).count()
     clients_new_previous = clients_qs.filter(date_joined__gte=previous_start, date_joined__lt=period_start).count()
 
-    # KPIs produits : total actifs et nouvelles créations par période.
     products_qs = Product.objects.filter(is_active=True)
     products_total = products_qs.count()
     products_new_period = products_qs.filter(created_at__gte=period_start).count()
     products_new_previous = products_qs.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
 
-    # Trafic : nombre de pages vues par période.
     visits_period = PageView.objects.filter(created_at__gte=period_start).count()
     visits_previous = PageView.objects.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
 
-    # Série des ventes par jour pour le graphique d'évolution.
     sales_by_day = (
         orders_period.exclude(status=Order.Status.CANCELLED)
         .annotate(day=TruncDate("created_at"))
@@ -66,7 +63,6 @@ def dashboard_callback(request, context):
         .order_by("day")
     )
 
-    # Répartition du chiffre d'affaires par catégorie (avec pourcentages).
     category_breakdown = (
         OrderItem.objects.filter(order__created_at__gte=period_start)
         .exclude(order__status=Order.Status.CANCELLED)
@@ -78,7 +74,6 @@ def dashboard_callback(request, context):
     category_total = sum(row["total"] for row in category_breakdown) or 1
     category_breakdown = list(category_breakdown)
 
-    # Top 5 des produits par chiffre d'affaires.
     top_products = (
         OrderItem.objects.filter(order__created_at__gte=period_start)
         .exclude(order__status=Order.Status.CANCELLED)
@@ -88,7 +83,44 @@ def dashboard_callback(request, context):
         .order_by("-total_revenue")[:5]
     )
 
-    # Injection de tous les KPIs et séries dans le contexte du template admin.
+    # Données « centre d'actions » : listes récentes, produits sous seuil,
+    # paiements échoués et demandes de réglages en attente.
+    recent_orders = Order.objects.select_related("delivery_zone").order_by("-created_at")[:5]
+    low_stock_products = list(
+        Product.objects.filter(is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False)
+        .order_by("stock")[:5]
+    )
+    low_stock_count = Product.objects.filter(
+        is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False
+    ).count()
+    recent_payments = Payment.objects.select_related("order").order_by("-created_at")[:5]
+    pending_orders_count = Order.objects.filter(
+        status__in=[Order.Status.RECEIVED, Order.Status.PREPARED]
+    ).count()
+    failed_payments_count = Payment.objects.filter(
+        status__in=[Payment.Status.FAILED, Payment.Status.DECLINED, Payment.Status.CANCELED]
+    ).count()
+    pending_settings_count = SettingChangeRequest.objects.filter(
+        status=SettingChangeRequest.Status.PENDING
+    ).count()
+
+    # Liens « liste filtrée » pour rendre chaque carte et ligne actionnables.
+    action_links = {
+        "orders": reverse("admin:orders_order_changelist"),
+        "orders_pending": "{}?to_process=1".format(reverse("admin:orders_order_changelist")),
+        "products": reverse("admin:products_product_changelist"),
+        "products_low_stock": "{}?low_stock=1".format(reverse("admin:products_product_changelist")),
+        "payments": reverse("admin:payments_payment_changelist"),
+        "payments_failed": "{}?relaunch=1".format(reverse("admin:payments_payment_changelist")),
+        "settings": reverse("admin:core_settingchangerequest_changelist"),
+        "settings_pending": "{}?status__exact=pending".format(
+            reverse("admin:core_settingchangerequest_changelist")
+        ),
+        "clients": reverse("admin:users_client_changelist"),
+        "visits": reverse("admin:analytics_pageview_changelist"),
+        "reports": reverse("admin_reports"),
+    }
+
     context.update(
         {
             "kpi_revenue": revenue_period,
@@ -115,12 +147,16 @@ def dashboard_callback(request, context):
                 [row["product__category__name"] or "Autres" for row in category_breakdown]
             ),
             "category_breakdown_values_json": json.dumps([row["total"] for row in category_breakdown]),
-            "recent_orders": Order.objects.order_by("-created_at")[:5],
+            "recent_orders": recent_orders,
             "top_products": list(top_products),
-            "low_stock_products": Product.objects.filter(
-                is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False
-            ).order_by("stock")[:5],
-            "recent_payments": Payment.objects.select_related("order").order_by("-created_at")[:5],
+            "low_stock_products": low_stock_products,
+            "recent_payments": recent_payments,
+            "pending_orders_count": pending_orders_count,
+            "low_stock_count": low_stock_count,
+            "low_stock_threshold": LOW_STOCK_THRESHOLD,
+            "failed_payments_count": failed_payments_count,
+            "pending_settings_count": pending_settings_count,
+            "action_links": action_links,
             "period_days": PERIOD_DAYS,
         }
     )

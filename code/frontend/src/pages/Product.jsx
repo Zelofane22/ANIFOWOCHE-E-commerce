@@ -68,7 +68,7 @@ function ProductView({ slug }) {
       </div>
     );
   }
-  if (error) return <p className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
+  if (error) return <p role="alert" className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
   const productInStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
@@ -280,26 +280,35 @@ function ProductView({ slug }) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr_340px] lg:gap-8">
         <div className="flex gap-3">
-          <div className="hidden flex-col gap-2 sm:flex">
-            <button
-              type="button"
-              className="h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 border-brand bg-brand-pale"
-              aria-label="Image produit sélectionnée"
-            >
-              {currentImage ? (
-                <ProductImage src={currentImage.image} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-brand-dark">
-                  ANI
-                </span>
-              )}
-            </button>
+          <div className="no-scrollbar hidden max-h-[32rem] flex-col gap-2 overflow-y-auto sm:flex">
+            {displayImages.length > 0 ? (
+              displayImages.map((img, index) => (
+                <button
+                  key={img.id}
+                  type="button"
+                  onClick={() => setActiveImageIndex(index)}
+                  aria-label={"Afficher l'image " + (index + 1)}
+                  aria-current={index === activeImageIndex ? "true" : undefined}
+                  className={"h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 bg-brand-pale transition " + (index === activeImageIndex ? "border-brand" : "border-transparent hover:border-brand/50")}
+                >
+                  <ProductImage src={img.image} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border-2 border-brand bg-brand-pale text-[10px] font-bold text-brand-dark">
+                ANI
+              </div>
+            )}
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-pale">
               {currentImage ? (
-                <ProductImage src={currentImage.image} alt={product.name} className="h-full w-full object-cover" />
+                <ProductImage
+                  src={currentImage.image}
+                  alt={currentImage.alt_text || product.name}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-lg font-bold text-brand-dark">
                   ANIFOWOCHE
@@ -416,7 +425,10 @@ function ProductView({ slug }) {
                       <button
                         key={color.name}
                         type="button"
-                        onClick={() => setSelectedColor(isSelected ? null : color.name)}
+                        onClick={() => {
+                          setActiveImageIndex(0);
+                          setSelectedColor(isSelected ? null : color.name);
+                        }}
                         disabled={isOutOfStock}
                         title={`${color.name}${isOutOfStock ? " (rupture)" : ` — ${colorStock} en stock`}`}
                         className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition ${
@@ -597,7 +609,10 @@ function ProductView({ slug }) {
                       <button
                         key={color.name}
                         type="button"
-                        onClick={() => setSelectedColor(isSelected ? null : color.name)}
+                        onClick={() => {
+                          setActiveImageIndex(0);
+                          setSelectedColor(isSelected ? null : color.name);
+                        }}
                         disabled={isOutOfStock}
                         title={`${color.name}${isOutOfStock ? " (rupture)" : ""}`}
                         className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition ${
@@ -785,21 +800,37 @@ function ReviewsSection({ productId, productSlug }) {
 
       <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-[10px] bg-[#fafaf8] p-4">
         <p className="text-sm font-semibold text-ink">Laisser un avis</p>
-        {submitted && <p className="mt-2 text-sm text-green-700">Merci ! Votre avis sera visible après validation.</p>}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {submitted && (
+          <p role="status" aria-live="polite" className="mt-2 text-sm text-green-700">
+            Merci ! Votre avis sera visible après validation.
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="mt-2 text-sm text-red-600">
+            {error}
+          </p>
+        )}
         <div className="mt-3 flex flex-col gap-3">
+          <label htmlFor="review-author" className="text-sm font-semibold text-ink">
+            Votre nom
+          </label>
           <input
+            id="review-author"
             type="text"
-            placeholder="Votre nom"
+            placeholder="Ex. : Jean B."
             required
             value={form.author_name}
             onChange={(e) => setForm({ ...form, author_name: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
+          <label htmlFor="review-rating" className="text-sm font-semibold text-ink">
+            Votre note
+          </label>
           <select
+            id="review-rating"
             value={form.rating}
             onChange={(e) => setForm({ ...form, rating: Number(e.target.value) })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           >
             {[5, 4, 3, 2, 1].map((value) => (
               <option key={value} value={value}>
@@ -807,12 +838,16 @@ function ReviewsSection({ productId, productSlug }) {
               </option>
             ))}
           </select>
+          <label htmlFor="review-comment" className="text-sm font-semibold text-ink">
+            Votre commentaire <span className="font-normal text-muted">(optionnel)</span>
+          </label>
           <textarea
-            placeholder="Votre commentaire (optionnel)"
+            id="review-comment"
+            placeholder="Votre retour sur ce produit…"
             rows={3}
             value={form.comment}
             onChange={(e) => setForm({ ...form, comment: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
           <button
             type="submit"

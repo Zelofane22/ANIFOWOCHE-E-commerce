@@ -1,8 +1,136 @@
+/* ==========================================================================
+   ANIFOWOCHE — Design system admin (custom pages)
+   Source unique des tokens (--anw-*) et des composants custom.
+   Chargé globalement via UNFOLD["STYLES"].
+   La classe « dark » est posée par Unfold sur <html> (adminTheme).
+   ========================================================================== */
+
+/* --- Tokens : thème clair ------------------------------------------------ */
 :root {
+    /* Surfaces */
+    --anw-surface: #ffffff;
+
+    /* Texte */
+    --anw-text-strong: #1a1a1a;
+    --anw-text-body: #1a1a1a;
+    --anw-text-muted: #6b6b6b;
+    --anw-text-faint: #767676;
+
+    /* Bordures & séparateurs */
+    --anw-border: #ecead8;
+    --anw-divider: #f3f1e3;
+
+    /* Ombres */
+    --anw-shadow-ambient: rgba(169, 129, 17, 0.12);
+    --anw-shadow-soft: rgba(0, 0, 0, 0.05);
+    --anw-shadow-hover-ambient: rgba(169, 129, 17, 0.28);
+    --anw-shadow-hover-soft: rgba(0, 0, 0, 0.08);
+
+    /* Couleurs métier */
+    --anw-accent: #a98111;        /* action principale */
+    --anw-accent-strong: #8a6b0d; /* accent hover */
+    --anw-accent-contrast: #ffffff;
+    --anw-accent-soft: #f6f3df;   /* fonds secondaires */
+    --anw-accent-soft-hover: rgba(169, 129, 17, 0.2);
+    --anw-accent-soft-text: #40340a;
+    --anw-accent-border: #c9a227; /* accents d'action warn/info... */
+    --anw-positive: #16793d;
+    --anw-negative: #c92a2a;
+    --anw-info: #2563eb;
+    --anw-danger: #d93025;
+
+    /* Badges */
+    --anw-badge-warn-bg: #faf6c9;
+    --anw-badge-warn-text: #7a6d0c;
+    --anw-badge-info-bg: #dbeafe;
+    --anw-badge-info-text: #1e40af;
+    --anw-badge-success-bg: #dcfce7;
+    --anw-badge-success-text: #166534;
+    --anw-badge-danger-bg: #fee2e2;
+    --anw-badge-danger-text: #991b1b;
+    --anw-badge-neutral-bg: #ececec;
+    --anw-badge-neutral-text: #444444;
+
+    /* Statuts (settings hub) */
+    --anw-status-on-bg: #e8f7ee;
+    --anw-status-on-text: #176b3a;
+    --anw-status-off-bg: #f8e9e7;
+    --anw-status-off-text: #9f2f25;
+    --anw-status-waiting-bg: #fff6d6;
+    --anw-status-waiting-text: #7a5800;
+
+    /* Alertes backoffice */
+    --anw-alert-kind-bg: #f6f3df;
+    --anw-alert-kind-text: #40340a;
+    --anw-alert-border-l: #a98111;
+    --anw-alert-error-border: #b3261e;
+    --anw-alert-warning-border: #a98111;
+    --anw-alert-info-border: #2764ad;
+
+    /* Navigation admin */
     --anw-admin-active-nav-bg: #a98111;
     --anw-admin-active-nav-text: #ffffff;
 }
 
+/* --- Tokens : thème sombre ---------------------------------------------- */
+.dark {
+    --anw-surface: #222226;
+
+    --anw-text-strong: #f2f2f2;
+    --anw-text-body: #e5e5e5;
+    --anw-text-muted: #9b9b9b;
+    --anw-text-faint: #a0a0a0;
+
+    --anw-border: rgba(255, 255, 255, 0.12);
+    --anw-divider: rgba(255, 255, 255, 0.09);
+
+    --anw-shadow-ambient: rgba(0, 0, 0, 0.45);
+    --anw-shadow-soft: rgba(0, 0, 0, 0.3);
+    --anw-shadow-hover-ambient: rgba(0, 0, 0, 0.55);
+    --anw-shadow-hover-soft: rgba(0, 0, 0, 0.35);
+
+    --anw-accent: #e6d315;
+    --anw-accent-strong: #f2e24f;
+    --anw-accent-contrast: #1a1a1a;
+    --anw-accent-soft: rgba(230, 211, 21, 0.14);
+    --anw-accent-soft-hover: rgba(230, 211, 21, 0.26);
+    --anw-accent-soft-text: #f6e15a;
+    --anw-accent-border: #e6d315;
+    --anw-positive: #4ade80;
+    --anw-negative: #f87171;
+    --anw-info: #93c5fd;
+    --anw-danger: #fca5a5;
+
+    --anw-badge-warn-bg: rgba(250, 246, 201, 0.15);
+    --anw-badge-warn-text: #e8d874;
+    --anw-badge-info-bg: rgba(219, 234, 254, 0.15);
+    --anw-badge-info-text: #93c5fd;
+    --anw-badge-success-bg: rgba(220, 252, 231, 0.15);
+    --anw-badge-success-text: #86efac;
+    --anw-badge-danger-bg: rgba(254, 226, 226, 0.15);
+    --anw-badge-danger-text: #fca5a5;
+    --anw-badge-neutral-bg: rgba(236, 236, 236, 0.12);
+    --anw-badge-neutral-text: #cfcfcf;
+
+    --anw-status-on-bg: rgba(46, 160, 89, 0.22);
+    --anw-status-on-text: #7bd89c;
+    --anw-status-off-bg: rgba(220, 70, 62, 0.22);
+    --anw-status-off-text: #f5988a;
+    --anw-status-waiting-bg: rgba(255, 205, 96, 0.18);
+    --anw-status-waiting-text: #eec45a;
+
+    --anw-alert-kind-bg: var(--anw-accent-soft);
+    --anw-alert-kind-text: var(--anw-accent-soft-text);
+    --anw-alert-border: var(--anw-border);
+    --anw-alert-error-border: #f87171;
+    --anw-alert-warning-border: #e6d315;
+    --anw-alert-info-border: #93c5fd;
+
+    --anw-admin-active-nav-bg: #a98111;
+    --anw-admin-active-nav-text: #ffffff;
+}
+
+/* --- Navigation active Unfold -------------------------------------------- */
 aside a[class~="bg-primary-600"],
 aside a[class~="text-primary-600"],
 nav a[class~="bg-primary-600"][href^="/admin/"],
@@ -18,14 +146,15 @@ aside a[class~="text-primary-600"] svg,
 nav a[class~="bg-primary-600"][href^="/admin/"] span,
 nav a[class~="text-primary-600"][href^="/admin/"] span,
 nav a[class~="bg-primary-600"][href^="/admin/"] svg,
-nav a[class~="text-primary-600"][href^="/admin/"] svg {
+nav a[class~="bg-primary-600"][href^="/admin/"] svg {
     color: inherit !important;
 }
 
+/* --- Icône des alertes dans le header ------------------------------------- */
 .anw-admin-alert-link {
     align-items: center;
     border-radius: 999px;
-    color: #565656;
+    color: var(--anw-text-muted);
     display: inline-flex;
     height: 2.25rem;
     justify-content: center;
@@ -36,16 +165,16 @@ nav a[class~="text-primary-600"][href^="/admin/"] svg {
 }
 
 .anw-admin-alert-link:hover {
-    background: #f6f3df;
-    color: #40340a;
+    background: var(--anw-accent-soft);
+    color: var(--anw-accent-soft-text);
 }
 
 .anw-admin-alert-badge {
     align-items: center;
-    background: #b3261e;
-    border: 2px solid #fff;
+    background: var(--anw-negative);
+    border: 2px solid var(--anw-surface);
     border-radius: 999px;
-    color: #fff;
+    color: #ffffff;
     display: inline-flex;
     font-size: 0.68rem;
     font-weight: 800;
@@ -57,4 +186,302 @@ nav a[class~="text-primary-600"][href^="/admin/"] svg {
     position: absolute;
     right: -0.18rem;
     top: -0.16rem;
+}
+
+/* --- Grilles -------------------------------------------------------------- */
+.anw-grid { display: grid; gap: 1rem; }
+.anw-kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.anw-action-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1rem; }
+.anw-main-grid { grid-template-columns: 2fr 1fr 1fr; margin-top: 1rem; }
+.anw-bottom-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 1rem; }
+
+@media (max-width: 1200px) {
+    .anw-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .anw-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .anw-main-grid, .anw-bottom-grid { grid-template-columns: 1fr; }
+}
+
+/* --- Cartes ---------------------------------------------------------------- */
+.anw-card,
+.anw-report-card,
+.anw-alert,
+.anw-alert-empty,
+.anw-requests {
+    background: var(--anw-surface);
+    border: 1px solid var(--anw-border);
+}
+
+.anw-card {
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px var(--anw-shadow-ambient), 0 1px 2px var(--anw-shadow-soft);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.anw-card-link { display: block; text-decoration: none; }
+
+.anw-card-link:hover,
+.anw-order-row:hover {
+    box-shadow: 0 8px 20px var(--anw-shadow-hover-ambient), 0 3px 8px var(--anw-shadow-hover-soft);
+    transform: translateY(-2px);
+}
+
+.anw-card-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.anw-card-title {
+    color: var(--anw-text-strong);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.anw-see-all {
+    color: var(--anw-accent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.anw-see-all:hover { text-decoration: underline; }
+
+/* --- KPI ------------------------------------------------------------------ */
+.anw-kpi-label { color: var(--anw-text-muted); font-size: 0.8rem; font-weight: 500; }
+.anw-kpi-value { color: var(--anw-text-strong); font-size: 1.5rem; font-weight: 700; margin-top: 0.35rem; }
+.anw-kpi-change { font-size: 0.75rem; font-weight: 600; margin-top: 0.35rem; }
+.anw-kpi-change.up { color: var(--anw-positive); }
+.anw-kpi-change.down { color: var(--anw-negative); }
+.anw-kpi-change.flat { color: var(--anw-text-muted); }
+
+.anw-action-title { font-size: 0.95rem; font-weight: 700; color: var(--anw-text-strong); }
+.anw-action-card-number { font-size: 1.9rem; font-weight: 800; line-height: 1; margin: 0.35rem 0 0.3rem; }
+.anw-action-card-hint { color: var(--anw-text-muted); font-size: 0.8rem; }
+
+.anw-action-card.warn { border-left: 4px solid var(--anw-accent-border); }
+.anw-action-card.warn .anw-action-card-number { color: var(--anw-accent); }
+.anw-action-card.info { border-left: 4px solid var(--anw-info); }
+.anw-action-card.info .anw-action-card-number { color: var(--anw-info); }
+.anw-action-card.danger { border-left: 4px solid var(--anw-negative); }
+.anw-action-card.danger .anw-action-card-number { color: var(--anw-danger); }
+
+/* --- Tableaux ---------------------------------------------------------------- */
+.anw-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.anw-table,
+.anw-report-table {
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    width: 100%;
+}
+
+.anw-table th,
+.anw-report-table th {
+    border-top: 1px solid var(--anw-border);
+    color: var(--anw-text-muted);
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    text-align: left;
+}
+
+.anw-table td,
+.anw-report-table td {
+    border-top: 1px solid var(--anw-divider);
+    color: var(--anw-text-body);
+    padding: 0.65rem 1rem;
+    vertical-align: middle;
+}
+
+.anw-table a { color: var(--anw-text-body); font-weight: 600; text-decoration: none; }
+.anw-table a:hover { color: var(--anw-accent); }
+
+/* --- Badges ------------------------------------------------------------------ */
+.anw-badge {
+    border-radius: 999px;
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+}
+
+.anw-badge.received, .anw-badge.pending { background: var(--anw-badge-warn-bg); color: var(--anw-badge-warn-text); }
+.anw-badge.prepared { background: var(--anw-badge-info-bg); color: var(--anw-badge-info-text); }
+.anw-badge.delivered, .anw-badge.approved { background: var(--anw-badge-success-bg); color: var(--anw-badge-success-text); }
+.anw-badge.cancelled, .anw-badge.failed, .anw-badge.declined { background: var(--anw-badge-danger-bg); color: var(--anw-badge-danger-text); }
+.anw-badge.canceled, .anw-badge.refunded { background: var(--anw-badge-neutral-bg); color: var(--anw-badge-neutral-text); }
+
+.anw-stock-badge {
+    background: var(--anw-badge-danger-bg);
+    color: var(--anw-badge-danger-text);
+    padding: 0.1rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* --- En-têtes de page ------------------------------------------------------- */
+.anw-greeting { font-size: 1.35rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: 0.25rem; }
+.anw-subgreeting { color: var(--anw-text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
+
+.anw-page-title { color: var(--anw-text-strong); font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; }
+
+/* --- Commandes récentes ----------------------------------------------------- */
+.anw-order-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.55rem 0.25rem;
+    border-radius: 8px;
+    text-decoration: none;
+}
+.anw-order-row--divider { border-bottom: 1px solid var(--anw-divider); }
+.anw-order-id { font-weight: 600; font-size: 0.82rem; color: var(--anw-text-body); }
+.anw-order-date { color: var(--anw-text-muted); font-size: 0.72rem; margin-top: 0.1rem; }
+.anw-order-amount-wrap { text-align: right; text-decoration: none; }
+.anw-order-amount { font-size: 0.8rem; font-weight: 600; margin-top: 0.2rem; color: var(--anw-text-body); }
+
+.anw-empty { color: var(--anw-text-muted); font-size: 0.82rem; }
+
+/* --- Rapports ---------------------------------------------------------------- */
+.anw-report-card {
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px var(--anw-shadow-ambient);
+    margin-bottom: 1rem;
+}
+.anw-report-title { font-size: 0.95rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: 0.75rem; }
+
+/* --- Hub des réglages -------------------------------------------------------- */
+.anw-settings-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.anw-settings-title { font-size: 1.35rem; font-weight: 750; color: var(--anw-text-strong); margin: 0 0 0.25rem; }
+.anw-settings-subtitle { color: var(--anw-text-muted); font-size: 0.9rem; margin: 0; max-width: 48rem; }
+
+.anw-settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.anw-settings-card { background: var(--anw-surface); border: 1px solid var(--anw-border); border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px var(--anw-shadow-soft); }
+.anw-settings-card-title { align-items: center; color: var(--anw-text-strong); display: flex; font-size: 0.98rem; font-weight: 750; gap: 0.45rem; justify-content: space-between; margin-bottom: 0.75rem; }
+.anw-settings-list { display: grid; gap: 0.55rem; margin-bottom: 1rem; }
+.anw-settings-row { align-items: center; display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.86rem; }
+.anw-settings-label { color: var(--anw-text-muted); }
+
+/* --- Boutons ------------------------------------------------------------------ */
+.anw-btn {
+    align-items: center;
+    background: var(--anw-accent);
+    border-radius: 7px;
+    color: var(--anw-accent-contrast) !important;
+    display: inline-flex;
+    font-size: 0.82rem;
+    font-weight: 700;
+    min-height: 2.2rem;
+    padding: 0.55rem 0.75rem;
+    text-decoration: none;
+}
+.anw-btn:hover { background: var(--anw-accent-strong); }
+
+.anw-btn-secondary {
+    background: var(--anw-accent-soft);
+    color: var(--anw-accent-soft-text) !important;
+}
+.anw-btn-secondary:hover { background: var(--anw-accent-soft-hover); color: var(--anw-accent-soft-text) !important; }
+
+.anw-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+/* --- Statuts ------------------------------------------------------------------- */
+.anw-status {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.73rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.36rem 0.55rem;
+    white-space: nowrap;
+}
+.anw-status-on { background: var(--anw-status-on-bg); color: var(--anw-status-on-text); }
+.anw-status-off { background: var(--anw-status-off-bg); color: var(--anw-status-off-text); }
+.anw-status-waiting { background: var(--anw-status-waiting-bg); color: var(--anw-status-waiting-text); }
+
+/* --- Demandes de changement ---------------------------------------------------- */
+.anw-requests { background: var(--anw-surface); border: 1px solid var(--anw-border); border-radius: 8px; overflow-x: auto; }
+.anw-requests-header { align-items: center; display: flex; justify-content: space-between; gap: 0.75rem; padding: 1rem; }
+.anw-requests-title { margin-bottom: 0.2rem; }
+
+@media (max-width: 1024px) { .anw-settings-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+    .anw-settings-header, .anw-requests-header { display: grid; }
+    .anw-table th:nth-child(3), .anw-table td:nth-child(3),
+    .anw-report-table th:nth-child(3), .anw-report-table td:nth-child(3) { display: none; }
+}
+
+/* --- Alertes backoffice --------------------------------------------------------- */
+.anw-alerts-header { align-items: flex-start; display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.anw-alerts-title { color: var(--anw-text-strong); font-size: 1.35rem; font-weight: 750; margin: 0 0 0.25rem; }
+.anw-alerts-subtitle { color: var(--anw-text-muted); font-size: 0.9rem; margin: 0; max-width: 45rem; }
+.anw-alerts-list { display: grid; gap: 0.75rem; }
+
+.anw-alert {
+    border-left: 4px solid var(--anw-alert-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px var(--anw-shadow-soft);
+    padding: 1rem;
+}
+.anw-alert-error { border-left-color: var(--anw-alert-error-border); }
+.anw-alert-warning { border-left-color: var(--anw-alert-warning-border); }
+.anw-alert-info { border-left-color: var(--anw-alert-info-border); }
+
+.anw-alert-top { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; margin-bottom: 0.55rem; }
+.anw-alert-title { color: var(--anw-text-strong); font-size: 0.98rem; font-weight: 750; }
+.anw-alert-meta { color: var(--anw-text-faint); font-size: 0.76rem; }
+.anw-alert-message { color: var(--anw-text-body); font-size: 0.88rem; line-height: 1.45; margin-bottom: 0.8rem; white-space: pre-line; }
+
+.anw-alert-kind {
+    background: var(--anw-alert-kind-bg);
+    border-radius: 999px;
+    color: var(--anw-alert-kind-text);
+    display: inline-flex;
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 0.35rem 0.55rem;
+}
+
+.anw-alert-action {
+    align-items: center;
+    background: var(--anw-accent);
+    border-radius: 7px;
+    color: var(--anw-accent-contrast) !important;
+    display: inline-flex;
+    font-size: 0.82rem;
+    font-weight: 700;
+    min-height: 2.15rem;
+    padding: 0.52rem 0.75rem;
+    text-decoration: none;
+}
+.anw-alert-action:hover { background: var(--anw-accent-strong); }
+
+.anw-alert-empty {
+    align-items: center;
+    border-radius: 8px;
+    color: var(--anw-text-muted);
+    display: flex;
+    min-height: 9rem;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+@media (max-width: 640px) { .anw-alerts-header { display: grid; } }
+
+/* --- Accessibilité ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    .anw-card,
+    .anw-card-link,
+    .anw-order-row,
+    .anw-admin-alert-link,
+    .anw-btn,
+    .anw-alert-action {
+        transition: none;
+    }
+    .anw-card-link:hover,
+    .anw-order-row:hover { transform: none; }
 }

@@ -355,32 +355,54 @@ export default function Account() {
         </div>
 
         {authMessage && (
-          <p className="mb-4 rounded-md bg-brand-pale px-3 py-2 text-sm font-medium text-ink">
+          <p
+            role="status"
+            aria-live="polite"
+            className="mb-4 rounded-md bg-brand-pale px-3 py-2 text-sm font-medium text-ink"
+          >
             {authMessage}
           </p>
         )}
 
-        {success && <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
-        {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        {success && (
+          <p role="status" aria-live="polite" className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+            {success}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         {mode === "reset" ? (
           <form onSubmit={handleResetSubmit} className="flex flex-col gap-3">
             <p className="text-sm text-muted">Choisissez un nouveau mot de passe pour votre compte.</p>
+            <label htmlFor="reset-password" className="text-sm font-semibold text-ink">
+              Nouveau mot de passe
+            </label>
             <input
+              id="reset-password"
               type="password"
               placeholder="Nouveau mot de passe"
+              autoComplete="new-password"
               required
               value={resetForm.password}
               onChange={(e) => setResetForm({ ...resetForm, password: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
+            <label htmlFor="reset-password2" className="text-sm font-semibold text-ink">
+              Confirmer le nouveau mot de passe
+            </label>
             <input
+              id="reset-password2"
               type="password"
               placeholder="Confirmer le nouveau mot de passe"
+              autoComplete="new-password"
               required
               value={resetForm.password2}
               onChange={(e) => setResetForm({ ...resetForm, password2: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
@@ -395,13 +417,18 @@ export default function Account() {
             <p className="text-sm text-muted">
               Entrez l'email de votre compte. Si un compte actif existe, vous recevrez un lien sécurisé.
             </p>
+            <label htmlFor="reset-email" className="text-sm font-semibold text-ink">
+              Email
+            </label>
             <input
+              id="reset-email"
               type="email"
-              placeholder="Email"
+              placeholder="vous@exemple.com"
+              autoComplete="email"
               required
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
@@ -424,21 +451,31 @@ export default function Account() {
           </form>
         ) : mode === "login" ? (
           <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3">
+            <label htmlFor="login-username" className="text-sm font-semibold text-ink">
+              Email ou numéro de téléphone
+            </label>
             <input
+              id="login-username"
               type="text"
-              placeholder="Email ou numéro de téléphone"
+              placeholder="vous@exemple.com ou +229 01 23 45 67"
+              autoComplete="username"
               required
               value={loginForm.username}
               onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
+            <label htmlFor="login-password" className="text-sm font-semibold text-ink">
+              Mot de passe
+            </label>
             <input
+              id="login-password"
               type="password"
               placeholder="Mot de passe"
+              autoComplete="current-password"
               required
               value={loginForm.password}
               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
@@ -462,57 +499,83 @@ export default function Account() {
           </form>
         ) : (
           <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-3">
+            <label htmlFor="register-username" className="text-sm font-semibold text-ink">
+              Nom d'utilisateur
+            </label>
             <input
+              id="register-username"
               type="text"
               placeholder="Nom d'utilisateur"
+              autoComplete="username"
               required
               value={registerForm.username}
               onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
+            <label htmlFor="register-email" className="text-sm font-semibold text-ink">
+              Email
+            </label>
             <input
+              id="register-email"
               type="email"
-              placeholder="Email"
+              placeholder="vous@exemple.com"
+              autoComplete="email"
               value={registerForm.email}
               onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
+            <label htmlFor="register-phone" className="text-sm font-semibold text-ink">
+              Téléphone
+            </label>
             <input
+              id="register-phone"
               type="tel"
-              placeholder="Téléphone"
+              placeholder="+229 01 XX XX XX XX"
+              autoComplete="tel"
               value={registerForm.phone}
               onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label className="text-sm text-ink">
+            <label htmlFor="register-channel" className="text-sm font-semibold text-ink">
               Recevoir mes notifications par
-              <select
-                value={registerForm.notification_channel}
-                onChange={(e) =>
-                  setRegisterForm({ ...registerForm, notification_channel: e.target.value })
-                }
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
-              >
+            </label>
+            <select
+              id="register-channel"
+              value={registerForm.notification_channel}
+              onChange={(e) =>
+                setRegisterForm({ ...registerForm, notification_channel: e.target.value })
+              }
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
+            >
                 <option value="email">Email</option>
                 {notificationSettings.whatsapp_enabled && <option value="whatsapp">WhatsApp</option>}
                 {notificationSettings.sms_enabled && <option value="sms">SMS</option>}
               </select>
+            <label htmlFor="register-password" className="text-sm font-semibold text-ink">
+              Mot de passe
             </label>
             <input
+              id="register-password"
               type="password"
               placeholder="Mot de passe"
+              autoComplete="new-password"
               required
               value={registerForm.password}
               onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
+            <label htmlFor="register-password2" className="text-sm font-semibold text-ink">
+              Confirmer le mot de passe
+            </label>
             <input
+              id="register-password2"
               type="password"
               placeholder="Confirmer le mot de passe"
+              autoComplete="new-password"
               required
               value={registerForm.password2}
               onChange={(e) => setRegisterForm({ ...registerForm, password2: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"

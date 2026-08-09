@@ -1,4 +1,5 @@
 import tempfile
+from datetime import timedelta
 import requests
 from unittest import mock
 
@@ -6,13 +7,19 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from apps.core.management.commands import seed_e2e
 from apps.delivery.models import DeliverySlot, DeliveryZone
 from apps.products.models import Category, Product
 
+from apps.orders.models import Order
+
 from apps.core.factories import (
+    OrderFactory,
+    OrderItemFactory,
     SettingChangeRequestFactory,
+    ProductFactory,
     StaffUserFactory,
     SuperUserFactory,
     UserFactory,
@@ -382,3 +389,34 @@ class SeedE2ECommandTests(TestCase):
         self.assertEqual(Category.objects.filter(slug=seed_e2e.CATEGORY_SLUG).count(), 1)
         self.assertEqual(Product.objects.count(), len(seed_e2e.PRODUCTS))
         self.assertEqual(Product.objects.filter(slug=seed_e2e.PRODUCTS[0]["slug"]).count(), 1)
+
+
+class ReportsAdminTests(TestCase):
+    def setUp(self):
+        self.superuser = SuperUserFactory(username="reports-admin")
+        self.client.force_login(self.superuser)
+        self.product = ProductFactory(name="Produit rapport")
+
+    def create_order(self, days_ago, total, status=Order.Status.DELIVERED):
+        order = OrderFactory(total_xof=total, status=status)
+        created_at = timezone.now() - timedelta(days=days_ago)
+        Order.objects.filter(pk=order.pk).update(created_at=created_at)
+        OrderItemFactory(order=order, product=self.product, quantity=1, unit_price_xof=total)
+        return order
+
+    def test_reports_filter_period_and_show_comparison(self):
+        self.create_order(2, 2500)
+        self.create_order(10, 1000)
+        response = self.client.get("/admin/rapports/?period=7")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["revenue"], 2500)
+        self.assertEqual(len(response.context["revenue_by_month"]), 1)
+        self.assertContains(response, "7 jours")
+
+    def test_reports_support_custom_period_and_csv_export(self):
+        self.create_order(2, 2500)
+        response = self.client.get("/admin/rapports/?period=custom&start=2020-01-01&end=2030-01-01&export=csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn("Produit rapport", response.content.decode())
+        self.assertIn("attachment; filename=rapports-20200101-20300101.csv", response["Content-Disposition"])

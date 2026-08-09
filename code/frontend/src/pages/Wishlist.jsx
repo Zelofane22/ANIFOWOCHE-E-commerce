@@ -38,7 +38,7 @@ function WishlistContent() {
         Les articles que vous avez mis de côté pour plus tard.
       </p>
 
-      {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       {items === null && (
         <div className="h-40 animate-pulse rounded-xl border border-black/10 bg-brand-pale" />

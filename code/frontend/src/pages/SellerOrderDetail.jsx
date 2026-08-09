@@ -262,7 +262,7 @@ export default function SellerOrderDetail() {
                   >
                     {saving ? "Enregistrement..." : "Mettre à jour"}
                   </button>
-                  {statusError ? <p className="text-sm text-red-600">{statusError}</p> : null}
+                  {statusError ? <p role="alert" className="text-sm text-red-600">{statusError}</p> : null}
                 </div>
               </div>
 
@@ -309,9 +309,9 @@ export default function SellerOrderDetail() {
                         </button>
                         {confirmResult ? (
                           confirmResult.success ? (
-                            <p className="text-sm text-green-700">Paiement confirmé et commande mise en préparation.</p>
+                            <p role="status" aria-live="polite" className="text-sm text-green-700">Paiement confirmé et commande mise en préparation.</p>
                           ) : (
-                            <p className="text-sm text-red-600">{confirmResult.message || "Échec de la confirmation."}</p>
+                            <p role="alert" className="text-sm text-red-600">{confirmResult.message || "Échec de la confirmation."}</p>
                           )
                         ) : null}
                         <a
@@ -351,7 +351,7 @@ export default function SellerOrderDetail() {
                               Nouveau lien de paiement
                             </a>
                           ) : (
-                            <p className="text-sm text-red-600">{relaunchResult.message || "Échec de la relance."}</p>
+                            <p role="alert" className="text-sm text-red-600">{relaunchResult.message || "Échec de la relance."}</p>
                           )
                         ) : null}
                       </div>

@@ -52,7 +52,7 @@ export default function Navbar() {
               alt={siteName}
               className="h-11 w-36 object-cover object-center sm:w-40"
             />
-            <span className="flex-shrink-0 text-lg font-bold tracking-tight text-white transition-colors hover:text-brand">
+            <span className="hidden flex-shrink-0 text-lg font-bold tracking-tight text-white transition-colors hover:text-brand sm:inline">
               {siteName}
             </span>
           </Link>

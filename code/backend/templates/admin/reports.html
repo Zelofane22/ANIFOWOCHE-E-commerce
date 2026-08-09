@@ -7,54 +7,81 @@
     {% include "unfold/helpers/site_branding.html" %}
 {% endblock %}
 
+
+
 {% block extrastyle %}
     <style>
-        :root {
-            --anw-surface: #fff;
-            --anw-text-muted: #6b6b6b;
-            --anw-text-strong: #1a1a1a;
-            --anw-text-body: #1a1a1a;
-            --anw-border: #f1efe0;
-            --anw-divider: #f6f4e6;
-            --anw-shadow-ambient: rgba(0,0,0,0.06);
-        }
-        .dark {
-            --anw-surface: #1f1f1f;
-            --anw-text-muted: #9b9b9b;
-            --anw-text-strong: #f2f2f2;
-            --anw-text-body: #e5e5e5;
-            --anw-border: rgba(255,255,255,0.08);
-            --anw-divider: rgba(255,255,255,0.08);
-            --anw-shadow-ambient: rgba(0,0,0,0.45);
-        }
+        :root { --anw-surface: #fff; --anw-text-muted: #6b6b6b; --anw-text-strong: #1a1a1a; --anw-text-body: #1a1a1a; --anw-border: #f1efe0; --anw-divider: #f6f4e6; --anw-shadow-ambient: rgba(0,0,0,.06); }
+        .dark { --anw-surface: #1f1f1f; --anw-text-muted: #9b9b9b; --anw-text-strong: #f2f2f2; --anw-text-body: #e5e5e5; --anw-border: rgba(255,255,255,.08); --anw-divider: rgba(255,255,255,.08); --anw-shadow-ambient: rgba(0,0,0,.45); }
+        .anw-page-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: var(--anw-text-strong); }
         .anw-report-card { background: var(--anw-surface); border-radius: 14px; padding: 1.25rem; box-shadow: 0 1px 3px var(--anw-shadow-ambient); border: 1px solid var(--anw-border); margin-bottom: 1rem; }
-        .anw-report-title { font-size: 0.95rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: 0.75rem; }
-        .anw-report-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-        .anw-report-table th { text-align: left; color: var(--anw-text-muted); font-weight: 500; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--anw-border); }
-        .anw-report-table td { padding: 0.5rem; border-bottom: 1px solid var(--anw-divider); color: var(--anw-text-body); }
+        .anw-report-title { font-size: .95rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: .75rem; }
+        .anw-report-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+        .anw-report-table th { text-align: left; color: var(--anw-text-muted); font-weight: 500; padding: .4rem .5rem; border-bottom: 1px solid var(--anw-border); }
+        .anw-report-table td { padding: .5rem; border-bottom: 1px solid var(--anw-divider); color: var(--anw-text-body); }
+        .anw-table-wrap { overflow-x: auto; } .anw-empty { color: var(--anw-text-muted); }
+        .anw-report-toolbar { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+        .anw-report-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; } .anw-report-filters label { color: var(--anw-text-muted); font-size: .78rem; font-weight: 600; }
+        .anw-report-filters select, .anw-report-filters input, .anw-report-filters button, .anw-report-export { border: 1px solid var(--anw-border); border-radius: 8px; padding: .5rem .7rem; background: var(--anw-surface); color: var(--anw-text-body); font: inherit; text-decoration: none; }
+        .anw-report-filters button, .anw-report-export { background: #b8a60f; color: #fff; border-color: #b8a60f; font-weight: 700; cursor: pointer; } .anw-custom-dates { display: none; align-items: end; gap: .4rem; } .anw-custom-dates.visible { display: inline-flex; }
+        .anw-report-period { color: var(--anw-text-muted); font-size: .8rem; margin: 0; } .anw-report-kpis, .anw-report-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .anw-report-kpi { background: var(--anw-surface); border: 1px solid var(--anw-border); border-radius: 14px; padding: 1rem 1.25rem; } .anw-report-kpi span, .anw-report-kpi small { display: block; color: var(--anw-text-muted); font-size: .78rem; } .anw-report-kpi strong { display: block; color: var(--anw-text-strong); font-size: 1.4rem; margin: .3rem 0; } .anw-report-kpi small.positive { color: #16793d; } .anw-report-kpi small.negative { color: #c92a2a; }
+         @media (max-width: 700px) { .anw-report-toolbar { display: block; } .anw-report-period { margin-top: .7rem; } .anw-report-kpis, .anw-report-chart-grid { grid-template-columns: 1fr; } .anw-custom-dates.visible { display: grid; } }
     </style>
 {% endblock %}
 
+{% block extrahead %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
 {% block content %}
-    <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:1rem; color:var(--anw-text-strong);">Rapports</h1>
+    <div class="anw-report-toolbar">
+        <form method="get" class="anw-report-filters">
+            <label for="period">Période</label>
+            <select id="period" name="period">
+                <option value="7" {% if period == "7" %}selected{% endif %}>7 jours</option>
+                <option value="30" {% if period == "30" %}selected{% endif %}>30 jours</option>
+                <option value="90" {% if period == "90" %}selected{% endif %}>90 jours</option>
+                <option value="custom" {% if period == "custom" %}selected{% endif %}>Personnalisée</option>
+            </select>
+            <span id="custom-dates" class="anw-custom-dates">
+                <label for="start">Du</label><input id="start" type="date" name="start" value="{{ period_start }}">
+                <label for="end">au</label><input id="end" type="date" name="end" value="{{ period_end }}">
+            </span>
+            <button type="submit">Appliquer</button>
+            <a class="anw-report-export" href="?period={{ period }}&start={{ period_start }}&end={{ period_end }}&export=csv">Exporter CSV</a>
+        </form>
+        <p class="anw-report-period">{{ period_label }}</p>
+    </div>
+
+    <div class="anw-report-kpis">
+        <div class="anw-report-kpi"><span>Chiffre d’affaires</span><strong>{{ revenue|intcomma }} FCFA</strong>{% if revenue_change is not None %}<small class="{% if revenue_change > 0 %}positive{% elif revenue_change < 0 %}negative{% endif %}">{% if revenue_change > 0 %}↗{% elif revenue_change < 0 %}↘{% endif %} {{ revenue_change }}% vs période précédente</small>{% endif %}</div>
+        <div class="anw-report-kpi"><span>Commandes</span><strong>{{ order_count }}</strong>{% if order_count_change is not None %}<small class="{% if order_count_change > 0 %}positive{% elif order_count_change < 0 %}negative{% endif %}">{% if order_count_change > 0 %}↗{% elif order_count_change < 0 %}↘{% endif %} {{ order_count_change }}% vs période précédente</small>{% endif %}</div>
+    </div>
+
+    <div class="anw-report-chart-grid">
+        <div class="anw-report-card"><div class="anw-report-title">Tendance du chiffre d’affaires</div><canvas id="revenue-chart" height="110"></canvas></div>
+        <div class="anw-report-card"><div class="anw-report-title">Répartition par catégorie</div><canvas id="category-chart" height="180"></canvas></div>
+    </div>
+    <h1 class="anw-page-title">Rapports</h1>
 
     <div class="anw-report-card">
         <div class="anw-report-title">Chiffre d'affaires par mois</div>
-        <table class="anw-report-table">
+        <div class="anw-table-wrap"><table class="anw-report-table">
             <thead><tr><th>Mois</th><th style="text-align:right;">Total</th></tr></thead>
             <tbody>
                 {% for row in revenue_by_month %}
                     <tr><td>{{ row.month }}</td><td style="text-align:right;">{{ row.total|intcomma }} FCFA</td></tr>
                 {% empty %}
-                    <tr><td colspan="2" style="color:#6b6b6b;">Pas encore de données.</td></tr>
+                    <tr><td colspan="2" class="anw-empty">Pas encore de données.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
 
     <div class="anw-report-card">
         <div class="anw-report-title">Top 10 produits (toutes ventes confondues)</div>
-        <table class="anw-report-table">
+        <div class="anw-table-wrap"><table class="anw-report-table">
             <thead><tr><th>Produit</th><th>Quantité vendue</th><th style="text-align:right;">Chiffre d'affaires</th></tr></thead>
             <tbody>
                 {% for row in top_products %}
@@ -64,15 +91,15 @@
                         <td style="text-align:right;">{{ row.total_revenue|intcomma }} FCFA</td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="3" style="color:#6b6b6b;">Pas encore de données.</td></tr>
+                    <tr><td colspan="3" class="anw-empty">Pas encore de données.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
 
     <div class="anw-report-card">
         <div class="anw-report-title">Répartition par catégorie ({{ total_products }} produits actifs)</div>
-        <table class="anw-report-table">
+        <div class="anw-table-wrap"><table class="anw-report-table">
             <thead><tr><th>Catégorie</th><th style="text-align:right;">Chiffre d'affaires</th></tr></thead>
             <tbody>
                 {% for row in category_breakdown %}
@@ -81,9 +108,18 @@
                         <td style="text-align:right;">{{ row.total|intcomma }} FCFA</td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="2" style="color:#6b6b6b;">Pas encore de données.</td></tr>
+                    <tr><td colspan="2" class="anw-empty">Pas encore de données.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
+    <script>
+        const periodSelect = document.getElementById("period");
+        const customDates = document.getElementById("custom-dates");
+        function toggleCustomDates() { customDates.classList.toggle("visible", periodSelect.value === "custom"); }
+        periodSelect.addEventListener("change", toggleCustomDates);
+        toggleCustomDates();
+        new Chart(document.getElementById("revenue-chart"), { type: "line", data: { labels: {{ revenue_chart_labels_json|safe }}, datasets: [{ label: "Ventes (FCFA)", data: {{ revenue_chart_values_json|safe }}, borderColor: "#b8a60f", backgroundColor: "rgba(230, 211, 21, 0.15)", fill: true, tension: 0.35 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+        new Chart(document.getElementById("category-chart"), { type: "doughnut", data: { labels: {{ category_labels_json|safe }}, datasets: [{ data: {{ category_values_json|safe }}, backgroundColor: ["#e6d315", "#b8a60f", "#faf6c9", "#6b6b6b", "#52525b"] }] }, options: { plugins: { legend: { position: "bottom" } } } });
+    </script>
 {% endblock %}

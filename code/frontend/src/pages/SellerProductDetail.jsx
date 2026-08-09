@@ -10,7 +10,7 @@ import ProductImage from "../components/ProductImage.jsx";
 import { buildWhatsappUrl } from "../utils/whatsappPhone.js";
 
 const inputClass =
-  "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-500 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15";
+  "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 export default function SellerProductDetail() {
   const { slug: shopSlug, productSlug } = useParams();
@@ -316,7 +316,7 @@ export default function SellerProductDetail() {
                     >
                       {geoLoading ? "Localisation…" : "Utiliser ma position"}
                     </button>
-                    {geoError && <span className="text-xs text-red-600">{geoError}</span>}
+                    {geoError && <span role="alert" className="text-xs text-red-600">{geoError}</span>}
                   </div>
                 </div>
 
@@ -348,7 +348,7 @@ export default function SellerProductDetail() {
                             )
                           )
                         }
-                        className="h-10 w-20 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand focus:outline-none"
+                        className="h-10 w-20 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand"
                         required
                       />
                       <button
