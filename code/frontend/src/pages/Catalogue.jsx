@@ -316,6 +316,15 @@ export default function Catalogue() {
             </div>
             <p className="font-semibold text-ink">Aucun produit trouvé</p>
             <p className="mt-1 text-sm">Essayez d'autres filtres ou une autre recherche.</p>
+            <button
+              type="button"
+              onClick={() =>
+                updateParams({ category: "", search: "", unit: "", min_price: "", max_price: "", in_stock: "", sort: "" })
+              }
+              className="mt-5 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+            >
+              Voir tout le catalogue
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">

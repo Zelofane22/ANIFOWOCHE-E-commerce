@@ -125,13 +125,24 @@ function OrdersList() {
           <p className="font-semibold text-ink">
             {orders.length === 0 ? "Aucune commande pour le moment" : "Aucune commande trouvée"}
           </p>
-          {orders.length === 0 && (
+          {orders.length === 0 ? (
             <Link
               to="/catalogue"
               className="mt-5 inline-block rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
             >
               Découvrir la collection
             </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setPeriodFilter({ id: "tout", cutoff: null });
+              }}
+              className="mt-5 inline-block rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+            >
+              Afficher toutes les commandes
+            </button>
           )}
         </div>
       )}

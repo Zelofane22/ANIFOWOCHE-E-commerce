@@ -14,6 +14,7 @@ class DeliveryZoneAdmin(ModelAdmin):
 @admin.register(DeliverySlot)
 class DeliverySlotAdmin(ModelAdmin):
     list_display = ["label", "start_time", "end_time", "is_active"]
+    search_fields = ["label"]
 
 
 @admin.register(Delivery)
