@@ -77,8 +77,6 @@ export default function Catalogue() {
     if (inStockOnly) params.in_stock = "1";
     if (sort) params.ordering = sort;
 
-    setLoading(true);
-    setError(null);
     fetchProducts(params)
       .then((data) => setProducts(data.results ?? data))
       .catch((err) => setError(err.message))
@@ -89,7 +87,11 @@ export default function Catalogue() {
     loadProducts();
   }, [loadProducts]);
 
-  const handleRetry = () => loadProducts();
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    loadProducts();
+  };
 
   const hasActiveFilters = Boolean(unit || minPrice || maxPrice || inStockOnly || sort);
   const activeFilterCount = [unit, minPrice, maxPrice, inStockOnly ? "stock" : "", sort].filter(

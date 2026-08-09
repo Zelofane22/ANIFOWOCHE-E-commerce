@@ -35,8 +35,6 @@ function ProductView({ slug }) {
   const [optionErrors, setOptionErrors] = useState({});
 
   const loadProduct = useCallback(() => {
-    setError(null);
-    setNotFound(false);
     fetchProductBySlug(slug)
       .then(setProduct)
       .catch((err) => {
@@ -53,6 +51,8 @@ function ProductView({ slug }) {
   }, [loadProduct]);
 
   const handleRetry = () => {
+    setError(null);
+    setNotFound(false);
     setProduct(null);
     loadProduct();
   };
