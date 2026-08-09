@@ -306,6 +306,45 @@ def notify_order_confirmation(order):
     )
 
 
+def notify_seller_new_order(order):
+    """Envoie une notification email à chaque vendeur concerné par une nouvelle commande,
+    ne listant que les produits de ce vendeur."""
+    sellers_items = {}
+    for item in order.items.select_related("product__seller__user").all():
+        seller = item.product.seller
+        if seller is None:
+            continue
+        sellers_items.setdefault(seller, []).append(item)
+
+    sent = []
+    for seller, items in sellers_items.items():
+        seller_user = seller.user
+        if not seller_user.email:
+            continue
+
+        items_summary = ", ".join(f"{item.quantity}x {item.product.name}" for item in items)
+        seller_total = sum(item.subtotal_xof for item in items)
+        message = (
+            f"Bonjour {seller.display_name}, vous avez reçu une nouvelle commande "
+            f"ANIFOWOCHE #{order.pk} de la part de {order.full_name}.\n\n"
+            f"Articles : {items_summary}\n"
+            f"Montant pour votre boutique : {seller_total} FCFA\n"
+            f"Adresse de livraison : {order.address}, {order.city}"
+        )
+        notification = _send_email(
+            event=Notification.Event.ORDER_CONFIRMATION,
+            recipient_email=seller_user.email,
+            subject=f"Nouvelle commande ANIFOWOCHE #{order.pk} reçue",
+            message=message,
+            title="Nouvelle commande reçue",
+            cta_label="Voir la commande",
+            cta_url=f"{settings.FRONTEND_BASE_URL}/admin/orders/order/{order.pk}/change/",
+        )
+        if notification:
+            sent.append(notification)
+    return sent
+
+
 def notify_delivery_in_transit(delivery):
     """Prévient le client que sa commande est en cours de livraison (zone + créneau)."""
     order = delivery.order
