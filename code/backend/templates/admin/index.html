@@ -7,124 +7,7 @@
     {% include "unfold/helpers/site_branding.html" %}
 {% endblock %}
 
-{% block extrastyle %}
-    <style>
-        :root {
-            --anw-surface: #fff;
-            --anw-text-muted: #6b6b6b;
-            --anw-text-strong: #1a1a1a;
-            --anw-text-body: #1a1a1a;
-            --anw-border: #a98111ca;
-            --anw-divider: #f6f4e6;
-            --anw-shadow-ambient: rgba(169,129,17,0.15);
-            --anw-shadow-soft: rgba(0,0,0,0.04);
-            --anw-shadow-hover-ambient: rgba(169,129,17,0.3);
-            --anw-shadow-hover-soft: rgba(0,0,0,0.08);
-            --anw-positive: #16793d;
-            --anw-negative: #c92a2a;
-            --anw-accent: #b8a60f;
-            --anw-badge-warn-bg: #faf6c9;
-            --anw-badge-warn-text: #7a6d0c;
-            --anw-badge-info-bg: #dbeafe;
-            --anw-badge-info-text: #1e40af;
-            --anw-badge-success-bg: #dcfce7;
-            --anw-badge-success-text: #166534;
-            --anw-badge-danger-bg: #fee2e2;
-            --anw-badge-danger-text: #991b1b;
-            --anw-badge-neutral-bg: #ececec;
-            --anw-badge-neutral-text: #444;
-        }
-        .dark {
-            --anw-surface: #1f1f1f;
-            --anw-text-muted: #9b9b9b;
-            --anw-text-strong: #f2f2f2;
-            --anw-text-body: #e5e5e5;
-            --anw-border: rgba(255,255,255,0.08);
-            --anw-divider: rgba(255,255,255,0.08);
-            --anw-shadow-ambient: rgba(0,0,0,0.45);
-            --anw-shadow-soft: rgba(0,0,0,0.3);
-            --anw-shadow-hover-ambient: rgba(0,0,0,0.55);
-            --anw-shadow-hover-soft: rgba(0,0,0,0.35);
-            --anw-positive: #4ade80;
-            --anw-negative: #f87171;
-            --anw-accent: #e6d315;
-            --anw-badge-warn-bg: rgba(250,246,201,0.15);
-            --anw-badge-warn-text: #e8d874;
-            --anw-badge-info-bg: rgba(219,234,254,0.15);
-            --anw-badge-info-text: #93c5fd;
-            --anw-badge-success-bg: rgba(220,252,231,0.15);
-            --anw-badge-success-text: #86efac;
-            --anw-badge-danger-bg: rgba(254,226,226,0.15);
-            --anw-badge-danger-text: #fca5a5;
-            --anw-badge-neutral-bg: rgba(236,236,236,0.12);
-            --anw-badge-neutral-text: #cfcfcf;
-        }
-        .anw-grid { display: grid; gap: 1rem; }
-        .anw-kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-        .anw-action-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1rem; }
-        .anw-main-grid { grid-template-columns: 2fr 1fr 1fr; margin-top: 1rem; }
-        .anw-bottom-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 1rem; }
-        @media (max-width: 1200px) {
-            .anw-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .anw-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .anw-main-grid, .anw-bottom-grid { grid-template-columns: 1fr; }
-        }
-        .anw-card {
-            background: var(--anw-surface);
-            border-radius: 14px;
-            padding: 1.25rem;
-            box-shadow: 0 1px 3px var(--anw-shadow-ambient), 0 1px 2px var(--anw-shadow-soft);
-            border: 1px solid var(--anw-border);
-            transition: box-shadow 0.2s ease, transform 0.2s ease;
-        }
-        .anw-card-link { display: block; text-decoration: none; }
-        .anw-card-link:hover, .anw-order-row:hover {
-            box-shadow: 0 8px 20px var(--anw-shadow-hover-ambient), 0 3px 8px var(--anw-shadow-hover-soft);
-            transform: translateY(-2px);
-        }
-        .anw-kpi-label { color: var(--anw-text-muted); font-size: 0.8rem; font-weight: 500; }
-        .anw-kpi-value { color: var(--anw-text-strong); font-size: 1.5rem; font-weight: 700; margin-top: 0.35rem; }
-        .anw-kpi-change { font-size: 0.75rem; font-weight: 600; margin-top: 0.35rem; }
-        .anw-kpi-change.up { color: var(--anw-positive); }
-        .anw-kpi-change.down { color: var(--anw-negative); }
-        .anw-kpi-change.flat { color: var(--anw-text-muted); }
-        .anw-action-title { font-size: 0.95rem; font-weight: 700; color: var(--anw-text-strong); }
-        .anw-action-card-number { font-size: 1.9rem; font-weight: 800; line-height: 1; margin: 0.35rem 0 0.3rem; }
-        .anw-action-card-hint { color: var(--anw-text-muted); font-size: 0.8rem; }
-        .anw-action-card.warn { border-left: 4px solid #c9a227; }
-        .anw-action-card.warn .anw-action-card-number { color: #b8860b; }
-        .anw-action-card.info { border-left: 4px solid #4f86f7; }
-        .anw-action-card.info .anw-action-card-number { color: #2563eb; }
-        .anw-action-card.danger { border-left: 4px solid #e5484d; }
-        .anw-action-card.danger .anw-action-card-number { color: #d93025; }
-        .anw-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
-        .anw-card-title { color: var(--anw-text-strong); font-size: 0.95rem; font-weight: 700; }
-        .anw-see-all { color: var(--anw-accent); font-size: 0.78rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
-        .anw-see-all:hover { text-decoration: underline; }
-        .anw-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .anw-table th { text-align: left; color: var(--anw-text-muted); font-weight: 500; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--anw-border); }
-        .anw-table td { padding: 0.5rem; border-bottom: 1px solid var(--anw-divider); color: var(--anw-text-body); }
-        .anw-table a { color: var(--anw-text-body); font-weight: 600; text-decoration: none; }
-        .anw-table a:hover { color: var(--anw-accent); }
-        .anw-table-wrap { overflow-x: auto; }
-        .anw-badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-        .anw-badge.received, .anw-badge.pending { background: var(--anw-badge-warn-bg); color: var(--anw-badge-warn-text); }
-        .anw-badge.prepared { background: var(--anw-badge-info-bg); color: var(--anw-badge-info-text); }
-        .anw-badge.delivered, .anw-badge.approved { background: var(--anw-badge-success-bg); color: var(--anw-badge-success-text); }
-        .anw-badge.cancelled, .anw-badge.failed, .anw-badge.declined { background: var(--anw-badge-danger-bg); color: var(--anw-badge-danger-text); }
-        .anw-badge.canceled { background: var(--anw-badge-neutral-bg); color: var(--anw-badge-neutral-text); }
-        .anw-stock-badge { background: var(--anw-badge-danger-bg); color: var(--anw-badge-danger-text); padding: 0.1rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
-        .anw-greeting { font-size: 1.35rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: 0.25rem; }
-        .anw-subgreeting { color: var(--anw-text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
-        .anw-order-row { display: flex; justify-content: space-between; padding: 0.55rem 0.25rem; border-radius: 8px; text-decoration: none; }
-        .anw-order-row--divider { border-bottom: 1px solid var(--anw-divider); }
-        .anw-order-id { font-weight: 600; font-size: 0.82rem; color: var(--anw-text-body); }
-        .anw-order-date { color: var(--anw-text-muted); font-size: 0.72rem; margin-top: 0.1rem; }
-        .anw-order-amount-wrap { text-align: right; text-decoration: none; }
-        .anw-order-amount { font-size: 0.8rem; font-weight: 600; margin-top: 0.2rem; color: var(--anw-text-body); }
-        .anw-empty { color: var(--anw-text-muted); font-size: 0.82rem; }
-    </style>
-{% endblock %}
+
 
 {% block extrahead %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -308,10 +191,20 @@
             let salesChart = null;
             let categoryChart = null;
 
+            function adminTokens() {
+                const styles = getComputedStyle(document.documentElement);
+                return {
+                    accent: styles.getPropertyValue("--anw-accent").trim() || "#b8a60f",
+                    muted: styles.getPropertyValue("--anw-text-muted").trim() || "#6b6b6b",
+                    border: styles.getPropertyValue("--anw-divider").trim()
+                        || "rgba(0,0,0,0.06)",
+                };
+            }
+
             function applyThemeColors() {
-                const isDark = document.documentElement.classList.contains("dark");
-                Chart.defaults.color = isDark ? "#9b9b9b" : "#6b6b6b";
-                Chart.defaults.borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+                const tokens = adminTokens();
+                Chart.defaults.color = tokens.muted;
+                Chart.defaults.borderColor = tokens.border;
                 if (salesChart) {
                     salesChart.update();
                 }
@@ -331,8 +224,8 @@
                         datasets: [{
                             label: "Ventes (FCFA)",
                             data: {{ sales_chart_values_json|safe }},
-                            borderColor: "#b8a60f",
-                            backgroundColor: "rgba(230, 211, 21, 0.15)",
+                            borderColor: adminTokens().accent,
+                            backgroundColor: "rgba(169, 129, 17, 0.15)",
                             tension: 0.35,
                             fill: true,
                         }],

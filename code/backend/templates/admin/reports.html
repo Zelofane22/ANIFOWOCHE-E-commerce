@@ -7,54 +7,28 @@
     {% include "unfold/helpers/site_branding.html" %}
 {% endblock %}
 
-{% block extrastyle %}
-    <style>
-        :root {
-            --anw-surface: #fff;
-            --anw-text-muted: #6b6b6b;
-            --anw-text-strong: #1a1a1a;
-            --anw-text-body: #1a1a1a;
-            --anw-border: #f1efe0;
-            --anw-divider: #f6f4e6;
-            --anw-shadow-ambient: rgba(0,0,0,0.06);
-        }
-        .dark {
-            --anw-surface: #1f1f1f;
-            --anw-text-muted: #9b9b9b;
-            --anw-text-strong: #f2f2f2;
-            --anw-text-body: #e5e5e5;
-            --anw-border: rgba(255,255,255,0.08);
-            --anw-divider: rgba(255,255,255,0.08);
-            --anw-shadow-ambient: rgba(0,0,0,0.45);
-        }
-        .anw-report-card { background: var(--anw-surface); border-radius: 14px; padding: 1.25rem; box-shadow: 0 1px 3px var(--anw-shadow-ambient); border: 1px solid var(--anw-border); margin-bottom: 1rem; }
-        .anw-report-title { font-size: 0.95rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: 0.75rem; }
-        .anw-report-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-        .anw-report-table th { text-align: left; color: var(--anw-text-muted); font-weight: 500; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--anw-border); }
-        .anw-report-table td { padding: 0.5rem; border-bottom: 1px solid var(--anw-divider); color: var(--anw-text-body); }
-    </style>
-{% endblock %}
+
 
 {% block content %}
-    <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:1rem; color:var(--anw-text-strong);">Rapports</h1>
+    <h1 class="anw-page-title">Rapports</h1>
 
     <div class="anw-report-card">
         <div class="anw-report-title">Chiffre d'affaires par mois</div>
-        <table class="anw-report-table">
+        <div class="anw-table-wrap"><table class="anw-report-table">
             <thead><tr><th>Mois</th><th style="text-align:right;">Total</th></tr></thead>
             <tbody>
                 {% for row in revenue_by_month %}
                     <tr><td>{{ row.month }}</td><td style="text-align:right;">{{ row.total|intcomma }} FCFA</td></tr>
                 {% empty %}
-                    <tr><td colspan="2" style="color:#6b6b6b;">Pas encore de données.</td></tr>
+                    <tr><td colspan="2" class="anw-empty">Pas encore de données.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
 
     <div class="anw-report-card">
         <div class="anw-report-title">Top 10 produits (toutes ventes confondues)</div>
-        <table class="anw-report-table">
+        <div class="anw-table-wrap"><table class="anw-report-table">
             <thead><tr><th>Produit</th><th>Quantité vendue</th><th style="text-align:right;">Chiffre d'affaires</th></tr></thead>
             <tbody>
                 {% for row in top_products %}
@@ -64,15 +38,15 @@
                         <td style="text-align:right;">{{ row.total_revenue|intcomma }} FCFA</td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="3" style="color:#6b6b6b;">Pas encore de données.</td></tr>
+                    <tr><td colspan="3" class="anw-empty">Pas encore de données.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
 
     <div class="anw-report-card">
         <div class="anw-report-title">Répartition par catégorie ({{ total_products }} produits actifs)</div>
-        <table class="anw-report-table">
+        <div class="anw-table-wrap"><table class="anw-report-table">
             <thead><tr><th>Catégorie</th><th style="text-align:right;">Chiffre d'affaires</th></tr></thead>
             <tbody>
                 {% for row in category_breakdown %}
@@ -81,9 +55,9 @@
                         <td style="text-align:right;">{{ row.total|intcomma }} FCFA</td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="2" style="color:#6b6b6b;">Pas encore de données.</td></tr>
+                    <tr><td colspan="2" class="anw-empty">Pas encore de données.</td></tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
 {% endblock %}
