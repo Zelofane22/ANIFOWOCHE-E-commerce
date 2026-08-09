@@ -1,7 +1,7 @@
 from django.db import models
 from rest_framework import serializers
 
-from apps.notifications.services import notify_order_confirmation
+from apps.notifications.services import notify_order_confirmation, notify_seller_new_order
 from apps.payments.serializers import PaymentSerializer
 from apps.products.models import MADE_TO_ORDER_CATEGORY_SLUGS, Product
 from apps.delivery.models import DeliveryZone
@@ -228,5 +228,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
         # Notification de confirmation au client.
         notify_order_confirmation(order)
+
+        # Notification email aux vendeurs concernés.
+        notify_seller_new_order(order)
 
         return order
