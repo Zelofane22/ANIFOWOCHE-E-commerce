@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.notifications.services import notify_order_confirmation
 from apps.payments.serializers import PaymentSerializer
-from apps.products.models import Product
+from apps.products.models import MADE_TO_ORDER_CATEGORY_SLUGS, Product
 from apps.delivery.models import DeliveryZone
 from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.promotions.models import Coupon
@@ -38,6 +38,55 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "selected_options",
         ]
         read_only_fields = ["unit_price_xof"]
+
+    def validate(self, attrs):
+        product = attrs["product"]
+        selected_options = attrs.get("selected_options") or []
+        groups = {str(group.id): group for group in product.option_groups.prefetch_related("options").all()}
+        selected_by_group = {}
+        is_restaurant_product = product.category.slug in MADE_TO_ORDER_CATEGORY_SLUGS
+        normalized_options = []
+
+        for selected in selected_options:
+            if not isinstance(selected, dict):
+                raise serializers.ValidationError({"selected_options": "Format d'option invalide."})
+
+            group = groups.get(str(selected.get("group_id", "")))
+            if group is None:
+                raise serializers.ValidationError({"selected_options": "Le groupe d'option est invalide pour ce produit."})
+
+            option_id = str(selected.get("option_id", ""))
+            option = next((item for item in group.options.all() if str(item.id) == option_id), None)
+            if option is None:
+                raise serializers.ValidationError({"selected_options": "L'option est invalide pour ce produit."})
+
+            group_key = str(group.id)
+            selected_by_group.setdefault(group_key, [])
+            if option.id in selected_by_group[group_key]:
+                raise serializers.ValidationError({"selected_options": "Une option ne peut pas être sélectionnée deux fois."})
+            selected_by_group[group_key].append(option.id)
+            normalized_options.append({
+                "group_id": group.id,
+                "group_name": group.name,
+                "option_id": option.id,
+                "option_name": option.name,
+                "price_xof": option.price_xof,
+            })
+
+        for group in groups.values():
+            count = len(selected_by_group.get(str(group.id), []))
+            minimum = max(1, group.min_selections) if group.is_required and not is_restaurant_product else 0
+            if count < minimum:
+                raise serializers.ValidationError({
+                    "selected_options": f"Le groupe « {group.name} » nécessite au moins {minimum} option(s)."
+                })
+            if group.max_selections and count > group.max_selections:
+                raise serializers.ValidationError({
+                    "selected_options": f"Le groupe « {group.name} » accepte au maximum {group.max_selections} option(s)."
+                })
+
+        attrs["selected_options"] = normalized_options
+        return attrs
 
 
 class OrderSerializer(serializers.ModelSerializer):

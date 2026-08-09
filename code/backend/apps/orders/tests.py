@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
-from apps.core.factories import CategoryFactory, CouponFactory, DeliveryZoneFactory, OrderFactory, ProductFactory, UserFactory
+from apps.core.factories import CategoryFactory, CouponFactory, DeliveryZoneFactory, OptionFactory, OptionGroupFactory, OrderFactory, ProductFactory, UserFactory
 from apps.core.models import StoreSettings
 
 from .models import Order
@@ -50,6 +50,56 @@ class OrderApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Order.objects.count(), 1)
         self.assertIsNone(Order.objects.get().customer)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_create_order_rejects_missing_required_option(self, mock_post):
+        group = OptionGroupFactory(product=self.product, is_required=True, min_selections=1, max_selections=1)
+        OptionFactory(group=group, price_xof=500)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+2290190000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": self.product.id, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Order.objects.count(), 0)
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_restauration_options_are_optional(self, mock_post):
+        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        product = ProductFactory(category=restauration, price_xof=3000, stock=0, made_to_order=True)
+        group = OptionGroupFactory(product=product, is_required=True, min_selections=1, max_selections=1)
+        OptionFactory(group=group, price_xof=500)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+2290190000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": product.id, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["total_xof"], 3000)
+
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_create_order_normalizes_option_price_from_database(self, mock_post):
+        group = OptionGroupFactory(product=self.product, is_required=True, min_selections=1, max_selections=1)
+        option = OptionFactory(group=group, price_xof=500)
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+2290190000000",
+            "address": "Fidjrossè",
+            "items": [{
+                "product_id": self.product.id,
+                "quantity": 1,
+                "selected_options": [{"group_id": group.id, "option_id": option.id, "price_xof": 0}],
+            }],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["total_xof"], 2500)
+        self.assertEqual(response.data["items"][0]["selected_options"][0]["price_xof"], 500)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_with_delivery_zone_adds_fee(self, mock_post):

@@ -32,6 +32,7 @@ function ProductView({ slug }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState({});
+  const [optionErrors, setOptionErrors] = useState({});
 
   useEffect(() => {
     fetchProductBySlug(slug)
@@ -71,9 +72,22 @@ function ProductView({ slug }) {
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
   const productInStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
+  const isRestaurantProduct = product.category?.slug === "restauration";
 
   const handleAddToCart = () => {
     if (!productInStock) return;
+
+    const nextErrors = {};
+    for (const group of product.option_groups ?? []) {
+      const selectedCount = (selectedOptions[group.id] ?? []).length;
+      const minimum = !isRestaurantProduct && group.is_required ? Math.max(1, group.min_selections ?? 1) : 0;
+      if (selectedCount < minimum) {
+        nextErrors[group.id] = "Sélectionnez au moins " + minimum + " option" + (minimum > 1 ? "s" : "") + ".";
+      }
+    }
+    setOptionErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     const selectedColorData = selectedColor
       ? product.colors.find((c) => c.name === selectedColor)
       : null;
@@ -103,6 +117,12 @@ function ProductView({ slug }) {
   };
 
   const handleOptionToggle = (groupId, optionId, maxSelections) => {
+    setOptionErrors((current) => {
+      if (!current[groupId]) return current;
+      const next = { ...current };
+      delete next[groupId];
+      return next;
+    });
     setSelectedOptions((prev) => {
       const current = prev[groupId] || [];
       if (current.includes(String(optionId))) {
@@ -423,7 +443,7 @@ function ProductView({ slug }) {
                   <div key={group.id}>
                     <p className="mb-2 text-sm font-semibold text-ink">
                       {group.name}
-                      {group.is_required && (
+                      {group.is_required && !isRestaurantProduct && (
                         <span className="ml-1.5 text-[10px] font-normal text-red-500">Obligatoire</span>
                       )}
                       {group.max_selections > 1 && (
@@ -476,6 +496,9 @@ function ProductView({ slug }) {
                         );
                       })}
                     </div>
+                    {optionErrors[group.id] && (
+                      <p className="mt-2 text-sm text-red-600" role="alert">{optionErrors[group.id]}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -600,7 +623,7 @@ function ProductView({ slug }) {
                   <div key={group.id}>
                     <p className="mb-1.5 text-xs font-semibold text-ink">
                       {group.name}
-                      {group.is_required && <span className="ml-1 text-[10px] text-red-500">*</span>}
+                      {group.is_required && !isRestaurantProduct && <span className="ml-1 text-[10px] text-red-500">*</span>}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {group.options.map((opt) => {
