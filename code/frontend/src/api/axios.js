@@ -22,7 +22,7 @@ let refreshPromise = null;
 
 const notifyAuthExpired = () => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
   const refresh = getRefreshToken();
   if (!refresh) return null;
   if (!refreshPromise) {

@@ -5,6 +5,7 @@ import { AUTH_EXPIRED_EVENT } from "../api/axios.js";
 import { registerSeller as registerSellerApi } from "../api/seller.js";
 import { clearTokens, getAccessToken, setTokens } from "../utils/tokenStorage.js";
 import { AuthContextValue } from "./authContextValue.js";
+import { startTokenRefresher, stopTokenRefresher } from "../utils/tokenRefresher.js";
 
 // Associe l'utilisateur connecté aux événements Sentry (no-op si Sentry
 // n'est pas initialisé). Seul l'id est envoyé, pas d'email ni de téléphone.
@@ -17,6 +18,11 @@ export function AuthProvider({ children }) {
   const applyUser = (me) => {
     setUser(me);
     setSentryUser(me);
+    if (me) {
+      startTokenRefresher();
+    } else {
+      stopTokenRefresher();
+    }
   };
 
   useEffect(() => {
@@ -27,6 +33,7 @@ export function AuthProvider({ children }) {
         clearTokens();
         setUser(null);
         setSentryUser(null);
+        stopTokenRefresher();
       })
       .finally(() => setLoading(false));
   }, []);
@@ -39,6 +46,7 @@ export function AuthProvider({ children }) {
       clearTokens();
       setUser(null);
       setSentryUser(null);
+      stopTokenRefresher();
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
