@@ -1,29 +1,15 @@
 import { Link, useNavigate } from "react-router";
 import QuantityStepper from "../components/QuantityStepper.jsx";
-import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, subtotal } = useCart();
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
 
-  const goToCheckout = () => {
-    if (isAuthenticated) {
-      navigate("/commande");
-      return;
-    }
-
-    navigate("/compte", {
-      state: {
-        from: "/commande",
-        authMessage: "Créez un compte ou connectez-vous pour finaliser votre commande.",
-      },
-    });
-  };
+  const goToCheckout = () => navigate("/commande");
 
   if (items.length === 0) {
     return (

@@ -59,18 +59,7 @@ export default function Checkout() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   useEffect(() => {
-    if (authLoading || isAuthenticated) return;
-    navigate("/compte", {
-      replace: true,
-      state: {
-        from: "/commande",
-        authMessage: "Créez un compte ou connectez-vous pour finaliser votre commande.",
-      },
-    });
-  }, [authLoading, isAuthenticated, navigate]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
+    if (authLoading) return;
     Promise.all([fetchDeliveryZones(), fetchDeliverySlots()])
       .then(([zonesData, slotsData]) => {
         const zoneResults = zonesData.results ?? zonesData;
@@ -82,7 +71,7 @@ export default function Checkout() {
       })
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoadingDeliveryOptions(false));
-  }, [isAuthenticated]);
+  }, [authLoading]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -92,13 +81,16 @@ export default function Checkout() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (authLoading) return;
     fetchStoreStatus()
       .then(setStoreStatus)
       .catch(() => setStoreStatus(DEFAULT_STORE_STATUS));
-  }, [isAuthenticated]);
+  }, [authLoading]);
 
-  const isMethodDisabled = (method) => isPaymentMethodDisabled(method, storeStatus);
+  const isMethodDisabled = (method) => {
+    if (!isAuthenticated && method.type !== "offline") return true;
+    return isPaymentMethodDisabled(method, storeStatus);
+  };
 
   const applySavedAddress = (addressId) => {
     const address = savedAddresses.find((item) => String(item.id) === addressId);
@@ -138,7 +130,7 @@ export default function Checkout() {
     );
   };
 
-  if (authLoading || !isAuthenticated) {
+  if (authLoading) {
     return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
   }
 
@@ -318,6 +310,9 @@ export default function Checkout() {
           {step === 1 && (
             <>
               <h1 className="text-xl font-bold text-ink">Adresse de livraison</h1>
+              {!isAuthenticated && (
+                <p className="mt-2 text-sm text-muted">Commandez sans créer de compte. Le paiement se fera à la livraison.</p>
+              )}
 
               <div className="mt-5 space-y-4">
                 <label className="block text-sm font-semibold text-ink">
@@ -460,7 +455,7 @@ export default function Checkout() {
             <>
               <h1 className="text-xl font-bold text-ink">Moyen de paiement</h1>
               <div className="mt-5 space-y-3">
-                {PAYMENT_METHODS.map((method) => {
+                {PAYMENT_METHODS.filter((method) => isAuthenticated || method.type === "offline").map((method) => {
                   const disabled = isMethodDisabled(method);
                   const selected = effectivePaymentMethodValue === method.value;
                   return (

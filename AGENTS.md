@@ -94,7 +94,28 @@ Après toute tâche sur un worktree :
 
 ## Modèle et effort
 
-Avant d'exécuter une tâche, identifier le modèle (disponible dans la liste des models opencode go) adapté. 
+Avant d'exécuter une tâche, identifier le modèle (dans la liste des models opencode go) adapté. 
+Go inclut les modèles ci-dessous, avec des limites généreuses et un accès fiable.
+```
+Grok 4.5
+GPT 5.6 Luna
+GLM-5.2
+GLM-5.1
+Kimi K3
+Kimi K2.7 Code
+Kimi K2.6
+MiMo-V2.5-Pro
+MiMo-V2.5
+Qwen3.8 Max
+Qwen3.7 Max
+Qwen3.7 Plus
+Qwen3.6 Plus
+MiniMax M3
+MiniMax M2.7
+DeepSeek V4 Pro
+DeepSeek V4 Flash
+Hy3
+```
 Sortie : `Model : <nom> | Effort : <niveau>`. Attendre confirmation avant d'exécuter.
 
 ### Multi-agents
