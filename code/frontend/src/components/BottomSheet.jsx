@@ -1,12 +1,68 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(",");
 
 export default function BottomSheet({ open, onClose, title, children }) {
+  const panelRef = useRef(null);
+  const previouslyFocused = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return undefined;
+
+    previouslyFocused.current = document.activeElement;
+
+    const panel = panelRef.current;
+    const focusables = panel ? Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR)) : [];
+    if (focusables.length > 0) {
+      focusables[0].focus();
+    } else {
+      panel?.focus?.();
+    }
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const currentFocusables = Array.from(
+        panelRef.current?.querySelectorAll(FOCUSABLE_SELECTOR) ?? []
+      );
+      if (currentFocusables.length === 0) return;
+      const first = currentFocusables[0];
+      const last = currentFocusables[currentFocusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
     return () => {
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
+      previouslyFocused.current?.focus?.();
     };
   }, [open]);
 
@@ -21,7 +77,9 @@ export default function BottomSheet({ open, onClose, title, children }) {
         className="absolute inset-0 h-full w-full animate-fade-in cursor-default bg-black/45"
       />
       <div
-        className="absolute inset-x-0 bottom-0 mx-auto max-h-[85vh] w-full max-w-3xl animate-sheet-up overflow-y-auto rounded-t-2xl bg-white shadow-2xl"
+        ref={panelRef}
+        tabIndex={-1}
+        className="absolute inset-x-0 bottom-0 mx-auto max-h-[85vh] w-full max-w-3xl animate-sheet-up overflow-y-auto rounded-t-2xl bg-white shadow-2xl outline-none"
         style={{ paddingBottom: "var(--tabbar-safe)" }}
       >
         <div className="sticky top-0 z-10 border-b border-black/10 bg-white px-5 py-3">
