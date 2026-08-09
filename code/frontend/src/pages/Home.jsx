@@ -5,6 +5,7 @@ import ProductCard from "../components/ProductCard.jsx";
 import Seo from "../components/Seo.jsx";
 import { useSiteConfig } from "../context/useSiteConfig.js";
 import ProductImage from "../components/ProductImage.jsx";
+import HeroSection from "../components/HeroSection.jsx";
 
 // Arguments de confiance par défaut (fallback si theme.trust_arguments est vide).
 const DEFAULT_TRUST_ARGUMENTS = [
@@ -65,6 +66,7 @@ export default function Home() {
   return (
     <div>
       <Seo path="/" />
+      <HeroSection />
       {sectionTypes.map((type) => renderSection(type))}
     </div>
   );
