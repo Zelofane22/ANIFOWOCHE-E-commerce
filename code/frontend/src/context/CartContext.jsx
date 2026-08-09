@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchProducts } from "../api/products.js";
+import { AUTH_LOGIN_EVENT } from "../api/axios.js";
+import { validateCart } from "../api/products.js";
 import { CartContextValue } from "./cartContextValue.js";
 const STORAGE_KEY = "anifowoche_cart";
 
@@ -83,39 +84,65 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setItems([]);
 
-  // Réconcilie le panier localStorage avec le catalogue live : met à jour
-  // id/prix/image des produits existants et retire ceux qui ne sont plus au
-  // catalogue (produit supprimé/désactivé). Évite le 400 « Clé primaire … non
-  // valide » à la commande (issue JAVASCRIPT-REACT-S). Sans effet si le panier
-  // est vide ou si l'API est injoignable (on garde le panier tel quel).
+  // Réconcilie le panier localStorage avec le catalogue live via
+  // POST /products/validate-cart/ (un appel léger, pas le catalogue complet).
+  // Retry unique après 2 s si le premier appel échoue — évite le 400
+  // « Clé primaire … non valide » à la commande (issue JAVASCRIPT-REACT-S).
   const reconcileCart = useCallback(async () => {
     const snapshot = itemsRef.current;
     if (!snapshot || snapshot.length === 0) return;
-    try {
-      const data = await fetchProducts({ page_size: 200 });
-      const results = Array.isArray(data) ? data : data?.results ?? [];
-      const bySlug = new Map(results.map((p) => [p.slug, p]));
+    const buildPayload = (list) =>
+      list.map((item) => ({
+        id: item.id,
+        slug: item.slug,
+        quantity: item.quantity,
+        color_name: item.colorName || "",
+        color_hex: item.colorHex || "",
+        selected_options: item.selectedOptions || [],
+      }));
+    const applyResult = (data) => {
+      const validItems = data.valid_items ?? [];
       setItems((current) => {
-        const next = [];
-        for (const item of current) {
-          const live = bySlug.get(item.slug);
-          if (!live) continue;
-          next.push({
-            ...item,
-            id: live.id,
-            name: live.name,
-            price_xof: live.price_xof,
-            unit: live.unit,
-            size: live.size,
-            image: live.image,
-          });
-        }
+        const next = validItems.map((item) => ({
+          id: item.id,
+          slug: item.slug,
+          name: item.name,
+          price_xof: item.price_xof,
+          unit: item.unit,
+          size: item.size,
+          image: item.image,
+          colorName: item.color_name || "",
+          colorHex: item.color_hex || "",
+          selectedOptions: item.selected_options || [],
+          quantity: item.quantity,
+        }));
         return cartsEqual(next, current) ? current : next;
       });
+    };
+    try {
+      const data = await validateCart(buildPayload(snapshot));
+      applyResult(data);
     } catch {
-      // Catalogue injoignable : on conserve le panier en l'état.
+      // 1er échec → retry après 2 s (API temporairement injoignable).
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const data = await validateCart(buildPayload(snapshot));
+        applyResult(data);
+      } catch {
+        // 2 échecs consécutifs : on conserve le panier tel quel.
+      }
     }
   }, []);
+
+  // Réconciliation au montage (app reload) et à chaque login/inscription.
+  useEffect(() => {
+    reconcileCart();
+  }, [reconcileCart]);
+
+  useEffect(() => {
+    window.addEventListener(AUTH_LOGIN_EVENT, reconcileCart);
+    return () => window.removeEventListener(AUTH_LOGIN_EVENT, reconcileCart);
+  }, [reconcileCart]);
 
   const itemCount = useMemo(
     () => items.reduce((total, item) => total + item.quantity, 0),

@@ -17,6 +17,7 @@ const refreshClient = axios.create({ baseURL: apiBaseURL });
 const publicClient = axios.create({ baseURL: apiBaseURL });
 
 export const AUTH_EXPIRED_EVENT = "anifowoche:auth-expired";
+export const AUTH_LOGIN_EVENT = "anifowoche:auth-login";
 
 let refreshPromise = null;
 

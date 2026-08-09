@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { useEffect, useState } from "react";
 import { fetchMe, loginUser, registerUser } from "../api/auth.js";
-import { AUTH_EXPIRED_EVENT } from "../api/axios.js";
+import { AUTH_EXPIRED_EVENT, AUTH_LOGIN_EVENT } from "../api/axios.js";
 import { registerSeller as registerSellerApi } from "../api/seller.js";
 import { clearTokens, getAccessToken, setTokens } from "../utils/tokenStorage.js";
 import { AuthContextValue } from "./authContextValue.js";
@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
     setTokens(data);
     const me = await fetchMe();
     applyUser(me);
+    window.dispatchEvent(new CustomEvent(AUTH_LOGIN_EVENT));
     return me;
   };
 
@@ -64,6 +65,7 @@ export function AuthProvider({ children }) {
     const data = await registerUser(payload);
     setTokens(data);
     applyUser(data.user);
+    window.dispatchEvent(new CustomEvent(AUTH_LOGIN_EVENT));
     return data.user;
   };
 
@@ -71,6 +73,7 @@ export function AuthProvider({ children }) {
     const data = await registerSellerApi(payload);
     setTokens(data);
     applyUser(data.user);
+    window.dispatchEvent(new CustomEvent(AUTH_LOGIN_EVENT));
     return data;
   };
 
