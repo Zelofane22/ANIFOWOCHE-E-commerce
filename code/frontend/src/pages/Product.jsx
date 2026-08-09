@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { fetchProductBySlug } from "../api/products.js";
 import { createReview, fetchProductReviews } from "../api/reviews.js";
@@ -34,7 +34,9 @@ function ProductView({ slug }) {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [optionErrors, setOptionErrors] = useState({});
 
-  useEffect(() => {
+  const loadProduct = useCallback(() => {
+    setError(null);
+    setNotFound(false);
     fetchProductBySlug(slug)
       .then(setProduct)
       .catch((err) => {
@@ -45,6 +47,15 @@ function ProductView({ slug }) {
         }
       });
   }, [slug]);
+
+  useEffect(() => {
+    loadProduct();
+  }, [loadProduct]);
+
+  const handleRetry = () => {
+    setProduct(null);
+    loadProduct();
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !product) return;
@@ -68,7 +79,20 @@ function ProductView({ slug }) {
       </div>
     );
   }
-  if (error) return <p role="alert" className="px-4 py-16 text-center text-red-600">Erreur : {error}</p>;
+  if (error)
+    return (
+      <div role="alert" className="px-4 py-16 text-center">
+        <p className="font-semibold text-red-600">Impossible de charger ce produit pour le moment.</p>
+        <p className="mt-2 text-sm text-muted">Vérifiez votre connexion puis réessayez.</p>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-6 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-medium"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
   const productInStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
