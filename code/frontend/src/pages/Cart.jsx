@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import QuantityStepper from "../components/QuantityStepper.jsx";
 import { useCart } from "../context/useCart.js";
@@ -5,7 +6,14 @@ import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
 
 export default function Cart() {
-  const { items, updateQuantity, removeItem, subtotal } = useCart();
+  const { items, updateQuantity, removeItem, subtotal, reconcileCart } = useCart();
+
+  // Réconcilie le panier localStorage avec le catalogue live au montage
+  // (retire les produits supprimés, met à jour prix/id) — cf. issue JAVASCRIPT-REACT-S.
+  useEffect(() => {
+    reconcileCart();
+  }, [reconcileCart]);
+
   const navigate = useNavigate();
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
 

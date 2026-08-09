@@ -28,7 +28,13 @@ const isPaymentMethodDisabled = (method, storeStatus) => {
 };
 
 export default function Checkout() {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, reconcileCart } = useCart();
+
+  // Réconcilie le panier localStorage avec le catalogue live au montage
+  // (retire les produits supprimés, met à jour prix/id) avant commande — cf. issue JAVASCRIPT-REACT-S.
+  useEffect(() => {
+    reconcileCart();
+  }, [reconcileCart]);
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 

@@ -1,4 +1,4 @@
-import apiClient from "./axios.js";
+import apiClient, { publicClient } from "./axios.js";
 
 export const registerSeller = (data) =>
   apiClient.post("/seller/register/", data).then((res) => res.data);
@@ -22,10 +22,10 @@ export const updateSellerOrderStatus = (orderId, data) =>
   apiClient.patch(`/seller/orders/${orderId}/`, data).then((res) => res.data);
 
 export const getPublicShop = (slug) =>
-  apiClient.get(`/public/shops/${slug}/`).then((res) => res.data);
+  publicClient.get(`/public/shops/${slug}/`).then((res) => res.data);
 
 export const getPublicShopProduct = (shopSlug, productSlug) =>
-  apiClient.get(`/public/shops/${shopSlug}/products/${productSlug}/`).then((res) => res.data);
+  publicClient.get(`/public/shops/${shopSlug}/products/${productSlug}/`).then((res) => res.data);
 
 export const getSellerProducts = () =>
   apiClient.get("/seller/products/").then((res) => res.data);

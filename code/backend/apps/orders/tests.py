@@ -52,6 +52,26 @@ class OrderApiTests(APITestCase):
         self.assertIsNone(Order.objects.get().customer)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_create_order_with_unknown_product_returns_clear_message(self, mock_post):
+        # Un product_id absent du catalogue (panier localStorage périmé) doit
+        # renvoyer un message lisible, pas le brut DRF « Clé primaire … non valide ».
+        payload = {
+            "full_name": "Jean Client",
+            "phone": "+2290190000000",
+            "address": "Fidjrossè",
+            "items": [{"product_id": 999999, "quantity": 1}],
+        }
+        response = self.client.post("/api/orders/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Order.objects.count(), 0)
+        # DRF peut renvoyer items comme liste de dicts ou dict indexé par position.
+        items_err = response.data["items"]
+        child = items_err[0] if isinstance(items_err, list) else items_err[next(iter(items_err))]
+        msg = child["product_id"][0]
+        self.assertIn("n'est plus disponible", str(msg))
+        self.assertNotIn("Clé primaire", str(msg))
+
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_rejects_missing_required_option(self, mock_post):
         group = OptionGroupFactory(product=self.product, is_required=True, min_selections=1, max_selections=1)
         OptionFactory(group=group, price_xof=500)
