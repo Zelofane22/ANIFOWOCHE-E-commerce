@@ -63,6 +63,7 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [showCouponField, setShowCouponField] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -597,17 +598,11 @@ export default function Checkout() {
             </div>
 
             <div className="mt-4 border-t border-black/10 pt-4">
-              <label className="block text-xs font-semibold text-ink">Code promo</label>
-              <div className="mt-1.5 flex gap-2">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(event) => setCouponCode(event.target.value)}
-                  placeholder="Code coupon"
-                  disabled={!!appliedCoupon}
-                  className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand disabled:bg-gray-50"
-                />
-                {appliedCoupon ? (
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between gap-2">
+                  <p aria-live="polite" className="text-xs font-medium text-green-700">
+                    Code « {appliedCoupon.code} » appliqué (-{appliedCoupon.discount_percent}%)
+                  </p>
                   <button
                     type="button"
                     onClick={handleRemoveCoupon}
@@ -615,26 +610,41 @@ export default function Checkout() {
                   >
                     Retirer
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleApplyCoupon}
-                    disabled={!couponCode.trim() || validatingCoupon}
-                    className="shrink-0 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
-                  >
-                    {validatingCoupon ? "…" : "Appliquer"}
-                  </button>
-                )}
-              </div>
-              {couponError && (
-                <p role="alert" className="mt-1.5 text-xs text-red-600">
-                  {couponError}
-                </p>
-              )}
-              {appliedCoupon && (
-                <p aria-live="polite" className="mt-1.5 text-xs font-medium text-green-700">
-                  Code « {appliedCoupon.code} » appliqué (-{appliedCoupon.discount_percent}%)
-                </p>
+                </div>
+              ) : showCouponField ? (
+                <>
+                  <label className="block text-xs font-semibold text-ink">Code promo</label>
+                  <div className="mt-1.5 flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(event) => setCouponCode(event.target.value)}
+                      placeholder="Code coupon"
+                      className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={!couponCode.trim() || validatingCoupon}
+                      className="shrink-0 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
+                    >
+                      {validatingCoupon ? "…" : "Appliquer"}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p role="alert" className="mt-1.5 text-xs text-red-600">
+                      {couponError}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCouponField(true)}
+                  className="text-xs font-semibold text-brand-dark hover:underline"
+                >
+                  Vous avez un code promo ?
+                </button>
               )}
             </div>
 
