@@ -17,12 +17,13 @@ const refreshClient = axios.create({ baseURL: apiBaseURL });
 const publicClient = axios.create({ baseURL: apiBaseURL });
 
 export const AUTH_EXPIRED_EVENT = "anifowoche:auth-expired";
+export const AUTH_LOGIN_EVENT = "anifowoche:auth-login";
 
 let refreshPromise = null;
 
 const notifyAuthExpired = () => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
   const refresh = getRefreshToken();
   if (!refresh) return null;
   if (!refreshPromise) {

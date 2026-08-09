@@ -11,3 +11,6 @@ export const fetchCategories = () =>
 
 export const fetchProductOptionGroups = (slug) =>
   apiClient.get(`/seller/products/${slug}/option-groups/`).then((res) => res.data);
+
+export const validateCart = (items) =>
+  publicClient.post("/products/validate-cart/", { items }).then((res) => res.data);

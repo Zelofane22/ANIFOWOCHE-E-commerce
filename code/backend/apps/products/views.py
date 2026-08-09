@@ -1,7 +1,7 @@
 from django.db.models import Avg, Count, IntegerField, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import Now
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, permissions, viewsets
+from rest_framework import filters, permissions, views, viewsets
 
 from .filters import AccentInsensitiveSearchFilter, ProductFilter
 from rest_framework.exceptions import NotFound
@@ -246,3 +246,67 @@ class OptionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Associe l'option au groupe ciblé.
         serializer.save(group=self._group())
+
+
+class ValidateCartView(views.APIView):
+    """Valide les articles du panier contre le catalogue live.
+
+    POST { items: [{id, slug, quantity, selected_options?, color_name?, color_hex?}] }
+    → { valid_items: [...], invalid_slugs: [...] }
+
+    Accessible aux visiteurs anonymes (AllowAny) — pas besoin d'auth pour
+    vérifier que les produits existent toujours.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        items = request.data.get("items")
+        if not isinstance(items, list) or not items:
+            return Response(
+                {"detail": "La requête doit contenir une liste 'items' non vide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        slugs = {
+            item.get("slug")
+            for item in items
+            if isinstance(item, dict) and item.get("slug")
+        }
+        if not slugs:
+            return Response({"valid_items": [], "invalid_slugs": []})
+
+        products = Product.objects.filter(
+            slug__in=slugs,
+            is_active=True,
+        ).filter(
+            Q(shop__isnull=True) | Q(shop__visible_on_main_store=True)
+        ).select_related("category").prefetch_related("option_groups__options")
+
+        by_slug = {p.slug: p for p in products}
+
+        valid_items = []
+        invalid_slugs = []
+
+        for item in items:
+            slug = item.get("slug", "")
+            product = by_slug.get(slug)
+            if product is None:
+                invalid_slugs.append(slug)
+                continue
+
+            valid_items.append({
+                "id": product.id,
+                "slug": product.slug,
+                "name": product.name,
+                "price_xof": product.price_xof,
+                "unit": product.unit,
+                "size": product.size,
+                "image": request.build_absolute_uri(product.image.url) if product.image else None,
+                "quantity": item.get("quantity", 1),
+                "color_name": item.get("color_name", ""),
+                "color_hex": item.get("color_hex", ""),
+                "selected_options": item.get("selected_options", []),
+            })
+
+        return Response({"valid_items": valid_items, "invalid_slugs": invalid_slugs})
