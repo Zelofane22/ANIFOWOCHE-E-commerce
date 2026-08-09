@@ -4,6 +4,25 @@ from django.contrib import admin
 
 from .models import Category, Option, OptionGroup, Product, ProductImage
 
+LOW_STOCK_THRESHOLD = 10
+
+
+class LowStockListFilter(admin.SimpleListFilter):
+    """Filtre « Stock faible » : produits actifs vendus sur stock sous le seuil."""
+
+    title = "stock faible"
+    parameter_name = "low_stock"
+
+    def lookups(self, request, model_admin):
+        return (("1", f"Sous le seuil ({LOW_STOCK_THRESHOLD})"),)
+
+    def queryset(self, request, queryset):
+        if self.value() == "1":
+            return queryset.filter(
+                is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False
+            )
+        return queryset
+
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
@@ -20,7 +39,7 @@ class ProductImageInline(TabularInline):
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
     list_display = ["name", "seller", "shop", "category", "price_xof", "unit", "stock", "made_to_order", "is_active"]
-    list_filter = ["category", "seller", "shop", "is_active", "unit", "size", "made_to_order"]
+    list_filter = ["category", "seller", "shop", "is_active", "unit", "size", "made_to_order", LowStockListFilter]
     search_fields = ["name", "description", "seller__display_name", "shop__name"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductImageInline]

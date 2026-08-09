@@ -37,10 +37,27 @@ def relaunch_payments(modeladmin, request, queryset):
         )
 
 
+class ToRelaunchListFilter(admin.SimpleListFilter):
+    """Filtre « À relancer » : paiements échoués, refusés ou annulés."""
+
+    title = "à relancer"
+    parameter_name = "relaunch"
+
+    def lookups(self, request, model_admin):
+        return (("1", "Échoués / refusés / annulés"),)
+
+    def queryset(self, request, queryset):
+        if self.value() == "1":
+            return queryset.filter(
+                status__in=[Payment.Status.FAILED, Payment.Status.DECLINED, Payment.Status.CANCELED]
+            )
+        return queryset
+
+
 @admin.register(Payment)
 class PaymentAdmin(ModelAdmin):
     list_display = ["id", "order", "provider", "method", "status", "amount_xof", "created_at"]
-    list_filter = ["provider", "method", "status"]
+    list_filter = ["provider", "method", "status", ToRelaunchListFilter]
     search_fields = ["order__full_name", "fedapay_transaction_id"]
     readonly_fields = ["last_webhook_payload"]
     actions = [relaunch_payments]
