@@ -44,12 +44,11 @@ body {
 
 
 /* Focus clavier accessible : anneau global contraste pour tous les contrôles. */
-:where(a, button, input, select, textarea, [tabindex], summary, label[for]) :not(:disabled),
-:where(a, button, input, select, textarea, [tabindex], summary):focus-visible {
-  outline: 2px solid var(--color-brand-dark);
-  outline-offset: 2px;
-}
-
+:where(a, button, input, select, textarea, [tabindex], summary, label[for]):focus-visible {
+   outline: 2px solid var(--color-brand-dark);
+   outline-offset: 2px;
+ }
+ 
 /* Masque les scrollbars des rangées horizontales (chips, galerie). */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
