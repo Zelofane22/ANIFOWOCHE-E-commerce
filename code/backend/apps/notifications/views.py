@@ -1,10 +1,13 @@
+from django.contrib import admin
+from django.contrib.admin.views.decorators import staff_member_required
+from django.http import HttpResponseNotAllowed
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
+
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from django.contrib import admin
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render
 
 from .models import BackofficeNotification, NotificationSettings
 from .serializers import NotificationSettingsSerializer
@@ -24,16 +27,36 @@ class NotificationSettingsView(APIView):
 
 @staff_member_required
 def backoffice_notifications_view(request):
-    # Récupère toutes les alertes avant de les supprimer : elles sont lues en une fois.
-    notifications = list(BackofficeNotification.objects.all())
-    notification_ids = [notification.pk for notification in notifications]
-    if notification_ids:
-        BackofficeNotification.objects.filter(pk__in=notification_ids).delete()
+    # Par défaut, n'affiche que les alertes non lues ; `?filter=all` inclut
+    # l'historique des alertes déjà lues (avec leur date de lecture).
+    notifications = BackofficeNotification.objects.all()
+    if request.GET.get("filter") != "all":
+        notifications = notifications.filter(is_read=False)
 
-    # Contexte du rendu : hérite du contexte de l'admin et ajoute les alertes lues.
     context = {
         **admin.site.each_context(request),
         "title": "Alertes backoffice",
         "notifications": notifications,
+        "filter": request.GET.get("filter", "unread"),
+        "unread_count": BackofficeNotification.objects.filter(is_read=False).count(),
     }
     return render(request, "admin/backoffice_notifications.html", context)
+
+
+@staff_member_required
+def mark_notification_read(request, pk):
+    # Marque une alerte comme lue : uniquement en POST, jamais déclenché par un
+    # simple affichage de la liste (un GET est rejeté en 405).
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    BackofficeNotification.objects.filter(pk=pk).update(is_read=True, read_at=timezone.now())
+    return redirect(reverse("admin_backoffice_notifications"))
+
+
+@staff_member_required
+def mark_all_notifications_read(request):
+    # Marque toutes les alertes non lues comme lues : uniquement en POST.
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    BackofficeNotification.objects.filter(is_read=False).update(is_read=True, read_at=timezone.now())
+    return redirect(reverse("admin_backoffice_notifications"))

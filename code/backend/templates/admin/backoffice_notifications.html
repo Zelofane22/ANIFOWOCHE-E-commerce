@@ -13,29 +13,61 @@
     <div class="anw-alerts-header">
         <div>
             <h1 class="anw-alerts-title">Alertes backoffice</h1>
-            <p class="anw-alerts-subtitle">Ces alertes correspondent aux erreurs, problèmes de configuration ou validations nécessaires. Elles sont supprimées automatiquement dès cette lecture.</p>
+            <p class="anw-alerts-subtitle">Ces alertes correspondent aux erreurs, problèmes de configuration ou validations nécessaires. Elles sont conservées après lecture afin de garder la trace de l'historique.</p>
+        </div>
+        <div class="anw-actions">
+            {% if unread_count %}
+                <form method="post" action="{% url 'admin_backoffice_notifications_read_all' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="anw-alert-action">Tout marquer comme lu</button>
+                </form>
+            {% endif %}
+            {% if filter == 'all' %}
+                <a class="anw-alert-action anw-btn-secondary" href="{% url 'admin_backoffice_notifications' %}">Voir non lues</a>
+            {% else %}
+                <a class="anw-alert-action anw-btn-secondary" href="{% url 'admin_backoffice_notifications' %}?filter=all">Voir l'historique</a>
+            {% endif %}
         </div>
     </div>
 
     {% if notifications %}
         <div class="anw-alerts-list">
             {% for notification in notifications %}
-                <article class="anw-alert anw-alert-{{ notification.severity }}">
+                <article class="anw-alert anw-alert-{{ notification.severity }}{% if notification.is_read %} anw-alert-read{% endif %}">
                     <div class="anw-alert-top">
                         <div>
                             <div class="anw-alert-title">{{ notification.title }}</div>
-                            <div class="anw-alert-meta">{{ notification.created_at|date:"d/m/Y H:i" }}</div>
+                            <div class="anw-alert-meta">
+                                {{ notification.created_at|date:"d/m/Y H:i" }}
+                                {% if notification.is_read %}
+                                    · lue le {{ notification.read_at|date:"d/m/Y H:i" }}
+                                {% endif %}
+                            </div>
                         </div>
                         <span class="anw-alert-kind">{{ notification.get_kind_display }}</span>
                     </div>
                     <div class="anw-alert-message">{{ notification.message }}</div>
-                    {% if notification.action_url %}
-                        <a class="anw-alert-action" href="{{ notification.action_url }}">Ouvrir</a>
-                    {% endif %}
+                    <div class="anw-actions">
+                        {% if notification.action_url %}
+                            <a class="anw-alert-action" href="{{ notification.action_url }}">Ouvrir</a>
+                        {% endif %}
+                        {% if not notification.is_read %}
+                            <form method="post" action="{% url 'admin_backoffice_notification_read' notification.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="anw-alert-action">Marquer comme lu</button>
+                            </form>
+                        {% endif %}
+                    </div>
                 </article>
             {% endfor %}
         </div>
     {% else %}
-        <div class="anw-alert-empty">Aucune alerte non lue pour le moment.</div>
+        <div class="anw-alert-empty">
+            {% if filter == 'all' %}
+                Aucune alerte dans l'historique pour le moment.
+            {% else %}
+                Aucune alerte non lue pour le moment.
+            {% endif %}
+        </div>
     {% endif %}
 {% endblock %}

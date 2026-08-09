@@ -1,9 +1,12 @@
+from datetime import timedelta
 from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
 from django.db import ProgrammingError
 from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
 
 from .context_processors import backoffice_notifications
 from apps.core.factories import (
@@ -192,6 +195,8 @@ class NotificationServiceTests(TestCase):
 
         self.assertEqual(notification.channel, Notification.Channel.EMAIL)
         self.assertEqual(notification.recipient_email, "new@example.com")
+        self.assertEqual(notification.status, Notification.Status.SENT)
+        self.assertEqual(notification.provider_message_id, "resend-id-2")
 
     def test_notify_account_created_without_any_contact_info_does_not_send(self):
         user = UserFactory(username="nophoneuser")
@@ -245,7 +250,7 @@ class BackofficeNotificationAdminTests(TestCase):
         self.assertContains(response, "/admin/notifications-backoffice/")
         self.assertContains(response, "anw-admin-alert-badge")
 
-    def test_opening_backoffice_notifications_displays_then_deletes_them(self):
+    def test_opening_backoffice_notifications_displays_without_deleting(self):
         BackofficeNotification.objects.create(
             kind=BackofficeNotification.Kind.CONFIGURATION,
             severity=BackofficeNotification.Severity.WARNING,
@@ -258,14 +263,108 @@ class BackofficeNotificationAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Configuration à vérifier")
-        self.assertEqual(BackofficeNotification.objects.count(), 0)
+        # Une simple consultation ne supprime plus l'alerte ni ne la marque lue.
+        self.assertEqual(BackofficeNotification.objects.count(), 1)
+        self.assertFalse(BackofficeNotification.objects.get().is_read)
+
+    def test_marking_notification_read_hides_it_from_default_view_and_badge(self):
+        notification = BackofficeNotification.objects.create(
+            kind=BackofficeNotification.Kind.PAYMENT_FAILED,
+            severity=BackofficeNotification.Severity.ERROR,
+            title="Paiement échoué",
+            message="Un paiement a échoué.",
+        )
+
+        self.client.force_login(self.admin_user)
+        url = reverse("admin_backoffice_notification_read", args=[notification.pk])
+        response = self.client.post(url, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_read)
+        self.assertIsNotNone(notification.read_at)
+
+        # L'alerte lue disparaît de la vue par défaut (non lues uniquement).
+        response = self.client.get("/admin/notifications-backoffice/")
+        self.assertNotContains(response, "Paiement échoué")
+
+        # Le badge d'en-tête ne compte plus que les non lues : plus aucun badge.
+        response = self.client.get("/admin/")
+        self.assertNotContains(response, "anw-admin-alert-badge")
+
+        # L'alerte reste consultable dans l'historique via `?filter=all`.
+        response = self.client.get("/admin/notifications-backoffice/?filter=all")
+        self.assertContains(response, "Paiement échoué")
+
+    def test_marking_notification_read_rejects_get_request(self):
+        notification = BackofficeNotification.objects.create(
+            kind=BackofficeNotification.Kind.CONFIGURATION,
+            severity=BackofficeNotification.Severity.WARNING,
+            title="Configuration à vérifier",
+            message="Le fournisseur SMS est absent.",
+        )
+
+        self.client.force_login(self.admin_user)
+        url = reverse("admin_backoffice_notification_read", args=[notification.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 405)
+        # Aucun effet de bord sur un simple affichage : l'alerte reste non lue.
+        notification.refresh_from_db()
+        self.assertFalse(notification.is_read)
+        self.assertIsNone(notification.read_at)
+        self.assertEqual(BackofficeNotification.objects.count(), 1)
+
+    def test_marking_all_notifications_read_marks_every_unread_alert(self):
+        for index in range(3):
+            BackofficeNotification.objects.create(
+                kind=BackofficeNotification.Kind.SYSTEM_ERROR,
+                severity=BackofficeNotification.Severity.ERROR,
+                title=f"Erreur {index}",
+                message=f"Problème {index}.",
+            )
+        # Une alerte déjà lue ne doit pas être re-marquée à tort.
+        BackofficeNotification.objects.create(
+            kind=BackofficeNotification.Kind.SYSTEM_ERROR,
+            severity=BackofficeNotification.Severity.ERROR,
+            title="Déjà lue",
+            message="Ancienne alerte.",
+            is_read=True,
+            read_at=timezone.now() - timedelta(days=1),
+        )
+
+        self.client.force_login(self.admin_user)
+        url = reverse("admin_backoffice_notifications_read_all")
+        response = self.client.post(url, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(BackofficeNotification.objects.filter(is_read=False).count(), 0)
+        self.assertEqual(BackofficeNotification.objects.count(), 4)
+        self.assertTrue(
+            all(item.read_at is not None for item in BackofficeNotification.objects.filter(is_read=True))
+        )
+
+    def test_marking_all_notifications_read_rejects_get_request(self):
+        BackofficeNotification.objects.create(
+            kind=BackofficeNotification.Kind.SYSTEM_ERROR,
+            severity=BackofficeNotification.Severity.ERROR,
+            title="Erreur test",
+            message="Un problème nécessite une action.",
+        )
+
+        self.client.force_login(self.admin_user)
+        url = reverse("admin_backoffice_notifications_read_all")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(BackofficeNotification.objects.filter(is_read=False).count(), 1)
 
     def test_context_processor_does_not_break_when_table_is_missing(self):
         request = mock.Mock()
         request.path = "/admin/"
         request.user = self.admin_user
 
-        with mock.patch.object(BackofficeNotification.objects, "count", side_effect=ProgrammingError):
+        with mock.patch.object(BackofficeNotification.objects, "filter", side_effect=ProgrammingError):
             context = backoffice_notifications(request)
 
         self.assertEqual(context["backoffice_notifications_count"], 0)

@@ -9,7 +9,7 @@ def backoffice_notifications(request):
         return {}
 
     try:
-        count = BackofficeNotification.objects.count()
+        count = BackofficeNotification.objects.filter(is_read=False).count()
     except (DatabaseError, ProgrammingError):
         count = 0
 
