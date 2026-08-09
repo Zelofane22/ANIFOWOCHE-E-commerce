@@ -7,8 +7,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
+from apps.analytics.models import PageView
 from apps.core.management.commands import seed_e2e
 from apps.delivery.models import DeliverySlot, DeliveryZone
 from apps.products.models import Category, Product
@@ -16,6 +18,8 @@ from apps.products.models import Category, Product
 from apps.orders.models import Order
 
 from apps.core.factories import (
+    CategoryFactory,
+    ShopFactory,
     OrderFactory,
     OrderItemFactory,
     SettingChangeRequestFactory,
@@ -28,6 +32,7 @@ from apps.notifications.models import Notification, NotificationSettings
 from apps.payments.models import PaymentSettings
 
 from .models import SettingChangeRequest, StoreSettings
+from .dashboard import dashboard_callback
 from .services import approve_setting_change, process_new_request, reject_setting_change
 
 User = get_user_model()
@@ -420,3 +425,81 @@ class ReportsAdminTests(TestCase):
         self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
         self.assertIn("Produit rapport", response.content.decode())
         self.assertIn("attachment; filename=rapports-20200101-20300101.csv", response["Content-Disposition"])
+
+
+class DashboardStoreScopeTests(TestCase):
+    """Les statistiques du dashboard admin ne concernent que la boutique principale."""
+
+    def setUp(self):
+        self.superuser = SuperUserFactory(username="dashboard-admin")
+        self.client.force_login(self.superuser)
+        self.main_shop = ShopFactory(name="Ets ANIFOWOCHE", slug="ets-anifowoche")
+        self.other_shop = ShopFactory(name="Les Douceurs de Tinouke", slug="les-douceurs-de-tinouke")
+        self.category = CategoryFactory(name="Mode")
+
+        self.main_product = ProductFactory(
+            category=self.category, shop=self.main_shop, is_active=True, price_xof=5000, stock=20
+        )
+        self.other_product = ProductFactory(
+            category=self.category, shop=self.other_shop, is_active=True, price_xof=8000, stock=20
+        )
+
+        self.main_order = OrderFactory(customer=UserFactory(), total_xof=5000)
+        OrderItemFactory(order=self.main_order, product=self.main_product, quantity=1, unit_price_xof=5000)
+
+        self.other_order = OrderFactory(customer=UserFactory(), total_xof=8000)
+        OrderItemFactory(order=self.other_order, product=self.other_product, quantity=1, unit_price_xof=8000)
+
+    def test_dashboard_kpis_are_scoped_to_main_shop(self):
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["kpi_orders"], 1)
+        self.assertEqual(context["kpi_revenue"], 5000)
+        self.assertEqual(context["kpi_products"], 1)
+        self.assertEqual(context["kpi_clients"], 1)
+        self.assertEqual(list(context["recent_orders"]), [self.main_order])
+        self.assertEqual(len(context["top_products"]), 1)
+        self.assertEqual(context["top_products"][0]["product__name"], self.main_product.name)
+        self.assertEqual(context["category_breakdown"][0]["name"], self.category.name)
+        self.assertEqual(context["category_breakdown"][0]["total"], 5000)
+
+    def test_dashboard_low_stock_scoped_to_main_shop(self):
+        ProductFactory(
+            category=self.category, shop=self.other_shop, is_active=True, price_xof=1000, stock=3
+        )
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["low_stock_count"], 0)
+        self.assertEqual(len(context["low_stock_products"]), 0)
+
+    def test_reports_scoped_to_main_shop(self):
+        response = self.client.get(reverse("admin_reports"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["order_count"], 1)
+        self.assertEqual(response.context["revenue"], 5000)
+        self.assertEqual(response.context["total_products"], 1)
+        self.assertEqual(len(response.context["top_products"]), 1)
+        self.assertEqual(response.context["top_products"][0]["product__name"], self.main_product.name)
+
+    def test_admin_index_renders_scoped_kpis(self):
+        PageView.objects.create(path="/", session_key="s1")
+        PageView.objects.create(path="/shop/les-douceurs-de-tinouke/", session_key="s2")
+
+        response = self.client.get("/admin/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["kpi_revenue"], 5000)
+        self.assertEqual(response.context["kpi_orders"], 1)
+        self.assertEqual(response.context["kpi_products"], 1)
+        self.assertEqual(response.context["kpi_clients"], 1)
+        self.assertEqual(response.context["kpi_visits"], 1)
+
+    @override_settings(MAIN_STORE_SLUG="les-douceurs-de-tinouke")
+    def test_main_shop_slug_is_configurable(self):
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["kpi_orders"], 1)
+        self.assertEqual(context["kpi_revenue"], 8000)
+        self.assertEqual(context["kpi_products"], 1)
+        self.assertEqual(context["kpi_clients"], 1)

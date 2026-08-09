@@ -7,11 +7,17 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.urls import reverse
 
-from apps.analytics.models import PageView
 from apps.core.models import SettingChangeRequest
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
-from apps.products.models import Product
+
+from apps.core.store_scope import (
+    get_main_store_shop,
+    scoped_clients,
+    scoped_orders,
+    scoped_products,
+    scoped_visits,
+)
 
 User = get_user_model()
 
@@ -27,14 +33,26 @@ def _percent_change(current, previous):
 
 
 def dashboard_callback(request, context):
-    """Callback de l'admin Django : injecte les KPIs du tableau de bord dans le contexte."""
+    """Callback de l'admin Django : injecte les KPIs du tableau de bord dans le contexte.
+
+    Seules les statistiques de la boutique principale (ets-anifowoche) sont
+    affichées : commandes, produits, clients et visites sont scopés à cette
+    boutique (voir apps.core.store_scope).
+    """
+    # Boutique principale (entreprise) et périmètre des données.
+    main_shop = get_main_store_shop()
+    store_orders = scoped_orders(main_shop)
+    store_products = scoped_products(main_shop)
+    store_clients = scoped_clients(main_shop)
+    store_visits = scoped_visits(main_shop)
+
     # Bornes temporelles des deux périodes comparées (actuelle et précédente).
     now = timezone.now()
     period_start = now - timedelta(days=PERIOD_DAYS)
     previous_start = now - timedelta(days=2 * PERIOD_DAYS)
 
-    orders_period = Order.objects.filter(created_at__gte=period_start)
-    orders_previous = Order.objects.filter(created_at__gte=previous_start, created_at__lt=period_start)
+    orders_period = store_orders.filter(created_at__gte=period_start)
+    orders_previous = store_orders.filter(created_at__gte=previous_start, created_at__lt=period_start)
 
     revenue_period = orders_period.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
     revenue_previous = orders_previous.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
@@ -42,18 +60,17 @@ def dashboard_callback(request, context):
     orders_count = orders_period.count()
     orders_count_previous = orders_previous.count()
 
-    clients_qs = User.objects.filter(is_staff=False)
-    clients_total = clients_qs.count()
-    clients_new_period = clients_qs.filter(date_joined__gte=period_start).count()
-    clients_new_previous = clients_qs.filter(date_joined__gte=previous_start, date_joined__lt=period_start).count()
+    clients_total = store_clients.count()
+    clients_new_period = store_clients.filter(date_joined__gte=period_start).count()
+    clients_new_previous = store_clients.filter(date_joined__gte=previous_start, date_joined__lt=period_start).count()
 
-    products_qs = Product.objects.filter(is_active=True)
+    products_qs = store_products.filter(is_active=True)
     products_total = products_qs.count()
     products_new_period = products_qs.filter(created_at__gte=period_start).count()
     products_new_previous = products_qs.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
 
-    visits_period = PageView.objects.filter(created_at__gte=period_start).count()
-    visits_previous = PageView.objects.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
+    visits_period = store_visits.filter(created_at__gte=period_start).count()
+    visits_previous = store_visits.filter(created_at__gte=previous_start, created_at__lt=period_start).count()
 
     sales_by_day = (
         orders_period.exclude(status=Order.Status.CANCELLED)
@@ -63,9 +80,10 @@ def dashboard_callback(request, context):
         .order_by("day")
     )
 
+    period_order_items = OrderItem.objects.filter(order__in=orders_period)
+
     category_breakdown = (
-        OrderItem.objects.filter(order__created_at__gte=period_start)
-        .exclude(order__status=Order.Status.CANCELLED)
+        period_order_items.exclude(order__status=Order.Status.CANCELLED)
         .annotate(subtotal=F("quantity") * F("unit_price_xof"))
         .values("product__category__name")
         .annotate(total=Sum("subtotal"))
@@ -75,8 +93,7 @@ def dashboard_callback(request, context):
     category_breakdown = list(category_breakdown)
 
     top_products = (
-        OrderItem.objects.filter(order__created_at__gte=period_start)
-        .exclude(order__status=Order.Status.CANCELLED)
+        period_order_items.exclude(order__status=Order.Status.CANCELLED)
         .annotate(subtotal=F("quantity") * F("unit_price_xof"))
         .values("product__id", "product__name")
         .annotate(total_revenue=Sum("subtotal"), total_quantity=Sum("quantity"))
@@ -85,20 +102,21 @@ def dashboard_callback(request, context):
 
     # Données « centre d'actions » : listes récentes, produits sous seuil,
     # paiements échoués et demandes de réglages en attente.
-    recent_orders = Order.objects.select_related("delivery_zone").order_by("-created_at")[:5]
+    recent_orders = store_orders.select_related("delivery_zone").order_by("-created_at")[:5]
     low_stock_products = list(
-        Product.objects.filter(is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False)
+        products_qs.filter(stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False)
         .order_by("stock")[:5]
     )
-    low_stock_count = Product.objects.filter(
-        is_active=True, stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False
+    low_stock_count = products_qs.filter(
+        stock__lte=LOW_STOCK_THRESHOLD, made_to_order=False
     ).count()
-    recent_payments = Payment.objects.select_related("order").order_by("-created_at")[:5]
-    pending_orders_count = Order.objects.filter(
+    recent_payments = Payment.objects.filter(order__in=store_orders).select_related("order").order_by("-created_at")[:5]
+    pending_orders_count = store_orders.filter(
         status__in=[Order.Status.RECEIVED, Order.Status.PREPARED]
     ).count()
     failed_payments_count = Payment.objects.filter(
-        status__in=[Payment.Status.FAILED, Payment.Status.DECLINED, Payment.Status.CANCELED]
+        order__in=store_orders,
+        status__in=[Payment.Status.FAILED, Payment.Status.DECLINED, Payment.Status.CANCELED],
     ).count()
     pending_settings_count = SettingChangeRequest.objects.filter(
         status=SettingChangeRequest.Status.PENDING
