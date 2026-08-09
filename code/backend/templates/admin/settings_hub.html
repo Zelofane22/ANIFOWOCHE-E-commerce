@@ -14,6 +14,10 @@
         <div>
             <h1 class="anw-settings-title">Réglages boutique</h1>
             <p class="anw-settings-subtitle">Un seul espace pour contrôler l'état de la boutique, les paiements, les notifications et les demandes de changement.</p>
+            <p class="anw-settings-help">
+                Les changements qui désactivent le paiement en ligne, coupent un moyen de paiement (Mobile Money, carte) ou activent le mode maintenance ne sont appliqués qu'après validation par un <strong>superadmin</strong> ; les autres demandes s'appliquent immédiatement.
+                <a class="anw-text-link" href="{{ links.setting_requests }}">Voir l'historique des demandes</a>
+            </p>
         </div>
         <a class="anw-btn" href="{{ links.setting_request_add }}">Nouvelle demande</a>
     </div>
@@ -33,7 +37,7 @@
             </div>
             <div class="anw-actions">
                 <a class="anw-btn anw-btn-secondary" href="{{ links.store_settings }}">Voir le détail</a>
-                <a class="anw-btn" href="{{ links.setting_request_add }}">Demander un changement</a>
+                <a class="anw-text-link" href="{{ links.setting_request_add }}">→ Faire une demande pour ce réglage</a>
             </div>
         </section>
 
@@ -67,7 +71,7 @@
             </div>
             <div class="anw-actions">
                 <a class="anw-btn anw-btn-secondary" href="{{ links.payment_settings }}">Voir le détail</a>
-                <a class="anw-btn" href="{{ links.setting_request_add }}">Demander un changement</a>
+                <a class="anw-text-link" href="{{ links.setting_request_add }}">→ Faire une demande pour ce réglage</a>
             </div>
         </section>
 
@@ -107,7 +111,6 @@
             </div>
             <div class="anw-actions">
                 <a class="anw-btn anw-btn-secondary" href="{{ links.setting_requests }}">Toutes les demandes</a>
-                <a class="anw-btn" href="{{ links.setting_request_add }}">Créer</a>
             </div>
         </div>
         <div class="anw-table-wrap"><table class="anw-table">

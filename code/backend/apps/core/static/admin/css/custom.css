@@ -357,6 +357,8 @@ nav a[class~="bg-primary-600"][href^="/admin/"] svg {
 .anw-settings-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .anw-settings-title { font-size: 1.35rem; font-weight: 750; color: var(--anw-text-strong); margin: 0 0 0.25rem; }
 .anw-settings-subtitle { color: var(--anw-text-muted); font-size: 0.9rem; margin: 0; max-width: 48rem; }
+.anw-settings-help { color: var(--anw-text-muted); font-size: 0.85rem; line-height: 1.45; margin: 0.5rem 0 0; max-width: 48rem; }
+.anw-settings-help strong { color: var(--anw-text-strong); font-weight: 700; }
 
 .anw-settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 .anw-settings-card { background: var(--anw-surface); border: 1px solid var(--anw-border); border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px var(--anw-shadow-soft); }
@@ -387,6 +389,15 @@ nav a[class~="bg-primary-600"][href^="/admin/"] svg {
 .anw-btn-secondary:hover { background: var(--anw-accent-soft-hover); color: var(--anw-accent-soft-text) !important; }
 
 .anw-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.anw-text-link {
+    color: var(--anw-accent);
+    font-size: 0.82rem;
+    font-weight: 650;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.anw-text-link:hover { text-decoration: underline; }
 
 /* --- Statuts ------------------------------------------------------------------- */
 .anw-status {
