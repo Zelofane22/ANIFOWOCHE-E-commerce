@@ -29,3 +29,6 @@ dist/
 
 *Mockup*
 docs/amelioration_continue
+
+*.dump
+*.gpg
