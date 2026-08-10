@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 
 from apps.promotions.models import Promotion
+from apps.sellers.limits import main_store_catalog_q
 from apps.sellers.models import SellerProfile
 
 from .models import Category, Option, OptionGroup, Product, ProductImage
@@ -51,7 +52,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         Product.objects.filter(
             is_active=True,
         )
-        .filter(Q(shop__isnull=True) | Q(shop__visible_on_main_store=True))
+        # Catalogue principal : produits de l'entreprise et vendeurs PAID visibles ;
+        # les vendeurs FREE tiers n'y apparaissent jamais.
+        .filter(main_store_catalog_q())
         .select_related("category", "seller")
         .prefetch_related(
             Prefetch(
@@ -280,7 +283,7 @@ class ValidateCartView(views.APIView):
             slug__in=slugs,
             is_active=True,
         ).filter(
-            Q(shop__isnull=True) | Q(shop__visible_on_main_store=True)
+            main_store_catalog_q()
         ).select_related("category").prefetch_related("option_groups__options")
 
         by_slug = {p.slug: p for p in products}

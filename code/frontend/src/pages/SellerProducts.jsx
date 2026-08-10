@@ -627,6 +627,10 @@ export default function SellerProducts() {
   const activeProducts = useMemo(() => products.filter((product) => product.is_active), [products]);
   const archivedProducts = products.length - activeProducts.length;
 
+  // Limites du plan (null = illimité) exposées par le profil vendeur.
+  const productLimit = seller?.limits?.max_products ?? null;
+  const createLimitReached = productLimit != null && !editingSlug && activeProducts.length >= productLimit;
+
   const selectedCategory = useMemo(
     () => categories.find((c) => String(c.id) === form.category_id),
     [categories, form.category_id],
@@ -900,10 +904,16 @@ export default function SellerProducts() {
 
           {success && <p role="status" aria-live="polite" className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
           {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {createLimitReached && (
+            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Plan gratuit : maximum {productLimit} produits actifs atteint. Archivez un produit pour en
+              publier un nouveau.
+            </p>
+          )}
 
           <button
             type="submit"
-            disabled={submitting || categories.length === 0}
+            disabled={submitting || categories.length === 0 || createLimitReached}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
           >
             {editingSlug ? <EditIcon size={16} /> : <PlusIcon size={16} />}
@@ -927,8 +937,9 @@ export default function SellerProducts() {
             <div>
               <h2 className="text-lg font-bold text-ink">Catalogue vendeur</h2>
               <p className="mt-1 text-sm text-muted">
-                {activeProducts.length} publié{activeProducts.length > 1 ? "s" : ""} · {archivedProducts} archivé
-                {archivedProducts > 1 ? "s" : ""}
+                {activeProducts.length}
+                {productLimit != null ? ` / ${productLimit}` : ""} publié{activeProducts.length > 1 ? "s" : ""} ·{" "}
+                {archivedProducts} archivé{archivedProducts > 1 ? "s" : ""}
               </p>
             </div>
             <Link

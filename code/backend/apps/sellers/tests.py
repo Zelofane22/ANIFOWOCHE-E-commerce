@@ -511,3 +511,192 @@ class SellerAdminTests(TestCase):
         self.client.force_login(user)
         response = self.client.get("/admin/sellers/shop/")
         self.assertEqual(response.status_code, 302)
+
+
+class SellerPlanLimitsTests(APITestCase):
+    """Limites du plan gratuit : 10 produits actifs, 20 commandes/mois, vitrine principale."""
+
+    def setUp(self):
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.user = UserFactory(username="vendeuse")
+        self.seller = SellerProfileFactory(user=self.user, display_name="Afi Boutique", phone="+2290190000000")
+        self.shop = ShopFactory(seller=self.seller, name="Afi Wax", slug="afi-wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=self.user)
+
+    def _create_product_via_api(self, name="Pagne"):
+        return self.client.post(
+            "/api/seller/products/",
+            {
+                "name": name,
+                "description": "Wax premium",
+                "price_xof": 7000,
+                "stock": 8,
+                "category_id": self.category.id,
+                "unit": "piece",
+                "size": "UNIQUE",
+                "is_active": True,
+            },
+            format="json",
+        )
+
+    def _create_orders_for_seller(self, count, status=Order.Status.RECEIVED):
+        product = ProductFactory(seller=self.seller, category=self.category)
+        for _ in range(count):
+            order = OrderFactory(status=status)
+            OrderItemFactory(order=order, product=product, quantity=1)
+        return product
+
+    # --- Attribution du plan à l'inscription ---------------------------------
+
+    def test_register_assigns_free_plan_and_hides_shop_from_main_store(self):
+        self.client.force_authenticate(user=None)
+        payload = {
+            "username": "nouveau",
+            "password": "StrongPass123!",
+            "password2": "StrongPass123!",
+            "display_name": "Nouvelle Boutique",
+            "phone": "+2290195000000",
+            "shop_name": "Nouvelle Shop",
+            "shop_slug": "nouvelle-shop",
+        }
+
+        response = self.client.post("/api/seller/register/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        seller = SellerProfile.objects.get(user__username="nouveau")
+        self.assertEqual(seller.plan, SellerProfile.Plan.FREE)
+        self.assertFalse(seller.shop.visible_on_main_store)
+
+    # --- Limite produits -------------------------------------------------------
+
+    def test_free_seller_blocked_at_eleventh_active_product(self):
+        ProductFactory.create_batch(10, seller=self.seller, category=self.category)
+
+        response = self._create_product_via_api()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("10 produits actifs", str(response.data))
+
+    def test_archived_products_do_not_count_toward_limit(self):
+        products = ProductFactory.create_batch(10, seller=self.seller, category=self.category)
+        products[0].is_active = False
+        products[0].save(update_fields=["is_active"])
+
+        response = self._create_product_via_api()
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_reactivation_blocked_at_limit(self):
+        products = ProductFactory.create_batch(11, seller=self.seller, category=self.category)
+        archived = products[0]
+        archived.is_active = False
+        archived.save(update_fields=["is_active"])
+
+        response = self.client.patch(
+            f"/api/seller/products/{archived.slug}/",
+            {"is_active": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        archived.refresh_from_db()
+        self.assertFalse(archived.is_active)
+
+    def test_paid_seller_can_exceed_product_limit(self):
+        self.seller.plan = SellerProfile.Plan.PAID
+        self.seller.save(update_fields=["plan"])
+        ProductFactory.create_batch(10, seller=self.seller, category=self.category)
+
+        response = self._create_product_via_api()
+
+        self.assertEqual(response.status_code, 201)
+
+    # --- Quota mensuel de commandes -------------------------------------------
+
+    def test_free_shop_hidden_when_monthly_order_quota_reached(self):
+        self._create_orders_for_seller(20)
+
+        response = self.client.get("/api/public/shops/afi-wax/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_free_shop_visible_below_monthly_quota(self):
+        self._create_orders_for_seller(19)
+
+        response = self.client.get("/api/public/shops/afi-wax/")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_cancelled_orders_do_not_count_toward_quota(self):
+        self._create_orders_for_seller(20, status=Order.Status.CANCELLED)
+
+        response = self.client.get("/api/public/shops/afi-wax/")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_paid_shop_not_hidden_by_quota(self):
+        self.seller.plan = SellerProfile.Plan.PAID
+        self.seller.save(update_fields=["plan"])
+        self._create_orders_for_seller(20)
+
+        response = self.client.get("/api/public/shops/afi-wax/")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_order_rejected_when_seller_quota_reached(self):
+        product = self._create_orders_for_seller(20)
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/orders/",
+            {
+                "full_name": "Client Test",
+                "phone": "+2290196000000",
+                "address": "Cotonou",
+                "items": [{"product_id": product.id, "quantity": 1}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("limite de commandes", str(response.data))
+
+    def test_public_shop_product_detail_hidden_when_quota_reached(self):
+        product = self._create_orders_for_seller(20)
+
+        response = self.client.get(f"/api/public/shops/afi-wax/products/{product.slug}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    # --- Exemption de la boutique entreprise -----------------------------------
+
+    def test_main_store_shop_exempt_from_free_limits(self):
+        self.shop.slug = "ets-anifowoche"
+        self.shop.visible_on_main_store = True
+        self.shop.save()
+        product = self._create_orders_for_seller(20)
+
+        shop_response = self.client.get("/api/public/shops/ets-anifowoche/")
+        catalog_response = self.client.get("/api/products/")
+
+        self.assertEqual(shop_response.status_code, 200)
+        slugs = [item["slug"] for item in catalog_response.data["results"]]
+        self.assertIn(product.slug, slugs)
+
+    # --- Dashboard : bloc limits ----------------------------------------------
+
+    def test_dashboard_exposes_free_plan_limits(self):
+        ProductFactory.create_batch(3, seller=self.seller, category=self.category)
+        self._create_orders_for_seller(2)
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        limits = response.data["seller"]["limits"]
+        self.assertEqual(limits["plan"], "FREE")
+        self.assertEqual(limits["max_products"], 10)
+        self.assertEqual(limits["max_orders_per_month"], 20)
+        self.assertEqual(limits["products_used"], 4)  # 3 + produit des commandes
+        self.assertEqual(limits["orders_this_month"], 2)
+        self.assertTrue(limits["public_shop_visible"])
+        self.assertFalse(limits["can_appear_on_main_store"])

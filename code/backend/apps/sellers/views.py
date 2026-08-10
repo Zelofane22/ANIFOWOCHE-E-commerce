@@ -8,7 +8,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework import generics, permissions, status, viewsets
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import APIException, NotFound
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -24,6 +24,7 @@ from apps.products.models import Product
 from apps.products.serializers import ProductSerializer
 from apps.users.serializers import UserSerializer
 
+from .limits import orders_quota_reached
 from .models import SellerProfile, Shop
 from .serializers import (
     PublicShopSerializer,
@@ -243,6 +244,14 @@ class PublicShopView(generics.RetrieveAPIView):
         # Seules les boutiques publiées sont visibles publiquement.
         return Shop.objects.filter(is_published=True).select_related("seller")
 
+    def get_object(self):
+        shop = super().get_object()
+        # Quota mensuel de commandes atteint (plan FREE) : boutique masquée
+        # jusqu'au mois suivant, sans toucher à is_published.
+        if orders_quota_reached(shop.seller):
+            raise NotFound("Cette boutique est temporairement indisponible.")
+        return shop
+
 
 class SellerPaymentRelaunchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -339,6 +348,9 @@ class PublicShopProductDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         # Produits de la boutique (ou du vendeur sans boutique), uniquement actifs, avec images et options.
         shop = get_object_or_404(Shop, slug=self.kwargs["shop_slug"], is_published=True)
+        # Quota mensuel de commandes atteint (plan FREE) : boutique masquée jusqu'au mois suivant.
+        if orders_quota_reached(shop.seller):
+            raise NotFound("Cette boutique est temporairement indisponible.")
         return Product.objects.filter(
             Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
             is_active=True,
@@ -350,6 +362,9 @@ class PublicShopProductDetailView(generics.RetrieveAPIView):
         # Récupération du détail produit avec repli sur une réponse 500 propre en cas d'erreur inattendue.
         try:
             return super().retrieve(request, *args, **kwargs)
+        except APIException:
+            # Les erreurs fonctionnelles (404 boutique masquée, etc.) gardent leur statut.
+            raise
         except Exception as e:
             logger.exception("PublicShopProductDetailView error")
             return Response(

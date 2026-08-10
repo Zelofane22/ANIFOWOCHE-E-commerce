@@ -1,6 +1,7 @@
-from django.db.models import Q
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+
+from apps.sellers.limits import main_store_catalog_q
 
 from .models import WishlistItem
 from .serializers import WishlistItemSerializer
@@ -17,11 +18,12 @@ class WishlistItemViewSet(viewsets.ModelViewSet):
     lookup_field = "product_id"
 
     def get_queryset(self):
-        # Entrées du client connecté, limitées aux produits visibles sur la vitrine principale.
+        # Entrées du client connecté, limitées aux produits visibles sur la vitrine
+        # principale (les produits des vendeurs FREE tiers en sont exclus).
         return WishlistItem.objects.filter(
             user=self.request.user,
         ).filter(
-            Q(product__shop__isnull=True) | Q(product__shop__visible_on_main_store=True)
+            main_store_catalog_q(prefix="product__")
         ).select_related("product")
 
     def create(self, request, *args, **kwargs):

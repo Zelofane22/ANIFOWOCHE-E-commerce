@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.sellers.models import Shop
+from apps.sellers.limits import FREE_MAX_PRODUCTS, can_create_product
 
 from .models import (
     MADE_TO_ORDER_CATEGORY_SLUGS,
@@ -160,6 +161,12 @@ class SellerProductSerializer(ProductSerializer):
         seller = self.context.get("seller")
         if shop and seller and shop.seller != seller:
             raise serializers.ValidationError({"shop_id": "Ce shop ne vous appartient pas."})
+        # Limite du plan gratuit : 10 produits actifs maximum (création ou réactivation).
+        if seller and self._adds_active_product(attrs) and not can_create_product(seller):
+            raise serializers.ValidationError(
+                f"Plan gratuit : maximum {FREE_MAX_PRODUCTS} produits actifs. "
+                "Archivez un produit ou passez au plan Illimité."
+            )
         # Les produits de catégorie « sur commande » (ex. restauration) n'ont pas de stock.
         category = attrs.get("category")
         if category is None and self.instance:
@@ -167,6 +174,12 @@ class SellerProductSerializer(ProductSerializer):
         if category and category.slug in MADE_TO_ORDER_CATEGORY_SLUGS:
             attrs["made_to_order"] = True
         return attrs
+
+    def _adds_active_product(self, attrs):
+        # True si la requête crée un produit actif ou réactive un produit archivé.
+        if self.instance is None:
+            return attrs.get("is_active", True)
+        return not self.instance.is_active and attrs.get("is_active") is True
 
     def create(self, validated_data):
         # Rattache automatiquement le produit à la boutique du vendeur si elle existe.
