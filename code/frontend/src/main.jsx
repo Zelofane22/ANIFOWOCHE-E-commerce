@@ -15,6 +15,12 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   });
 }
 
+const EXPECTED_VALIDATION_ENDPOINTS = [
+  "/auth/register/",
+  "/seller/register/",
+  "/promotions/coupons/validate/",
+];
+
 if (import.meta.env.PROD && sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
@@ -39,6 +45,11 @@ if (import.meta.env.PROD && sentryDsn) {
         const url = event?.request?.url ?? "";
         if (status === 404) return null;
         if (status === 401 && (url.includes("/auth/me/") || url.includes("/auth/token/"))) return null;
+        if (
+          status === 400 &&
+          EXPECTED_VALIDATION_ENDPOINTS.some((endpoint) => url.includes(endpoint))
+        )
+          return null;
       }
       return event;
     },
