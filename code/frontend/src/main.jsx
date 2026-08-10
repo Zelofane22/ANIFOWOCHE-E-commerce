@@ -3,6 +3,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router";
+import { InstallPromptProvider } from "./context/InstallPromptContext.jsx";
 import App from "./App.jsx";
 import ErrorFallback from "./components/ErrorFallback.jsx";
 import "./index.css";
@@ -93,7 +94,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
       <HelmetProvider>
         <BrowserRouter>
-          <App />
+          <InstallPromptProvider>
+            <App />
+          </InstallPromptProvider>
         </BrowserRouter>
       </HelmetProvider>
     </Sentry.ErrorBoundary>
