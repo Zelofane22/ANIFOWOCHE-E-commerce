@@ -17,6 +17,23 @@ sous-domaine `seller.anifowoche.com`. Chaque vendeur dispose :
 | [implementation.md](implementation.md) | Détail technique par fichier |
 | [admin-guide.md](admin-guide.md) | Gestion des boutiques dans l'admin Django |
 
+### Cadrage initial (historique)
+
+Documents rédigés lors du cadrage initial du projet, avant l'implémentation. Ils sont conservés
+pour mémoire — la documentation technique à jour reste celle du tableau ci-dessus.
+
+| Fichier | Description |
+|---------|-------------|
+| [Cadrage/01-concept.md](Cadrage/01-concept.md) | Concept produit — ANIF Seller |
+| [Cadrage/02-utilisateurs-et-problemes.md](Cadrage/02-utilisateurs-et-problemes.md) | Utilisateurs et problèmes |
+| [Cadrage/03-mvp.md](Cadrage/03-mvp.md) | MVP — première version vendable |
+| [Cadrage/04-modele-economique.md](Cadrage/04-modele-economique.md) | Modèle économique |
+| [Cadrage/05-roadmap.md](Cadrage/05-roadmap.md) | Roadmap |
+| [Cadrage/06-reutilisation-anifowoche.md](Cadrage/06-reutilisation-anifowoche.md) | Réutilisation du projet ANIFOWOCHE |
+| [Cadrage/07-methode-agile.md](Cadrage/07-methode-agile.md) | Méthode Agile — ANIF Seller |
+| [Cadrage/08-backlog-agile.md](Cadrage/08-backlog-agile.md) | Backlog Agile — ANIF Seller |
+| [Livrables/01-sprint-0-recherche-ia.md](Livrables/01-sprint-0-recherche-ia.md) | Sprint 0 — Recherche IA sans interviews |
+
 ## Fichiers modifiés
 
 ```
