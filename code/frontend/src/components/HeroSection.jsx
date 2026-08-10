@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { fetchBanners } from "../api/content.js";
+import { fetchProducts } from "../api/products.js";
+import ProductImage from "./ProductImage.jsx";
 
 // Contenu de secours si aucune bannière publiée n'est disponible.
 const DEFAULT_HERO = {
@@ -12,15 +14,24 @@ const DEFAULT_HERO = {
   ctaUrl: "/catalogue",
 };
 
-// Bannière de la page d'accueil (section héro). Le contenu est pilotable depuis
-// l'admin via le modèle content.Banner (titre, sous-titre, image, lien). Si
-// aucune bannière n'est publiée ou si l'appel échoue, on retombe sur les
-// valeurs par défaut ci-dessus.
+const SLIDE_INTERVAL_MS = 4500;
+const MAX_SLIDES = 8;
+
+// Bannière de la page d'accueil (section héro). Le contenu textuel est
+// pilotable depuis l'admin via le modèle content.Banner (titre, sous-titre,
+// image, lien). En fond sombre, un carrousel en fondu des images de couverture
+// des produits actifs de la boutique (ets-anifowoche), chaque image renvoyant
+// vers la fiche produit. Si aucun produit avec image n'est trouvé, la section
+// retombe sur l'image de la bannière puis sur le fond sombre seul.
 export default function HeroSection() {
   const [banner, setBanner] = useState(null);
+  const [slides, setSlides] = useState([]);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     let ignore = false;
+
     fetchBanners()
       .then((data) => {
         if (ignore) return;
@@ -28,10 +39,36 @@ export default function HeroSection() {
         setBanner(Array.isArray(banners) && banners.length > 0 ? banners[0] : null);
       })
       .catch(() => setBanner(null));
+
+    fetchProducts()
+      .then((data) => {
+        if (ignore) return;
+        const products = data?.results ?? data ?? [];
+        setSlides(
+          products
+            .filter((product) => product.slug && product.image)
+            .slice(0, MAX_SLIDES)
+            .map((product) => ({
+              slug: product.slug,
+              image: product.image,
+              name: product.name,
+            }))
+        );
+      })
+      .catch(() => setSlides([]));
+
     return () => {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (slides.length < 2 || paused) return undefined;
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % slides.length);
+    }, SLIDE_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [slides.length, paused]);
 
   const title = banner?.title || DEFAULT_HERO.title;
   const subtitle = banner?.subtitle || DEFAULT_HERO.subtitle;
@@ -39,8 +76,33 @@ export default function HeroSection() {
   const ctaUrl = banner?.link_url || DEFAULT_HERO.ctaUrl;
 
   return (
-    <section className="relative overflow-hidden bg-charcoal text-white">
-      {image && (
+    <section
+      className="relative overflow-hidden bg-charcoal text-white"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {slides.length > 0 && (
+        <div className="absolute inset-0" aria-hidden="true">
+          {slides.map((slide, i) => (
+            <Link
+              key={slide.slug}
+              to={`/produits/${slide.slug}`}
+              tabIndex={i === index ? 0 : -1}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                i === index ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+              }`}
+            >
+              <ProductImage
+                src={slide.image}
+                alt=""
+                loading={i === index ? "eager" : "lazy"}
+                className="absolute inset-0 h-full w-full object-cover opacity-50"
+              />
+            </Link>
+          ))}
+        </div>
+      )}
+      {slides.length === 0 && image && (
         <img
           src={image}
           alt=""
@@ -68,6 +130,22 @@ export default function HeroSection() {
           </Link>
         </div>
       </div>
+
+      {slides.length > 1 && (
+        <div className="absolute inset-x-0 bottom-4 z-10 flex justify-center gap-1.5">
+          {slides.map((slide, i) => (
+            <button
+              key={slide.slug}
+              type="button"
+              aria-label={`Voir le produit ${slide.name}`}
+              onClick={() => setIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === index ? "w-4 bg-brand" : "w-1.5 bg-white/60"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
