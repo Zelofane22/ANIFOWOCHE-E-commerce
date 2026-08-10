@@ -15,6 +15,7 @@ import {
   TrendingUpIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
+import InstallAppButton from "../components/seller/InstallAppButton.jsx";
 import { useAuth } from "../context/useAuth.js";
 
 const STATUS_LABELS = {
@@ -133,6 +134,7 @@ export default function SellerDashboard() {
 
   return (
     <SellerShell title="Tableau de bord" seller={seller}>
+      <InstallAppButton />
       <section className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
           <p className="text-sm font-semibold text-brand-dark">ANIF Seller</p>
