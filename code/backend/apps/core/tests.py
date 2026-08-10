@@ -456,7 +456,9 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(context["kpi_orders"], 1)
         self.assertEqual(context["kpi_revenue"], 5000)
         self.assertEqual(context["kpi_products"], 1)
-        self.assertEqual(context["kpi_clients"], 1)
+        # Les comptes non-staff sont plateforme (pas de boutique) : les 2
+        # vendeurs des boutiques et les 2 clients des commandes comptent.
+        self.assertEqual(context["kpi_clients"], 4)
         self.assertEqual(list(context["recent_orders"]), [self.main_order])
         self.assertEqual(len(context["top_products"]), 1)
         self.assertEqual(context["top_products"][0]["product__name"], self.main_product.name)
@@ -492,7 +494,7 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(response.context["kpi_revenue"], 5000)
         self.assertEqual(response.context["kpi_orders"], 1)
         self.assertEqual(response.context["kpi_products"], 1)
-        self.assertEqual(response.context["kpi_clients"], 1)
+        self.assertEqual(response.context["kpi_clients"], 4)
         self.assertEqual(response.context["kpi_visits"], 1)
 
     @override_settings(MAIN_STORE_SLUG="les-douceurs-de-tinouke")
@@ -502,4 +504,14 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(context["kpi_orders"], 1)
         self.assertEqual(context["kpi_revenue"], 8000)
         self.assertEqual(context["kpi_products"], 1)
-        self.assertEqual(context["kpi_clients"], 1)
+        # Le slug configuré ne s'applique pas aux comptes clients.
+        self.assertEqual(context["kpi_clients"], 4)
+
+    def test_dashboard_kpi_clients_counts_clients_without_orders(self):
+        """Régression : un client inscrit sans commande doit compter dans le KPI."""
+        UserFactory(username="client-sans-commande")
+
+        context = dashboard_callback(mock.Mock(), {})
+
+        # 4 comptes non-staff du setUp + 1 client inscrit sans commande.
+        self.assertEqual(context["kpi_clients"], 5)
