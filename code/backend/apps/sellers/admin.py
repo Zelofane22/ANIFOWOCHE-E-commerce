@@ -7,7 +7,8 @@ from .models import SellerProfile, Shop
 
 @admin.register(SellerProfile)
 class SellerProfileAdmin(ModelAdmin):
-    list_display = ["display_name", "phone", "city", "user", "created_at"]
+    list_display = ["display_name", "phone", "city", "plan", "user", "created_at"]
+    list_filter = ["plan", "city"]
     search_fields = ["display_name", "phone", "user__username", "user__email"]
 
 

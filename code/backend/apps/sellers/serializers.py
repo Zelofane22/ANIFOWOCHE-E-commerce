@@ -16,6 +16,7 @@ from apps.users.serializers import UserSerializer
 from apps.products.models import Product, ProductImage
 from apps.products.serializers import ProductSerializer
 
+from .limits import build_limits_payload
 from .models import SellerProfile, Shop
 
 User = get_user_model()
@@ -96,13 +97,18 @@ class ShopSerializer(serializers.ModelSerializer):
         return attrs
 
 class SellerProfileSerializer(serializers.ModelSerializer):
-    """Sérialise le profil vendeur en incluant sa boutique."""
+    """Sérialise le profil vendeur en incluant sa boutique et ses limites de plan."""
     shop = ShopSerializer()
+    limits = serializers.SerializerMethodField()
 
     class Meta:
         model = SellerProfile
-        fields = ["id", "display_name", "phone", "city", "plan", "shop", "created_at", "updated_at"]
-        read_only_fields = ["created_at", "updated_at", "plan"]
+        fields = ["id", "display_name", "phone", "city", "plan", "shop", "limits", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at", "plan", "limits"]
+
+    def get_limits(self, seller):
+        # Quotas et indicateurs de visibilité du plan (FREE borné, PAID illimité).
+        return build_limits_payload(seller)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -233,6 +239,8 @@ class SellerRegisterSerializer(serializers.Serializer):
             whatsapp_phone=phone,
             city=city,
             description=shop_description,
+            # Un nouveau vendeur (plan FREE) n'apparaît pas sur le catalogue principal.
+            visible_on_main_store=False,
         )
         return user
 

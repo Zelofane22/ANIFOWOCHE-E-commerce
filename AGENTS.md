@@ -38,6 +38,8 @@ Directives pour agents IA sur ce projet ANIFOWOCHE E-commerce.
 
 Routes API : `/api/<domain>/` — voir `config/urls.py`. L'app `sellers` est montée sur `/api/` directement (pas `/api/sellers/`).
 
+**Limites des plans vendeurs** : centralisées dans `apps/sellers/limits.py` (FREE = 10 produits actifs, 20 commandes/mois, hors catalogue principal ; la boutique entreprise `MAIN_STORE_SLUG` est exempte). Toute nouvelle règle de quota doit passer par ce module.
+
 ## Architecture frontend
 
 Code-splitting par défaut : seules `Home` est eager dans `App.jsx`, les autres pages sont `lazy()`. Ne pas casser ce pattern.

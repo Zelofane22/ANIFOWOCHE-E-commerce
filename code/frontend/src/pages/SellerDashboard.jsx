@@ -96,6 +96,23 @@ function StatusBadge({ status }) {
   );
 }
 
+function PlanUsage({ label, used, max }) {
+  const reached = used >= max;
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs font-medium text-muted">
+        <span>{label}</span>
+        <span className={reached ? "font-bold text-red-600" : ""}>
+          {used} / {max}
+        </span>
+      </div>
+      <div className="mt-1.5">
+        <MiniBar value={used} max={max} color={reached ? "bg-red-400" : "bg-brand"} />
+      </div>
+    </div>
+  );
+}
+
 export default function SellerDashboard() {
   const navigate = useNavigate();
   const { loading, isAuthenticated } = useAuth();
@@ -120,6 +137,7 @@ export default function SellerDashboard() {
   }
 
   const { seller, metrics, kpi, sales_chart, top_products, recent_orders, low_stock, status_distribution } = dashboard;
+  const limits = seller.limits ?? null;
   const publicUrl = seller.shop.public_url;
 
   const copyPublicUrl = async () => {
@@ -183,6 +201,34 @@ export default function SellerDashboard() {
           </button>
         </div>
       </section>
+
+      {limits?.orders_quota_reached && (
+        <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          Quota mensuel atteint ({limits.max_orders_per_month} commandes) : votre boutique est masquée
+          jusqu'au mois prochain. Les commandes repartiront automatiquement le 1er du mois.
+        </p>
+      )}
+
+      {limits?.max_products != null && (
+        <section className="mt-5 rounded-xl border border-black/10 bg-white p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold text-ink">Votre plan</h3>
+            <span className="rounded-full bg-brand-light px-2.5 py-1 text-xs font-bold text-brand-dark">Gratuit</span>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <PlanUsage label="Produits actifs" used={limits.products_used} max={limits.max_products} />
+            <PlanUsage
+              label="Commandes ce mois-ci"
+              used={limits.orders_this_month}
+              max={limits.max_orders_per_month}
+            />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted">
+            Le plan Illimité (bientôt disponible) supprime ces limites et ajoute la visibilité sur le
+            catalogue anifowoche.com.
+          </p>
+        </section>
+      )}
 
       <section className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label="Revenu (30j)" value={kpi.revenue} format={formatXOF} Icon={DollarSignIcon} change={kpi.revenue_change} />

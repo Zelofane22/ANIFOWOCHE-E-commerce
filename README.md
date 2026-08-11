@@ -18,6 +18,7 @@
 | [docs/ANIFOWOCHE_boutique/backlog.md](docs/ANIFOWOCHE_boutique/backlog.md) | Backlog Agile MVP (terminé) — épics & user stories E1-E5 |
 | [docs/ANIFOWOCHE_boutique/backlog-v2.md](docs/ANIFOWOCHE_boutique/backlog-v2.md) | Backlog v2 (post-MVP) — épics & user stories E6-E15, vérifiées contre l'état réel du code |
 | [docs/ANIFOWOCHE_boutique/risques.md](docs/ANIFOWOCHE_boutique/risques.md) | Analyse des risques et mitigations |
+| [docs/ANIFOWOCHE_boutique/figma-make-prompt.md](docs/ANIFOWOCHE_boutique/figma-make-prompt.md) | Prompt Figma Make pour la maquette responsive |
 | [docs/ANIFOWOCHE_boutique/ANIF Seller/](docs/ANIFOWOCHE_boutique/ANIF%20Seller/README.md) | ANIF Seller — SAAS de vitrine privée pour vendeurs (cadrage, architecture, implementation, admin) |
 | [docs/dossier d'achitecture technique/stack-technique.md](docs/dossier%20d'achitecture%20technique/stack-technique.md) | Stack, architecture applicative, déploiement Render, outils |
 | [docs/dossier d'achitecture technique/maquettes.md](docs/dossier%20d'achitecture%20technique/maquettes.md) | Wireframes texte des écrans MVP (catalogue, fiche produit, panier, commande) |
@@ -27,6 +28,7 @@
 | [docs/dossier d'achitecture technique/sprints/sprint5-progress.md](docs/dossier%20d'achitecture%20technique/sprints/sprint5-progress.md) | Suivi des tâches Sprint 5 (terminé) |
 | [docs/dossier d'achitecture technique/sprints/sprint6-progress.md](docs/dossier%20d'achitecture%20technique/sprints/sprint6-progress.md) | Suivi des tâches Sprint 6 (terminé — seul US-32 attend de vraies clés FedaPay, US-33 reporté) |
 | [docs/dossier d'achitecture technique/security-review.md](docs/dossier%20d'achitecture%20technique/security-review.md) | Revue de sécurité Sprint 6 (US-38) — rate limiting, secrets, HTTPS, dépendances |
+| [docs/dossier d'achitecture technique/stratégies de testes/tests-e2e.md](docs/dossier%20d'achitecture%20technique/stratégies%20de%20testes/tests-e2e.md) | Plan des tests E2E Playwright (Sprint 7 / E10) |
 | [docs/dossier d'achitecture technique/sprints/retro-sprint.md](docs/dossier%20d'achitecture%20technique/sprints/retro-sprint.md) | Rétrospective Sprints 2 & 3 |
 | [docs/dossier d'achitecture technique/docker.md](docs/dossier%20d'achitecture%20technique/docker.md) | Lancer le projet en local avec Docker |
 | [docs/dossier d'achitecture technique/render.md](docs/dossier%20d'achitecture%20technique/render.md) | Déploiement backend sur Render — Blueprint, variables d'environnement, superadmin par défaut |

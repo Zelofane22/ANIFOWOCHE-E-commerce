@@ -106,7 +106,7 @@ const FAQ = [
   },
   {
     q: "Combien de produits puis-je ajouter ?",
-    a: "La version gratuite vous permet d'ajouter jusqu'à 10 produits et de recevoir jusqu'à 20 commandes par mois. Le plan Illimité supprime toutes les limites.",
+    a: "La version gratuite vous permet d'ajouter jusqu'à 10 produits et de recevoir jusqu'à 20 commandes par mois sur votre boutique publique. Le plan Illimité supprime toutes les limites et ajoute la visibilité sur le catalogue anifowoche.com.",
   },
   {
     q: "Mes données sont-elles sécurisées ?",
@@ -370,7 +370,7 @@ function PricingSection() {
               {[
                 "Jusqu'à 10 produits",
                 "Jusqu'à 20 commandes/mois",
-                "Boutique publique",
+                "Boutique publique dédiée",
                 "Lien WhatsApp",
                 "Messages de confirmation",
                 "Support email",
@@ -402,6 +402,7 @@ function PricingSection() {
               {[
                 "Produits illimités",
                 "Commandes illimitées",
+                "Visibilité sur le catalogue anifowoche.com",
                 "Statistiques avancées",
                 "Messages de relance",
                 "Catégories et variantes",

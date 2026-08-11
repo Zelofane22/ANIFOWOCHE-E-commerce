@@ -40,14 +40,18 @@ def scoped_products(shop=None):
 
 
 def scoped_clients(shop=None):
-    """Clients ayant commandé auprès de la boutique principale."""
+    """Comptes clients inscrits sur la plateforme (utilisateurs non-staff).
+
+    Un compte client n'est rattaché à aucune boutique : le KPI « Clients » du
+    dashboard reflète les inscriptions (comme la liste Utilisateurs > Clients
+    de l'admin), y compris les clients n'ayant pas encore commandé. Le
+    paramètre ``shop`` est accepté par uniformité avec les autres scopes,
+    sans effet sur ce compteur.
+    """
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
-    queryset = User.objects.filter(is_staff=False)
-    if shop is not None:
-        queryset = queryset.filter(orders__items__product__shop=shop).distinct()
-    return queryset
+    return User.objects.filter(is_staff=False)
 
 
 def scoped_visits(shop=None):

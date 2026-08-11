@@ -43,7 +43,7 @@ class PublicProductVisibilityTests(APITestCase):
         )
         self.paid_user = UserFactory(username="paid_vendeur")
         self.paid_seller = SellerProfileFactory(
-            user=self.paid_user, display_name="Paid Shop", phone="+2290190000002", plan="paid"
+            user=self.paid_user, display_name="Paid Shop", phone="+2290190000002", plan="PAID"
         )
         self.paid_product = ProductFactory(
             seller=self.paid_seller,
@@ -59,10 +59,12 @@ class PublicProductVisibilityTests(APITestCase):
         slugs = [item["slug"] for item in response.data["results"]]
         self.assertIn("produit-entreprise", slugs)
 
-    def test_free_seller_product_visible_in_public_list(self):
+    def test_free_seller_product_hidden_from_public_list(self):
+        # Les produits d'un vendeur FREE tiers n'apparaissent pas sur le catalogue
+        # principal ; ils restent visibles sur sa boutique publique.
         response = self.client.get("/api/products/")
         slugs = [item["slug"] for item in response.data["results"]]
-        self.assertIn("produit-gratuit", slugs)
+        self.assertNotIn("produit-gratuit", slugs)
 
     def test_paid_seller_product_visible_in_public_list(self):
         response = self.client.get("/api/products/")

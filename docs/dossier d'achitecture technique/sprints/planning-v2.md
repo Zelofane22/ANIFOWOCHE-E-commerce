@@ -46,6 +46,8 @@ avant d'accumuler encore plus de code non couvert.
 - Tests end-to-end (Playwright/Cypress) sur le parcours d'achat complet (US-40)
 - CI : lint frontend + backend, seuil de couverture (US-41)
 
+Voir le plan détaillé : [tests-e2e.md](../stratégies%20de%20testes/tests-e2e.md)
+
 **Livrable Sprint 7** : régressions détectées automatiquement avant merge, plus seulement par test manuel Docker.
 
 ## Sprint 8 — Performance, SEO & confort (E11 restant + E9 restant)

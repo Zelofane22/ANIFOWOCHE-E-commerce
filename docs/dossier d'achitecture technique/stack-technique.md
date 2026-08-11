@@ -24,7 +24,7 @@
 
 ## Architecture applicative
 
-L'application suit une architecture découplée : le frontend React communique exclusivement avec le backend Django via une API REST JSON. Le backend gère la logique métier, l'authentification JWT et les appels aux passerelles de paiement. PostgreSQL assure la persistance.
+L'application suit une architecture découplée : le frontend React communique exclusivement avec le backend Django via une API REST JSON. Le backend gère la logique métier, l'authentification JWT et les appels aux passerelles de paiement. PostgreSQL assure la persistance. Le schéma complet de la base de données est maintenu dans [base-de-donnees.drawio](base-de-donnees.drawio) (diagramme draw.io, ouvrable avec diagrams.net).
 
 - **Frontend (React)** : Pages Accueil, Catalogue, Produit, Panier, Commande, Compte · State management (Context API ou Zustand) · Axios pour les appels API
 - **Backend (Django)** : API `/products/` `/orders/` `/payments/` `/users/` `/delivery/` · ORM Django → PostgreSQL · Authentification JWT

@@ -242,6 +242,12 @@ export default function SellerSettings() {
 
         <aside className="rounded-xl border border-black/10 bg-white p-5">
           <h2 className="text-base font-bold text-ink">Publication</h2>
+          <p className="mt-3 flex items-center gap-2 text-sm text-muted">
+            Plan actuel
+            <span className="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-bold text-brand-dark">
+              {seller.limits?.max_products != null ? "Gratuit" : "Illimité"}
+            </span>
+          </p>
           <label className="mt-4 flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-medium text-ink">
             <input
               type="checkbox"
@@ -251,6 +257,12 @@ export default function SellerSettings() {
             />
             Boutique visible publiquement
           </label>
+          {seller.limits?.orders_quota_reached && (
+            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700">
+              Quota mensuel de commandes atteint : votre boutique est masquée jusqu'au mois prochain,
+              même si la publication est activée.
+            </p>
+          )}
           <p className="mt-4 break-all rounded-lg bg-gray-50 px-3 py-2 text-sm text-muted">
             {seller.shop.public_url}
           </p>

@@ -7,6 +7,7 @@ from apps.products.models import MADE_TO_ORDER_CATEGORY_SLUGS, Product
 from apps.delivery.models import DeliveryZone
 from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.promotions.models import Coupon
+from apps.sellers.limits import orders_quota_reached
 from apps.users.backends import validate_benin_phone
 
 from .models import Order, OrderItem
@@ -143,6 +144,18 @@ class OrderSerializer(serializers.ModelSerializer):
         if not items:
             raise serializers.ValidationError("Une commande doit contenir au moins un article.")
         return items
+
+    def validate(self, attrs):
+        # Garde anti-course : refuse la commande si un vendeur FREE a atteint son
+        # quota mensuel de commandes (sa boutique publique est alors masquée).
+        for item in attrs.get("items", []):
+            seller = item["product"].seller
+            if seller is not None and orders_quota_reached(seller):
+                raise serializers.ValidationError(
+                    {"items": f"La boutique « {seller.display_name} » a atteint sa limite "
+                              "de commandes pour ce mois-ci. Merci de réessayer le mois prochain."}
+                )
+        return attrs
 
     def validate_coupon_code(self, value):
         # Vérifie que le code coupon existe et est encore valide.
