@@ -6,7 +6,14 @@ import { BrowserRouter } from "react-router";
 import { InstallPromptProvider } from "./context/InstallPromptContext.jsx";
 import App from "./App.jsx";
 import ErrorFallback from "./components/ErrorFallback.jsx";
+import { initPwaMeta } from "./utils/pwaMeta.js";
 import "./index.css";
+
+// Adapte les métadonnées PWA (manifest, icônes, titre) pour le sous-domaine
+// vendeur AVANT le rendu React. Le middleware Vercel fait déjà ce travail
+// côté serveur pour seller.anifowoche.com ; ce script est le fallback
+// client-side et la double sécurité pour les navigateurs qui relisent le DOM.
+initPwaMeta();
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 

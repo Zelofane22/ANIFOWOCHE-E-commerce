@@ -1,40 +1,34 @@
-// Vercel Routing Middleware — meta tags Open Graph dynamiques pour les boutiques vendeur.
+// Vercel Routing Middleware — meta tags Open Graph dynamiques pour les boutiques vendeur
+// + manifest / icônes / titre PWA distincts pour le sous-domaine vendeur.
 //
-// Problème corrigé : le SPA React injecte ses balises <meta> og:* via react-helmet-async,
-// donc uniquement côté client. Les crawlers sociaux (WhatsApp, Facebook/Instagram,
-// Telegram, Slack, Discord, Pinterest...) n'exécutent pas le JS : ils reçoivent les
-// balises statiques génériques d'index.html, sans jamais voir le nom de la boutique.
+// Problèmes corrigés :
+// 1. Le SPA React injecte ses balises <meta> og:* via react-helmet-async,
+//    donc uniquement côté client. Les crawlers sociaux (WhatsApp, Facebook/Instagram,
+//    Telegram, Slack, Discord, Pinterest...) n'exécutent pas le JS : ils reçoivent les
+//    balises statiques génériques d'index.html, sans jamais voir le nom de la boutique.
+// 2. index.html, <title>, <link rel="manifest"> et <meta name="apple-mobile-web-app-title">
+//    sont identiques pour anifowoche.com et seller.anifowoche.com (même build SPA).
+//    Résultat : les deux PWA ont le même nom "ANIFOWOCHE" et la même icône dorée sur
+//    fond noir. Ce middleware réécrit ces balises côté serveur pour seller.anifowoche.com
+//    afin de servir une identité PWA vendeur distincte (nom, manifest, icônes, couleurs).
 //
 // Ce fichier (middleware.js à la racine du projet, même niveau que package.json) est un
 // Vercel Routing Middleware (edge runtime) — reconnu automatiquement par Vercel,
-// indépendamment du framework Vite. Pour les robots uniquement, il réécrit dans le
-// index.html servi :
-//   - <title>, og:title, og:description, og:url (URL canonique seller.anifowoche.com/{slug})
-//   - twitter:title, twitter:description (absents d'index.html → insérés avant </head>)
-// avec les données de la boutique récupérées via GET {VITE_API_BASE_URL}/public/shops/{slug}/.
-// og:image reste le logo par défaut (le modèle Shop n'a pas de champ logo).
+// indépendamment du framework Vite.
 //
 // Garanties :
-//   - Aucun impact pour les vrais utilisateurs : sans UA de bot, next() immédiat
-//     (aucun appel réseau, pas de latence perceptible).
-//   - Fallback silencieux : si l'API échoue (404, timeout, erreur réseau), next() —
-//     le SPA est servi normalement, même derrière un proxy qui usurpe un UA de bot.
-//   - Seules les routes boutique sont traitées : seller.anifowoche.com/{slug} (et
-//     seller.*/{slug}) sur le sous-domaine vendeur, /shop/{slug} sur anifowoche.com.
+//   - Aucun impact pour anifowoche.com : le domaine principal passe sans modification.
+//   - Pour seller.anifowoche.com, le HTML servi contient le manifest, les icônes et le
+//     titre vendeur, pour TOUS les visiteurs. Aucun appel API n'est fait pour ce besoin.
+//   - Les crawlers sociaux sur une boutique vendeur continuent de recevoir les OG
+//     personnalisés (nom/description de la boutique récupérés via l'API) tout en ayant
+//     l'identité PWA vendeur.
+//   - Fallback silencieux : si le index.html d'origine n'est pas joignable, next() —
+//     le SPA est servi normalement.
 //
 // Ordre d'exécution Vercel : le Routing Middleware s'exécute AVANT le cache et le routage
-// de la configuration (redirects/rewrites de vercel.json) — voir docs Vercel "Routing
-// Middleware". Le matcher couvre donc /shop/:path* AVANT la redirection 301 vers
-// seller.anifowoche.com. Si l'ordre venait à changer, les bots suivent de toute façon le
-// 301 vers seller.anifowoche.com/{slug}, où le middleware s'applique aussi : les deux
-// chemins sont couverts.
-//
-// Test manuel (une fois déployé) :
-//   curl -s -H "User-Agent: facebookexternalhit/1.1" https://seller.anifowoche.com/<slug> | grep -E "<title>|og:title|og:description"
-//   curl -s -H "User-Agent: WhatsApp/2.23" https://seller.anifowoche.com/<slug> | grep "og:description"
-//   curl -s -H "User-Agent: TelegramBot (like TwitterBot)" https://anifowoche.com/shop/<slug> | grep -E "og:url|twitter:title"
-//   curl -s -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130" https://seller.anifowoche.com/<slug> | grep -c "ANIFOWOCHE"  # identique à avant
-//   + Facebook Sharing Debugger (https://developers.facebook.com/tools/debug/), LinkedIn Post Inspector.
+// de la configuration (redirects/rewrites de vercel.json). Le matcher couvre donc
+// /shop/:path* AVANT la redirection 301 vers seller.anifowoche.com.
 import { next } from "@vercel/functions";
 
 // Hôtes qui servent les boutiques vendeur publiques (voir App.jsx : le MÊME build sert
@@ -49,6 +43,20 @@ const BOT_USER_AGENT =
 // Routes internes du back-office vendeur servies par le même sous-domaine : un segment
 // racine égal à l'une de ces valeurs n'est jamais un slug de boutique.
 const SELLER_APP_PATHS = new Set(["login", "register", "dashboard", "orders", "products", "settings", "produits"]);
+
+// Identité PWA vendeur. Doit rester cohérente avec public/manifest-seller.webmanifest
+// et public/icon-seller.svg.
+const SELLER_PWA = {
+  title: "ANIF Seller — Votre vitrine en ligne",
+  appleMobileWebAppTitle: "ANIF Seller",
+  description: "Votre vitrine vendeur ANIFOWOCHE : catalogue, commandes et partage WhatsApp en un lien.",
+  manifest: "/manifest-seller.webmanifest",
+  icon: "/icon-seller.svg",
+  appleTouchIcon: "/anifowoche-logo-seller.png",
+  themeColor: "#1c1c1c",
+  ogImage: "https://anifowoche.com/anifowoche-logo-seller.png",
+  siteName: "ANIF Seller",
+};
 
 // Même variable que celle du build Vite (VITE_API_BASE_URL), lue au runtime edge.
 // Défaut = URL de prod documentée dans .env.production.example / docs/ci-cd.md.
@@ -67,10 +75,18 @@ export default async function middleware(request) {
 
   if (request.method !== "GET") return next();
 
+  const url = new URL(request.url);
+
+  // --- 1. Sous-domaine vendeur : réécriture PWA pour tous les visiteurs ----------
+  if (isSellerHost(url)) {
+    return buildSellerResponse(request, url);
+  }
+
+  // --- 2. Domaine principal : réécriture OG uniquement pour les bots sur /shop/:slug
   const userAgent = request.headers.get("user-agent") ?? "";
   if (!BOT_USER_AGENT.test(userAgent)) return next();
 
-  const slug = extractShopSlug(new URL(request.url));
+  const slug = extractShopSlug(url);
   if (!slug) return next();
 
   const shop = await fetchShopMeta(slug);
@@ -79,13 +95,17 @@ export default async function middleware(request) {
   return buildBotResponse(request, shop, `https://${SELLER_HOST}/${slug}`);
 }
 
+// Détecte si l'hôte est le sous-domaine vendeur (seller.anifowoche.com ou seller.*).
+function isSellerHost(url) {
+  return url.hostname === SELLER_HOST || url.hostname.startsWith("seller.");
+}
+
 // Détecte un slug de boutique selon l'hôte :
 //   - sous-domaine seller.* : /{slug} (un seul segment, hors routes back-office et fichiers)
 //   - domaine principal : /shop/{slug}
 function extractShopSlug(url) {
   const segments = url.pathname.split("/").filter(Boolean);
-  const isSellerHost = url.hostname === SELLER_HOST || url.hostname.startsWith("seller.");
-  if (isSellerHost) {
+  if (isSellerHost(url)) {
     if (segments.length !== 1) return null;
     const slug = segments[0];
     if (slug.includes(".") || SELLER_APP_PATHS.has(slug)) return null;
@@ -115,19 +135,94 @@ async function fetchShopMeta(slug) {
   }
 }
 
-// Récupère le index.html d'origine (servi par le CDN Vercel) et réécrit les balises
-// meta de partage. Retourne null si le fichier n'est pas joignable (fallback silencieux).
-async function buildBotResponse(request, shop, canonicalUrl) {
-  let original;
+// Construit la réponse pour le sous-domaine vendeur :
+//   - manifest, icônes, titre, theme-color et meta apple-mobile-web-app-title vendeur
+//     pour TOUS les visiteurs ;
+//   - OG personnalisés UNIQUEMENT pour les crawlers sociaux sur une page boutique publique.
+async function buildSellerResponse(request, url) {
+  const userAgent = request.headers.get("user-agent") ?? "";
+  const slug = extractShopSlug(url);
+  let shop = null;
+  if (slug && BOT_USER_AGENT.test(userAgent)) {
+    shop = await fetchShopMeta(slug);
+  }
+
+  const html = await fetchOriginalHtml(request);
+  if (!html) return next();
+
+  const rewritten = rewriteSellerHtml(html, url, shop);
+  return new Response(rewritten, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      // Réponse spécifique au sous-domaine : jamais mise en cache pour éviter qu'un
+      // cache ne serve la variante vendeur sur le domaine principal.
+      "cache-control": "no-cache",
+      vary: "Host",
+    },
+  });
+}
+
+// Récupère le index.html d'origine (servi par le CDN Vercel).
+async function fetchOriginalHtml(request) {
   try {
-    original = await fetch(new URL("/index.html", request.url), {
+    const response = await fetch(new URL("/index.html", request.url), {
       headers: { "x-anifowoche-internal": "1" },
     });
+    if (!response.ok) return null;
+    return await response.text();
   } catch {
     return null;
   }
-  if (!original.ok) return null;
-  const html = await original.text();
+}
+
+// Réécrit le HTML vendeur.
+function rewriteSellerHtml(html, url, shop) {
+  const fullTitle = shop?.name ? `${shop.name} — ANIF Seller` : SELLER_PWA.title;
+  const description = shop?.description || SELLER_PWA.description;
+  const canonicalUrl = url.href;
+  const safeTitle = escapeHtml(fullTitle);
+  const safeDescription = escapeHtml(description);
+  const safeUrl = escapeHtml(canonicalUrl);
+
+  let out = html.replace(/<title[^>]*>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`);
+
+  out = replaceMetaContent(out, "name", "apple-mobile-web-app-title", SELLER_PWA.appleMobileWebAppTitle);
+  out = replaceMetaContent(out, "name", "theme-color", SELLER_PWA.themeColor);
+  out = replaceMetaContent(out, "name", "description", description);
+
+  out = replaceLinkHref(out, "manifest", SELLER_PWA.manifest);
+  out = replaceLinkHref(out, "icon", SELLER_PWA.icon);
+  out = replaceLinkHref(out, "apple-touch-icon", SELLER_PWA.appleTouchIcon);
+
+  out = out.replace(
+    /<link[^>]*\brel\s*=\s*["']canonical["'][^>]*>/i,
+    `<link rel="canonical" href="${safeUrl}" />`
+  );
+
+  out = replaceMetaContent(out, "property", "og:site_name", SELLER_PWA.siteName);
+  out = replaceMetaContent(out, "property", "og:title", fullTitle);
+  out = replaceMetaContent(out, "property", "og:description", description);
+  out = replaceMetaContent(out, "property", "og:url", canonicalUrl);
+  out = replaceMetaContent(out, "property", "og:image", SELLER_PWA.ogImage);
+
+  if (/<meta[^>]*\bname\s*=\s*["']twitter:title["']/i.test(out)) {
+    out = replaceMetaContent(out, "name", "twitter:title", fullTitle);
+    out = replaceMetaContent(out, "name", "twitter:description", description);
+  } else {
+    out = out.replace(
+      /<\/head>/i,
+      `    <meta name="twitter:title" content="${safeTitle}" />\n    <meta name="twitter:description" content="${safeDescription}" />\n  </head>`
+    );
+  }
+
+  return out;
+}
+
+// Réécrit le HTML pour les bots sociaux sur le domaine principal (/shop/:slug).
+async function buildBotResponse(request, shop, canonicalUrl) {
+  const html = await fetchOriginalHtml(request);
+  if (!html) return next();
 
   const fullTitle = `${shop.name} — ANIFOWOCHE`;
   const description = shop.description || "";
@@ -157,21 +252,28 @@ async function buildBotResponse(request, shop, canonicalUrl) {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",
-      // Réponse dédiée aux bots : jamais mise en cache pour éviter un aperçu périmé,
-      // et Vary: User-Agent pour que le CDN ne mélange jamais les deux variantes.
       "cache-control": "no-cache",
       vary: "User-Agent",
     },
   });
 }
 
-// Remplace le content="..." d'une balise <meta> dont l'attribut `attribute` vaut `key`
-// (ordre des attributs : `attribute` d'abord, puis `content` — format d'index.html).
+// Remplace le content="..." d'une balise <meta> dont l'attribut `attribute` vaut `key`.
 // Sans correspondance, le HTML est retourné inchangé (fallback silencieux).
 function replaceMetaContent(html, attribute, key, value) {
   const escaped = escapeHtml(value);
   const pattern = new RegExp(
     `(<meta[^>]*\\b${attribute}\\s*=\\s*["']${key}["'][^>]*\\bcontent\\s*=\\s*["'])[^"']*(["'])`,
+    "i"
+  );
+  return html.replace(pattern, (match, prefix, quote) => `${prefix}${escaped}${quote}`);
+}
+
+// Remplace le href="..." d'une balise <link rel="...">.
+function replaceLinkHref(html, rel, href) {
+  const escaped = escapeHtml(href);
+  const pattern = new RegExp(
+    `(<link[^>]*\\brel\\s*=\\s*["']${rel}["'][^>]*\\bhref\\s*=\\s*["'])[^"']*(["'])`,
     "i"
   );
   return html.replace(pattern, (match, prefix, quote) => `${prefix}${escaped}${quote}`);
