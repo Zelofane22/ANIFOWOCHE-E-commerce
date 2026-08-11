@@ -1,5 +1,14 @@
 const VERSION = "anifowoche-v2";
-const PRECACHE = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
+const PRECACHE = [
+  "/",
+  "/index.html",
+  "/manifest.webmanifest",
+  "/manifest-seller.webmanifest",
+  "/icon.svg",
+  "/icon-seller.svg",
+  "/anifowoche-logo.png",
+  "/anifowoche-logo-seller.png",
+];
 const PRECACHE_KEY = `${VERSION}-precache`;
 
 self.addEventListener("install", (event) => {

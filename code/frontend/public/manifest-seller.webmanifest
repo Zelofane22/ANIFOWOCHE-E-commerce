@@ -1,0 +1,38 @@
+{
+  "name": "ANIF Seller",
+  "short_name": "ANIF Seller",
+  "description": "Votre vitrine vendeur ANIFOWOCHE : catalogue, commandes et partage WhatsApp en un lien.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#c99f08",
+  "theme_color": "#1c1c1c",
+  "icons": [
+    {
+      "src": "/icon-seller.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-seller.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/anifowoche-logo-seller.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/anifowoche-logo-seller.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
