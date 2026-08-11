@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { getPublicShop } from "../api/seller.js";
+import Seo from "../components/Seo.jsx";
 import { PackageIcon, StoreIcon } from "../components/icons.jsx";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
@@ -46,6 +47,12 @@ export default function PublicShop() {
 
   return (
     <div className="min-h-screen bg-surface-muted text-ink">
+      <Seo
+        title={shop.name}
+        description={shop.description || undefined}
+        path={`/${slug}`}
+        type="website"
+      />
       <header className="border-b border-black/10 bg-white px-4 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
           <div className="flex items-center gap-3">

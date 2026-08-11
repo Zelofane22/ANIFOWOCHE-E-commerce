@@ -6,7 +6,7 @@ import globals from "globals";
 export default [
   { ignores: ["dist"] },
   {
-    files: ["vite.config.js"],
+    files: ["vite.config.js", "vitest.config.js", "middleware.js"],
     languageOptions: {
       globals: globals.node,
     },
