@@ -98,7 +98,7 @@ function buildProductPayload(form, fieldConfig) {
   payload.append("name", form.name.trim());
   payload.append("description", form.description.trim());
   payload.append("price_xof", form.price_xof);
-  if (fieldConfig.stock) payload.append("stock", form.stock);
+  if (fieldConfig.stock) payload.append("stock", form.stock === "" ? "0" : form.stock);
   payload.append("category_id", form.category_id);
   if (fieldConfig.unit) payload.append("unit", form.unit);
   if (fieldConfig.size) payload.append("size", form.unit === "metre" ? "UNIQUE" : form.size);
@@ -844,9 +844,9 @@ export default function SellerProducts() {
                 <Field label="Stock">
                   <input
                     className={inputClass}
-                    required
                     type="number"
                     min="0"
+                    placeholder="0"
                     value={form.stock}
                     onChange={(event) => setForm({ ...form, stock: event.target.value })}
                   />
