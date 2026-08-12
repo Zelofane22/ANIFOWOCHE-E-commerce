@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
 
@@ -5,25 +6,67 @@ from apps.sellers.models import SellerProfile, Shop
 
 
 # Catégories dont les produits sont fabriqués à la commande (aucun suivi de stock).
+# Le slug "restauration" est conservé comme nœud de niveau 3 sous
+# Alimentation > Plats préparés (voir seed_categories).
 MADE_TO_ORDER_CATEGORY_SLUGS = ("restauration",)
 
 
 class Category(models.Model):
-    """Catégorie de produits (nom unique + slug pour les URL)."""
-    name = models.CharField(max_length=100, unique=True)
-    slug = models.SlugField(max_length=120, unique=True)
+    """Catégorie de produits sur 3 niveaux (catégorie > sous-catégorie > type)."""
+
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120)
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="children",
+    )
+    level = models.PositiveSmallIntegerField(default=1)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "Categories"
-        ordering = ["name"]
+        ordering = ["level", "order", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["parent", "slug"],
+                name="unique_slug_per_parent",
+            ),
+            models.UniqueConstraint(
+                fields=["slug"],
+                condition=models.Q(parent__isnull=True),
+                name="unique_slug_root",
+            ),
+        ]
 
     def __str__(self):
         # Représentation lisible : le nom de la catégorie.
         return self.name
 
+    def clean(self):
+        # Le niveau est déduit de la profondeur dans l'arbre.
+        if self.parent is None:
+            expected_level = 1
+        else:
+            expected_level = self.parent.level + 1
+        if self.level != expected_level:
+            self.level = expected_level
+        if self.level > 3:
+            raise ValidationError(
+                {"level": "Le niveau maximal d'une catégorie est 3."}
+            )
+        if self.pk and self.parent_id == self.pk:
+            raise ValidationError(
+                {"parent": "Une catégorie ne peut pas être son propre parent."}
+            )
+
 
 class Product(models.Model):
     """Produit commercialisé sur la vitrine, avec prix, stock, tailles et couleurs."""
+
     class Size(models.TextChoices):
         S = "S", "S"
         M = "M", "M"
@@ -50,7 +93,9 @@ class Product(models.Model):
         null=True,
         help_text="Boutique publique à laquelle le produit est associé.",
     )
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
+    category = models.ForeignKey(
+        Category, on_delete=models.PROTECT, related_name="products"
+    )
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=180, unique=True, blank=True)
     description = models.TextField(blank=True)
@@ -84,6 +129,18 @@ class Product(models.Model):
         # Représentation lisible : le nom du produit.
         return self.name
 
+    def clean(self):
+        super().clean()
+        if self.category_id and self.category.level != 3:
+            raise ValidationError(
+                {
+                    "category": (
+                        "Un produit doit être rattaché à un type de catégorie "
+                        "(niveau 3)."
+                    )
+                }
+            )
+
     def save(self, *args, **kwargs):
         # Un produit vendu au mètre n'a pas de taille (S/M/L n'a pas de sens pour un tissu).
         if self.unit == self.Unit.METRE:
@@ -107,11 +164,16 @@ class Product(models.Model):
 
 class OptionGroup(models.Model):
     """Groupe d'options (ex. « Couleur », « Taille ») rattaché à un produit."""
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="option_groups")
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="option_groups"
+    )
     name = models.CharField(max_length=100)
     is_required = models.BooleanField(default=False)
     min_selections = models.PositiveIntegerField(default=1)
-    max_selections = models.PositiveIntegerField(default=1, help_text="0 = illimité")
+    max_selections = models.PositiveIntegerField(
+        default=1, help_text="0 = illimité"
+    )
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -125,9 +187,14 @@ class OptionGroup(models.Model):
 
 class Option(models.Model):
     """Option de vente au sein d'un groupe (supplément de prix éventuel)."""
-    group = models.ForeignKey(OptionGroup, on_delete=models.CASCADE, related_name="options")
+
+    group = models.ForeignKey(
+        OptionGroup, on_delete=models.CASCADE, related_name="options"
+    )
     name = models.CharField(max_length=100)
-    price_xof = models.PositiveIntegerField(default=0, help_text="Supplément de prix en CFA")
+    price_xof = models.PositiveIntegerField(
+        default=0, help_text="Supplément de prix en CFA"
+    )
     is_default = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
 
@@ -144,15 +211,21 @@ class ProductImage(models.Model):
     Product.image (utilisée comme couverture partout ailleurs : cartes,
     panier, wishlist...)."""
 
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="images"
+    )
     image = models.ImageField(upload_to="products/gallery/")
     alt_text = models.CharField(max_length=255, blank=True, default="")
     color_name = models.CharField(
-        max_length=50, blank=True, default="",
+        max_length=50,
+        blank=True,
+        default="",
         help_text="Couleur associée (doit correspondre à un nom dans Product.colors)",
     )
     order = models.PositiveIntegerField(default=0)
-    is_cover = models.BooleanField(default=False, help_text="Image principale de la galerie.")
+    is_cover = models.BooleanField(
+        default=False, help_text="Image principale de la galerie."
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

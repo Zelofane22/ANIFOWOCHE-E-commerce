@@ -1,6 +1,7 @@
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 from rest_framework.test import APITestCase
@@ -110,9 +111,14 @@ class ProductApiTests(APITestCase):
         self.assertEqual(response.data["price_xof"], 5000)
 
     def test_list_categories(self):
-        response = self.client.get("/api/products/categories/")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["results"][0]["slug"], "tissus")
+        slugs = []
+        url = "/api/products/categories/"
+        while url:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            slugs.extend(item["slug"] for item in response.data["results"])
+            url = response.data.get("next")
+        self.assertIn("tissus", slugs)
 
     def test_search_by_name(self):
         response = self.client.get("/api/products/", {"search": "wax"})
@@ -474,3 +480,165 @@ class ProductAdminTests(TestCase):
         self.client.force_login(user)
         response = self.client.get("/admin/products/category/")
         self.assertEqual(response.status_code, 302)
+
+
+from django.core.management import call_command
+from django.db import IntegrityError
+
+from apps.core.factories import SuperUserFactory
+
+from .models import Category, Product
+from .serializers import SellerProductSerializer
+
+
+class CategoryTreeModelTests(APITestCase):
+    """Tests du modèle Category en arbre à 3 niveaux."""
+
+    def test_category_level_is_deduced_from_parent(self):
+        root = CategoryFactory(name="Root", slug="root", level=1, parent=None)
+        child = CategoryFactory(name="Child", slug="child", parent=root)
+        leaf = CategoryFactory(name="Leaf", slug="leaf", parent=child)
+        self.assertEqual(root.level, 1)
+        self.assertEqual(child.level, 2)
+        self.assertEqual(leaf.level, 3)
+
+    def test_cannot_create_category_level_4(self):
+        l1 = CategoryFactory(name="L1", slug="l1", level=1, parent=None)
+        l2 = CategoryFactory(name="L2", slug="l2", parent=l1)
+        l3 = CategoryFactory(name="L3", slug="l3", parent=l2)
+        with self.assertRaises(ValidationError):
+            Category(name="L4", slug="l4", parent=l3, level=4).full_clean()
+
+    def test_parent_slug_unique_constraint(self):
+        parent = CategoryFactory(name="Parent", slug="parent", level=1, parent=None)
+        CategoryFactory(name="Child", slug="child", parent=parent)
+        with self.assertRaises(IntegrityError):
+            Category.objects.create(name="Other", slug="child", parent=parent, level=2)
+
+    def test_root_slug_unique_constraint(self):
+        CategoryFactory(name="Root", slug="unique-root", level=1, parent=None)
+        with self.assertRaises(IntegrityError):
+            Category.objects.create(name="Other", slug="unique-root", level=1)
+
+    def test_product_clean_requires_level_3_category(self):
+        l1 = CategoryFactory(name="L1", slug="l1-clean", level=1, parent=None)
+        product = ProductFactory(category=l1)
+        with self.assertRaises(ValidationError):
+            product.full_clean()
+
+
+class CategoryTreeApiTests(APITestCase):
+    """Tests de l'endpoint public d'arbre et des permissions admin."""
+
+    def setUp(self):
+        self.root = CategoryFactory(name="Root", slug="root-tree", level=1, parent=None)
+        self.child = CategoryFactory(name="Child", slug="child-tree", parent=self.root)
+        self.leaf = CategoryFactory(name="Leaf", slug="leaf-tree", parent=self.child)
+        self.inactive_child = CategoryFactory(
+            name="Inactive", slug="inactive-tree", parent=self.root, is_active=False
+        )
+
+    def test_tree_endpoint_returns_nested_structure(self):
+        response = self.client.get("/api/products/categories/tree/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        root_data = next(item for item in response.data if item["slug"] == "root-tree")
+        self.assertEqual(len(root_data["children"]), 1)
+        self.assertEqual(root_data["children"][0]["slug"], "child-tree")
+        self.assertEqual(root_data["children"][0]["children"][0]["slug"], "leaf-tree")
+
+    def test_tree_endpoint_excludes_inactive_nodes(self):
+        response = self.client.get("/api/products/categories/tree/")
+        slugs = [c["slug"] for c in response.data[0]["children"]]
+        self.assertNotIn("inactive-tree", slugs)
+
+    def test_list_categories_only_returns_active_level3(self):
+        response = self.client.get("/api/products/categories/")
+        self.assertEqual(response.status_code, 200)
+        for item in response.data["results"]:
+            category = Category.objects.get(pk=item["id"])
+            self.assertEqual(category.level, 3)
+            self.assertTrue(category.is_active)
+        # Notre feuille active est bien un type (niveau 3) exposable.
+        self.assertTrue(
+            Category.objects.filter(pk=self.leaf.id, level=3, is_active=True).exists()
+        )
+
+    def test_anonymous_cannot_create_category(self):
+        response = self.client.post("/api/products/categories/", {"name": "Hack", "slug": "hack"})
+        self.assertEqual(response.status_code, 401)
+
+    def test_admin_can_create_category(self):
+        admin = SuperUserFactory(username="category-admin")
+        self.client.force_authenticate(user=admin)
+        response = self.client.post(
+            "/api/products/categories/",
+            {"name": "Nouvelle", "slug": "nouvelle", "level": 1, "is_active": True},
+        )
+        self.assertEqual(response.status_code, 201)
+
+
+class SeedCategoriesTests(APITestCase):
+    """Tests de la commande de seed des catégories."""
+
+    def test_seed_categories_is_idempotent(self):
+        call_command("seed_categories")
+        count_after_first = Category.objects.count()
+        self.assertGreater(count_after_first, 0)
+        call_command("seed_categories")
+        self.assertEqual(Category.objects.count(), count_after_first)
+
+    def test_seed_creates_restauration_leaf(self):
+        call_command("seed_categories")
+        restauration = Category.objects.get(slug="restauration")
+        self.assertEqual(restauration.level, 3)
+        self.assertEqual(restauration.parent.slug, "prepared-meals")
+        self.assertEqual(restauration.parent.parent.slug, "food")
+
+
+class ProductCategoryLevelValidationTests(APITestCase):
+    """Tests de la validation 'Product.category doit être de niveau 3'."""
+
+    def setUp(self):
+        self.seller_user = UserFactory(username="seller-validation")
+        self.seller = SellerProfileFactory(user=self.seller_user)
+        self.shop = ShopFactory(seller=self.seller)
+        self.level1 = CategoryFactory(name="L1", slug="l1-validation", level=1, parent=None)
+        self.level3 = CategoryFactory(name="L3", slug="l3-validation")
+
+    def test_seller_product_serializer_rejects_level1_category(self):
+        self.client.force_authenticate(user=self.seller_user)
+        response = self.client.post(
+            "/api/seller/products/",
+            {
+                "name": "Produit invalide",
+                "description": "Test",
+                "price_xof": 1000,
+                "stock": 1,
+                "category_id": self.level1.id,
+                "unit": "piece",
+                "size": "UNIQUE",
+                "is_active": True,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("category_id", response.data)
+
+    def test_seller_product_serializer_accepts_level3_category(self):
+        self.client.force_authenticate(user=self.seller_user)
+        response = self.client.post(
+            "/api/seller/products/",
+            {
+                "name": "Produit valide",
+                "description": "Test",
+                "price_xof": 1000,
+                "stock": 1,
+                "category_id": self.level3.id,
+                "unit": "piece",
+                "size": "UNIQUE",
+                "is_active": True,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)

@@ -2,6 +2,7 @@ from django.db.models import Avg, Count, IntegerField, OuterRef, Prefetch, Q, Su
 from django.db.models.functions import Now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, views, viewsets
+from rest_framework.decorators import action
 
 from .filters import AccentInsensitiveSearchFilter, ProductFilter
 from rest_framework.exceptions import NotFound
@@ -18,14 +19,55 @@ from apps.sellers.limits import main_store_catalog_q
 from apps.sellers.models import SellerProfile
 
 from .models import Category, Option, OptionGroup, Product, ProductImage
-from .serializers import (CategorySerializer, OptionGroupSerializer,
+from .serializers import (CategoryAdminSerializer, CategorySerializer,
+                          CategoryTreeSerializer, OptionGroupSerializer,
                           OptionSerializer, ProductImageSerializer,
                           ProductSerializer, SellerProductSerializer)
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    """CRUD des catégories de produits (géré via l'admin backoffice)."""
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    """CRUD admin des catégories + endpoint public de l'arbre imbriqué."""
+
+    def get_permissions(self):
+        # Lecture publique, écriture réservée aux admins.
+        if self.action in ("list", "retrieve", "tree"):
+            return [permissions.AllowAny()]
+        return [permissions.IsAdminUser()]
+
+    def get_queryset(self):
+        if self.action == "list":
+            # Liste publique : types de catégorie (niveau 3) utilisés par les produits.
+            return Category.objects.filter(is_active=True, level=3)
+        if self.action == "tree":
+            # Arbre imbriqué : racines actives avec enfants préchargés (jusqu'au niveau 3).
+            return (
+                Category.objects.filter(level=1, is_active=True)
+                .prefetch_related(
+                    Prefetch(
+                        "children",
+                        queryset=Category.objects.filter(is_active=True).prefetch_related(
+                            Prefetch(
+                                "children",
+                                queryset=Category.objects.filter(is_active=True),
+                            )
+                        ),
+                    )
+                )
+            )
+        return Category.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == "tree":
+            return CategoryTreeSerializer
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return CategoryAdminSerializer
+        return CategorySerializer
+
+    @action(detail=False, methods=["get"], url_path="tree")
+    def tree(self, request):
+        """Retourne l'arbre complet des catégories actives (3 niveaux)."""
+        roots = self.get_queryset()
+        serializer = self.get_serializer(roots, many=True)
+        return Response(serializer.data)
 
 
 def _active_discount_subquery():

@@ -14,11 +14,35 @@ from .models import (
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    """Sérialise une catégorie de produits."""
+    """Sérialise une catégorie de produits (plat, usage public/nested)."""
 
     class Meta:
         model = Category
         fields = ["id", "name", "slug"]
+
+
+class CategoryAdminSerializer(serializers.ModelSerializer):
+    """Sérialiseur admin/backoffice : permet de créer/modifier l'arbre."""
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "slug", "parent", "level", "order", "is_active"]
+        read_only_fields = ["level"]
+
+
+class CategoryTreeSerializer(serializers.ModelSerializer):
+    """Sérialiseur récursif pour l'endpoint `/categories/tree/`."""
+
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "slug", "level", "children"]
+
+    def get_children(self, obj):
+        # Affiche uniquement les enfants actifs, triés comme défini dans Meta.
+        active_children = obj.children.filter(is_active=True)
+        return CategoryTreeSerializer(active_children, many=True).data
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -31,11 +55,20 @@ class OptionSerializer(serializers.ModelSerializer):
 
 class OptionGroupSerializer(serializers.ModelSerializer):
     """Sérialise un groupe d'options avec ses options imbriquées (CRUD complet)."""
+
     options = OptionSerializer(many=True, read_only=False)
 
     class Meta:
         model = OptionGroup
-        fields = ["id", "name", "is_required", "min_selections", "max_selections", "order", "options"]
+        fields = [
+            "id",
+            "name",
+            "is_required",
+            "min_selections",
+            "max_selections",
+            "order",
+            "options",
+        ]
 
     def create(self, validated_data):
         # Création du groupe puis de toutes ses options imbriquées.
@@ -77,15 +110,28 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "alt_text", "color_name", "order", "is_cover", "is_active", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "image",
+            "alt_text",
+            "color_name",
+            "order",
+            "is_cover",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = ["is_active", "created_at", "updated_at"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
     """Sérialiseur public du produit : données liées, agrégats (note, avis, remise)."""
+
     category = CategorySerializer(read_only=True)
     seller_id = serializers.IntegerField(read_only=True)
-    seller_name = serializers.CharField(source="seller.display_name", read_only=True, allow_null=True)
+    seller_name = serializers.CharField(
+        source="seller.display_name", read_only=True, allow_null=True
+    )
     shop_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
@@ -96,6 +142,7 @@ class ProductSerializer(serializers.ModelSerializer):
     discounted_price_xof = serializers.SerializerMethodField()
     made_to_order = serializers.BooleanField(read_only=True)
     in_stock = serializers.SerializerMethodField()
+    category_path = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
     option_groups = OptionGroupSerializer(many=True, read_only=True)
 
@@ -122,6 +169,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "is_active",
             "category",
             "category_id",
+            "category_path",
             "rating_average",
             "review_count",
             "discount_percent",
@@ -130,6 +178,14 @@ class ProductSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+
+    def validate_category_id(self, value):
+        # Un produit doit être rattaché à un nœud feuille (niveau 3).
+        if value.level != 3:
+            raise serializers.ValidationError(
+                "Un produit doit être rattaché à un type de catégorie (niveau 3)."
+            )
+        return value
 
     def get_rating_average(self, product):
         # Note moyenne arrondie à une décimale (None si aucun avis approuvé).
@@ -147,10 +203,24 @@ class ProductSerializer(serializers.ModelSerializer):
         # Disponible si le produit est fabriqué à la commande (aucun stock) ou s'il reste du stock.
         return bool(product.made_to_order or product.stock > 0)
 
+    def get_category_path(self, product):
+        # Chemin complet de la catégorie (L1 > L2 > L3) pour l'affichage public.
+        if not product.category_id:
+            return ""
+        parts = []
+        current = product.category
+        while current:
+            parts.insert(0, current.name)
+            current = current.parent
+        return " > ".join(parts)
+
 
 class SellerProductSerializer(ProductSerializer):
     """Sérialiseur côté vendeur : ajoute la liaison boutique et la protection d'appartenance."""
-    shop_id = serializers.PrimaryKeyRelatedField(source="shop", queryset=Shop.objects.all(), write_only=True, required=False)
+
+    shop_id = serializers.PrimaryKeyRelatedField(
+        source="shop", queryset=Shop.objects.all(), write_only=True, required=False
+    )
 
     class Meta(ProductSerializer.Meta):
         read_only_fields = ["slug", "made_to_order", "created_at", "updated_at"]

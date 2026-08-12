@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { fetchCategories } from "../api/products.js";
+import { fetchCategoryTree } from "../api/products.js";
 import {
   archiveSellerProduct,
   createOption,
@@ -35,10 +35,32 @@ import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
+import CategoryCascadeSelect from "../components/seller/CategoryCascadeSelect.jsx";
+import { findCategoryPath } from "../utils/categoryTree.js";
+
+// Configuration des champs par type de catégorie (nœud de niveau 3).
+// Ancien mapping plat : "electronique" → maintenant tous les types sous Électronique.
+// "restauration" conserve son slug car conservé comme nœud niveau 3 sous Alimentation.
+const ELECTRONIC_TYPE_SLUGS = [
+  "smartphones",
+  "phone-cases",
+  "chargers",
+  "earphones",
+  "speakers",
+  "computers",
+  "pc-accessories",
+  "small-appliances",
+  "large-appliances",
+];
 
 const CATEGORY_FIELD_CONFIG = {
   restauration: { stock: false, unit: false, size: false, colors: false },
-  electronique: { stock: true, unit: false, size: false, colors: true },
+  ...Object.fromEntries(
+    ELECTRONIC_TYPE_SLUGS.map((slug) => [
+      slug,
+      { stock: true, unit: false, size: false, colors: true },
+    ])
+  ),
 };
 
 const DEFAULT_FIELD_CONFIG = { stock: true, unit: true, size: true, colors: true };
@@ -49,6 +71,8 @@ const emptyForm = {
   price_xof: "",
   stock: "",
   category_id: "",
+  category_l1_id: "",
+  category_l2_id: "",
   unit: "piece",
   size: "UNIQUE",
   is_active: true,
@@ -596,7 +620,7 @@ export default function SellerProducts() {
   const { loading, isAuthenticated } = useAuth();
   const [seller, setSeller] = useState(null);
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categoryTree, setCategoryTree] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingSlug, setEditingSlug] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -609,15 +633,11 @@ export default function SellerProducts() {
       navigate("/login", { replace: true });
       return;
     }
-    Promise.all([getSellerProfile(), getSellerProducts(), fetchCategories()])
-      .then(([sellerData, productData, categoryData]) => {
+    Promise.all([getSellerProfile(), getSellerProducts(), fetchCategoryTree()])
+      .then(([sellerData, productData, treeData]) => {
         setSeller(sellerData);
         setProducts(productData.results ?? productData);
-        const nextCategories = categoryData.results ?? categoryData;
-        setCategories(nextCategories);
-        if (nextCategories[0]) {
-          setForm((current) => ({ ...current, category_id: String(nextCategories[0].id) }));
-        }
+        setCategoryTree(treeData);
       })
       .catch((err) => {
         navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
@@ -632,8 +652,8 @@ export default function SellerProducts() {
   const createLimitReached = productLimit != null && !editingSlug && activeProducts.length >= productLimit;
 
   const selectedCategory = useMemo(
-    () => categories.find((c) => String(c.id) === form.category_id),
-    [categories, form.category_id],
+    () => findCategoryPath(categoryTree, form.category_id)?.l3,
+    [categoryTree, form.category_id],
   );
   const fieldConfig = CATEGORY_FIELD_CONFIG[selectedCategory?.slug] ?? DEFAULT_FIELD_CONFIG;
 
@@ -641,22 +661,22 @@ export default function SellerProducts() {
     setEditingSlug(null);
     setError(null);
     setSuccess(null);
-    setForm({
-      ...emptyForm,
-      category_id: categories[0] ? String(categories[0].id) : "",
-    });
+    setForm(emptyForm);
   };
 
   const startEdit = (product) => {
     setEditingSlug(product.slug);
     setError(null);
     setSuccess(null);
+    const path = findCategoryPath(categoryTree, product.category?.id);
     setForm({
       name: product.name,
       description: product.description || "",
       price_xof: String(product.price_xof ?? ""),
       stock: String(product.stock ?? ""),
       category_id: String(product.category?.id ?? ""),
+      category_l1_id: path ? String(path.l1.id) : "",
+      category_l2_id: path ? String(path.l2.id) : "",
       unit: product.unit || "piece",
       size: product.size || "UNIQUE",
       is_active: product.is_active,
@@ -665,6 +685,18 @@ export default function SellerProducts() {
       colors: product.colors || [],
     });
     window.scrollTo({ top: 0 });
+  };
+
+  const handleCategoryCascadeChange = (level, value) => {
+    setForm((current) => {
+      if (level === "l1") {
+        return { ...current, category_l1_id: value, category_l2_id: "", category_id: "" };
+      }
+      if (level === "l2") {
+        return { ...current, category_l2_id: value, category_id: "" };
+      }
+      return { ...current, category_id: value };
+    });
   };
 
   const handleImageChange = (event) => {
@@ -811,20 +843,16 @@ export default function SellerProducts() {
                   />
                 </Field>
               )}
-              <Field label="Catégorie">
-                <select
-                  className={inputClass}
-                  required
-                  value={form.category_id}
-                  onChange={(event) => setForm({ ...form, category_id: event.target.value })}
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <CategoryCascadeSelect
+                tree={categoryTree}
+                l1Id={form.category_l1_id}
+                l2Id={form.category_l2_id}
+                l3Id={form.category_id}
+                onChange={handleCategoryCascadeChange}
+                disabled={submitting}
+                inputClass={inputClass}
+                className="sm:col-span-2"
+              />
               {fieldConfig.unit && (
                 <Field label="Unité">
                   <select
@@ -913,7 +941,7 @@ export default function SellerProducts() {
 
           <button
             type="submit"
-            disabled={submitting || categories.length === 0 || createLimitReached}
+            disabled={submitting || categoryTree.length === 0 || !form.category_id || createLimitReached}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
           >
             {editingSlug ? <EditIcon size={16} /> : <PlusIcon size={16} />}
