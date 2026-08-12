@@ -484,6 +484,7 @@ class ProductAdminTests(TestCase):
 
 from django.core.management import call_command
 from django.db import IntegrityError
+from django.test import SimpleTestCase
 
 from apps.core.factories import SuperUserFactory
 
@@ -594,6 +595,36 @@ class SeedCategoriesTests(APITestCase):
         self.assertEqual(restauration.level, 3)
         self.assertEqual(restauration.parent.slug, "prepared-meals")
         self.assertEqual(restauration.parent.parent.slug, "food")
+
+
+class CategoryTreeDefinitionTests(SimpleTestCase):
+    """Garde-fous sur la définition statique de CATEGORY_TREE (sans base de données)."""
+
+    def test_all_level3_slugs_are_globally_unique(self):
+        from collections import Counter
+
+        from apps.products.category_tree import CATEGORY_TREE, _walk
+
+        slugs = [
+            item["node"]["slug"]
+            for root in CATEGORY_TREE
+            for item in _walk(root, level=1)
+            if item["level"] == 3
+        ]
+        duplicates = [slug for slug, count in Counter(slugs).items() if count > 1]
+        self.assertEqual(duplicates, [], f"Slugs de niveau 3 dupliqués : {duplicates}")
+
+    def test_get_leaf_paths_returns_real_level3_nodes(self):
+        from apps.products.category_tree import get_leaf_paths
+
+        paths = get_leaf_paths()
+        self.assertEqual(len(paths), 93)
+        for path in paths.values():
+            self.assertEqual(len(path), 3)
+        self.assertEqual(
+            [step["slug"] for step in paths["restauration"]],
+            ["food", "prepared-meals", "restauration"],
+        )
 
 
 class ProductCategoryLevelValidationTests(APITestCase):

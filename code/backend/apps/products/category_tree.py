@@ -13,22 +13,22 @@ CATEGORY_TREE = [
                 "name": "Vêtements",
                 "slug": "clothing",
                 "children": [
-                    {"name": "Robes", "slug": "dresses"},
-                    {"name": "Hauts", "slug": "tops"},
-                    {"name": "Pantalons", "slug": "pants"},
+                    {"name": "Robes", "slug": "women-dresses"},
+                    {"name": "Hauts", "slug": "women-tops"},
+                    {"name": "Pantalons", "slug": "women-pants"},
                     {"name": "Jupes", "slug": "skirts"},
                     {"name": "Ensembles/Tailleurs", "slug": "suits-sets"},
-                    {"name": "Tenues traditionnelles", "slug": "traditional-wear"},
+                    {"name": "Tenues traditionnelles", "slug": "women-traditional-wear"},
                 ],
             },
             {
                 "name": "Chaussures",
                 "slug": "shoes",
                 "children": [
-                    {"name": "Sandales", "slug": "sandals"},
+                    {"name": "Sandales", "slug": "women-sandals"},
                     {"name": "Talons", "slug": "heels"},
-                    {"name": "Baskets", "slug": "sneakers"},
-                    {"name": "Bottes", "slug": "boots"},
+                    {"name": "Baskets", "slug": "women-sneakers"},
+                    {"name": "Bottes", "slug": "women-boots"},
                 ],
             },
             {
@@ -38,7 +38,7 @@ CATEGORY_TREE = [
                     {"name": "Sacs", "slug": "bags"},
                     {"name": "Bijoux", "slug": "jewelry"},
                     {"name": "Foulards & Écharpes", "slug": "scarves"},
-                    {"name": "Ceintures", "slug": "belts"},
+                    {"name": "Ceintures", "slug": "women-belts"},
                 ],
             },
             {
@@ -61,8 +61,8 @@ CATEGORY_TREE = [
                 "slug": "clothing",
                 "children": [
                     {"name": "Chemises", "slug": "shirts"},
-                    {"name": "Pantalons", "slug": "pants"},
-                    {"name": "Boubous & Ensembles traditionnels", "slug": "traditional-wear"},
+                    {"name": "Pantalons", "slug": "men-pants"},
+                    {"name": "Boubous & Ensembles traditionnels", "slug": "men-traditional-wear"},
                     {"name": "Costumes", "slug": "suits"},
                     {"name": "T-shirts", "slug": "t-shirts"},
                     {"name": "Vêtements de sport", "slug": "sportswear"},
@@ -72,9 +72,9 @@ CATEGORY_TREE = [
                 "name": "Chaussures",
                 "slug": "shoes",
                 "children": [
-                    {"name": "Sneakers", "slug": "sneakers"},
+                    {"name": "Sneakers", "slug": "men-sneakers"},
                     {"name": "Chaussures de ville", "slug": "dress-shoes"},
-                    {"name": "Sandales", "slug": "sandals"},
+                    {"name": "Sandales", "slug": "men-sandals"},
                 ],
             },
             {
@@ -82,7 +82,7 @@ CATEGORY_TREE = [
                 "slug": "accessories",
                 "children": [
                     {"name": "Montres", "slug": "watches"},
-                    {"name": "Ceintures", "slug": "belts"},
+                    {"name": "Ceintures", "slug": "men-belts"},
                     {"name": "Chapeaux/Bonnets", "slug": "hats"},
                     {"name": "Sacs & Portefeuilles", "slug": "bags-wallets"},
                 ],
@@ -99,41 +99,41 @@ CATEGORY_TREE = [
                 "children": [
                     {"name": "Body", "slug": "bodysuits"},
                     {"name": "Pyjamas", "slug": "pajamas"},
-                    {"name": "Ensembles", "slug": "sets"},
+                    {"name": "Ensembles", "slug": "baby-sets"},
                 ],
             },
             {
                 "name": "Fille 3-14 ans",
                 "slug": "girls",
                 "children": [
-                    {"name": "Robes", "slug": "dresses"},
-                    {"name": "Hauts", "slug": "tops"},
-                    {"name": "Bas", "slug": "bottoms"},
+                    {"name": "Robes", "slug": "girls-dresses"},
+                    {"name": "Hauts", "slug": "girls-tops"},
+                    {"name": "Bas", "slug": "girls-bottoms"},
                 ],
             },
             {
                 "name": "Garçon 3-14 ans",
                 "slug": "boys",
                 "children": [
-                    {"name": "Hauts", "slug": "tops"},
-                    {"name": "Bas", "slug": "bottoms"},
-                    {"name": "Ensembles", "slug": "sets"},
+                    {"name": "Hauts", "slug": "boys-tops"},
+                    {"name": "Bas", "slug": "boys-bottoms"},
+                    {"name": "Ensembles", "slug": "boys-sets"},
                 ],
             },
             {
                 "name": "Chaussures enfant",
                 "slug": "kids-shoes",
                 "children": [
-                    {"name": "Sandales", "slug": "sandals"},
-                    {"name": "Baskets", "slug": "sneakers"},
-                    {"name": "Bottes", "slug": "boots"},
+                    {"name": "Sandales", "slug": "kids-sandals"},
+                    {"name": "Baskets", "slug": "kids-sneakers"},
+                    {"name": "Bottes", "slug": "kids-boots"},
                 ],
             },
             {
                 "name": "Jouets & Puériculture",
                 "slug": "toys-childcare",
                 "children": [
-                    {"name": "Jouets", "slug": "toys"},
+                    {"name": "Jouets", "slug": "kids-toys"},
                     {"name": "Poussettes/sièges", "slug": "strollers-car-seats"},
                     {"name": "Biberons & Repas", "slug": "feeding"},
                 ],
@@ -302,7 +302,7 @@ CATEGORY_TREE = [
                 "slug": "games-toys",
                 "children": [
                     {"name": "Jeux de société", "slug": "board-games"},
-                    {"name": "Jouets", "slug": "toys"},
+                    {"name": "Jouets", "slug": "hobbies-toys"},
                 ],
             },
             {
@@ -390,12 +390,13 @@ def _walk(node, level=1, parent_path=None):
 
 
 def get_leaf_paths():
-    """Retourne un dict {slug_de_feuille: chemin_complet} pour les nœuds de niveau 3."""
-    return {
-        item["node"]["slug"]: item["path"]
-        for item in _walk({"name": "root", "slug": "root", "children": CATEGORY_TREE})
-        if item["level"] == 3
-    }
+    """Retourne un dict {slug_du_type: chemin_complet} pour les nœuds de niveau 3 (Type)."""
+    paths = {}
+    for root in CATEGORY_TREE:
+        for item in _walk(root, level=1):
+            if item["level"] == 3:
+                paths[item["node"]["slug"]] = item["path"]
+    return paths
 
 
 def seed_category_tree(Category, active_only=False):
