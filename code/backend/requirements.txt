@@ -1,5 +1,5 @@
-Django>=6.0.7,<7.0
-djangorestframework>=3.17.1
+Django>=6.1,<7.0
+djangorestframework>=3.18.0
 djangorestframework-simplejwt>=5.5.1
 django-cors-headers>=4.9
 django-filter>=26.1
@@ -11,6 +11,6 @@ dj-database-url>=3.1.2
 factory_boy>=3.3.3,<5
 whitenoise>=6.12.0
 gunicorn>=26.0.0
-django-unfold>=0.102.0
+django-unfold>=0.103.0
 django-cloudinary-storage>=0.3
 sentry-sdk[django]>=2.66.1
