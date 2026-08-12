@@ -212,9 +212,9 @@ class ProductApiTests(APITestCase):
         self.assertFalse(response_ruptured.data["in_stock"])
 
     def test_made_to_order_product_is_in_stock_with_zero_stock(self):
-        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        repas = Category.objects.get(slug="food").children.get(slug="repas")
         dish = ProductFactory(
-            category=restauration,
+            category=repas,
             name="Crêpes au miel",
             slug="crepes-au-miel",
             price_xof=1500,
@@ -227,9 +227,9 @@ class ProductApiTests(APITestCase):
         self.assertTrue(response.data["in_stock"])
 
     def test_in_stock_filter_includes_made_to_order_products(self):
-        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        repas = Category.objects.get(slug="food").children.get(slug="repas")
         ProductFactory(
-            category=restauration,
+            category=repas,
             name="Crêpes",
             slug="crepes",
             price_xof=1500,
@@ -415,8 +415,8 @@ class SellerProductApiTests(APITestCase):
         delete_response = self.client.delete(f"/api/seller/products/{product.slug}/images/{image_id}/")
         self.assertEqual(delete_response.status_code, 204)
 
-    def test_seller_restauration_product_is_auto_made_to_order(self):
-        restauration = CategoryFactory(name="Restauration", slug="restauration")
+    def test_seller_food_branch_product_is_auto_made_to_order(self):
+        repas = Category.objects.get(slug="food").children.get(slug="repas")
         response = self.client.post(
             "/api/seller/products/",
             {
@@ -424,7 +424,7 @@ class SellerProductApiTests(APITestCase):
                 "description": "Fait maison",
                 "price_xof": 2500,
                 "stock": 0,
-                "category_id": restauration.id,
+                "category_id": repas.id,
                 "unit": "piece",
                 "size": "UNIQUE",
                 "is_active": True,
@@ -521,11 +521,13 @@ class CategoryTreeModelTests(APITestCase):
         with self.assertRaises(IntegrityError):
             Category.objects.create(name="Other", slug="unique-root", level=1)
 
-    def test_product_clean_requires_level_3_category(self):
+    def test_product_clean_accepts_any_category_level(self):
         l1 = CategoryFactory(name="L1", slug="l1-clean", level=1, parent=None)
-        product = ProductFactory(category=l1)
-        with self.assertRaises(ValidationError):
-            product.full_clean()
+        l2 = CategoryFactory(name="L2", slug="l2-clean", parent=l1)
+        l3 = CategoryFactory(name="L3", slug="l3-clean", parent=l2)
+        for category in (l1, l2, l3):
+            product = ProductFactory(category=category)
+            product.full_clean()  # ne doit pas lever
 
 
 class CategoryTreeApiTests(APITestCase):
@@ -553,17 +555,17 @@ class CategoryTreeApiTests(APITestCase):
         slugs = [c["slug"] for c in response.data[0]["children"]]
         self.assertNotIn("inactive-tree", slugs)
 
-    def test_list_categories_only_returns_active_level3(self):
+    def test_list_categories_returns_all_active_levels(self):
         response = self.client.get("/api/products/categories/")
         self.assertEqual(response.status_code, 200)
+        returned = {item["id"] for item in response.data["results"]}
+        # La liste publique expose désormais les catégories actives de tous niveaux.
+        expected_count = Category.objects.filter(is_active=True).count()
+        self.assertEqual(response.data["count"], expected_count)
+        self.assertGreaterEqual(expected_count, 138)
+        self.assertNotIn(self.inactive_child.id, returned)
         for item in response.data["results"]:
-            category = Category.objects.get(pk=item["id"])
-            self.assertEqual(category.level, 3)
-            self.assertTrue(category.is_active)
-        # Notre feuille active est bien un type (niveau 3) exposable.
-        self.assertTrue(
-            Category.objects.filter(pk=self.leaf.id, level=3, is_active=True).exists()
-        )
+            self.assertTrue(Category.objects.get(pk=item["id"]).is_active)
 
     def test_anonymous_cannot_create_category(self):
         response = self.client.post("/api/products/categories/", {"name": "Hack", "slug": "hack"})
@@ -589,12 +591,14 @@ class SeedCategoriesTests(APITestCase):
         call_command("seed_categories")
         self.assertEqual(Category.objects.count(), count_after_first)
 
-    def test_seed_creates_restauration_leaf(self):
+    def test_seed_creates_alimentation_branch(self):
         call_command("seed_categories")
-        restauration = Category.objects.get(slug="restauration")
-        self.assertEqual(restauration.level, 3)
-        self.assertEqual(restauration.parent.slug, "prepared-meals")
-        self.assertEqual(restauration.parent.parent.slug, "food")
+        food = Category.objects.get(slug="food")
+        self.assertEqual(food.name, "Alimentation")
+        self.assertEqual(food.level, 1)
+        child_slugs = set(food.children.values_list("slug", flat=True))
+        self.assertEqual(child_slugs, {"patisserie", "repas", "divers"})
+        self.assertFalse(Category.objects.filter(slug="restauration").exists())
 
 
 class CategoryTreeDefinitionTests(SimpleTestCase):
@@ -633,17 +637,18 @@ class CategoryTreeDefinitionTests(SimpleTestCase):
         from apps.products.category_tree import get_leaf_paths
 
         paths = get_leaf_paths()
-        self.assertEqual(len(paths), 93)
+        self.assertEqual(len(paths), 92)
         for path in paths.values():
             self.assertEqual(len(path), 3)
+        self.assertNotIn("restauration", paths)
         self.assertEqual(
-            [step["slug"] for step in paths["restauration"]],
-            ["food", "prepared-meals", "restauration"],
+            [step["slug"] for step in paths["women-sandals"]],
+            ["women", "shoes", "women-sandals"],
         )
 
 
 class ProductCategoryLevelValidationTests(APITestCase):
-    """Tests de la validation 'Product.category doit être de niveau 3'."""
+    """Tests de validation des catégories acceptables pour un produit (L1/L2/L3)."""
 
     def setUp(self):
         self.seller_user = UserFactory(username="seller-validation")
@@ -652,12 +657,12 @@ class ProductCategoryLevelValidationTests(APITestCase):
         self.level1 = CategoryFactory(name="L1", slug="l1-validation", level=1, parent=None)
         self.level3 = CategoryFactory(name="L3", slug="l3-validation")
 
-    def test_seller_product_serializer_rejects_level1_category(self):
+    def test_seller_product_serializer_accepts_level1_category(self):
         self.client.force_authenticate(user=self.seller_user)
         response = self.client.post(
             "/api/seller/products/",
             {
-                "name": "Produit invalide",
+                "name": "Produit en catégorie L1",
                 "description": "Test",
                 "price_xof": 1000,
                 "stock": 1,
@@ -668,8 +673,7 @@ class ProductCategoryLevelValidationTests(APITestCase):
             },
             format="json",
         )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("category_id", response.data)
+        self.assertEqual(response.status_code, 201)
 
     def test_seller_product_serializer_accepts_level3_category(self):
         self.client.force_authenticate(user=self.seller_user)
@@ -688,3 +692,24 @@ class ProductCategoryLevelValidationTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 201)
+
+    def test_seller_product_serializer_accepts_level2_and_forces_made_to_order_in_food_branch(self):
+        self.client.force_authenticate(user=self.seller_user)
+        food = Category.objects.get(slug="food")
+        repas = food.children.get(slug="repas")
+        response = self.client.post(
+            "/api/seller/products/",
+            {
+                "name": "Plat du jour",
+                "description": "Test",
+                "price_xof": 1000,
+                "stock": 1,
+                "category_id": repas.id,
+                "unit": "piece",
+                "size": "UNIQUE",
+                "is_active": True,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["made_to_order"])

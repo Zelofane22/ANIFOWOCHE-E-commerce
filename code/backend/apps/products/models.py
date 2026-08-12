@@ -5,10 +5,20 @@ from django.utils.text import slugify
 from apps.sellers.models import SellerProfile, Shop
 
 
-# Catégories dont les produits sont fabriqués à la commande (aucun suivi de stock).
-# Le slug "restauration" est conservé comme nœud de niveau 3 sous
-# Alimentation > Plats préparés (voir seed_categories).
-MADE_TO_ORDER_CATEGORY_SLUGS = ("restauration",)
+# Produits de la branche « Alimentation » (slug racine « food ») : cuisine sur
+# commande, aucun suivi de stock. Les vendeurs peuvent ajouter des sous-catégories
+# plus tard ; toute la branche est concernée.
+MADE_TO_ORDER_ROOT_SLUG = "food"
+
+
+def is_made_to_order_category(category):
+    """True si la catégorie appartient à la branche Alimentation (« sur commande »)."""
+    current = category
+    while current is not None:
+        if current.parent is None and current.slug == MADE_TO_ORDER_ROOT_SLUG:
+            return True
+        current = current.parent
+    return False
 
 
 class Category(models.Model):
@@ -131,15 +141,9 @@ class Product(models.Model):
 
     def clean(self):
         super().clean()
-        if self.category_id and self.category.level != 3:
-            raise ValidationError(
-                {
-                    "category": (
-                        "Un produit doit être rattaché à un type de catégorie "
-                        "(niveau 3)."
-                    )
-                }
-            )
+        # Un produit peut être rattaché à une catégorie (L1), une
+        # sous-catégorie (L2) ou un type (L3) : les vendeurs choisissent
+        # le niveau auquel s'arrêter.
 
     def save(self, *args, **kwargs):
         # Un produit vendu au mètre n'a pas de taille (S/M/L n'a pas de sens pour un tissu).

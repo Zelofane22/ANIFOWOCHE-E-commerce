@@ -365,15 +365,12 @@ CATEGORY_TREE = [
         "name": "Alimentation",
         "slug": "food",
         "children": [
-            {
-                "name": "Plats préparés",
-                "slug": "prepared-meals",
-                "children": [
-                    # Conservé tel quel pour ne pas casser la logique métier
-                    # ni les tests qui s'attendent au slug "restauration".
-                    {"name": "Restauration", "slug": "restauration"},
-                ],
-            },
+            # Les vendeurs pourront ajouter des types (L3) plus tard ; les
+            # produits peuvent s'arrêter à la catégorie (L1) ou à la
+            # sous-catégorie (L2).
+            {"name": "Pâtisserie", "slug": "patisserie"},
+            {"name": "Repas", "slug": "repas"},
+            {"name": "Divers", "slug": "divers"},
         ],
     },
 ]

@@ -39,7 +39,7 @@ export default function CategoryCascadeSelect({
           ))}
         </select>
       </Field>
-      <Field label="Sous-catégorie">
+      <Field label="Sous-catégorie (optionnel)">
         <select
           className={inputClass}
           value={l2Id}
@@ -54,11 +54,10 @@ export default function CategoryCascadeSelect({
           ))}
         </select>
       </Field>
-      <Field label="Type">
+      <Field label="Type (optionnel)">
         <select
           className={inputClass}
           value={l3Id}
-          required
           disabled={disabled || !l2Id}
           onChange={(event) => onChange("l3", event.target.value)}
         >

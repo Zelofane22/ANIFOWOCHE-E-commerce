@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.notifications.services import notify_order_confirmation, notify_seller_new_order
 from apps.payments.serializers import PaymentSerializer
-from apps.products.models import MADE_TO_ORDER_CATEGORY_SLUGS, Product
+from apps.products.models import Product, is_made_to_order_category
 from apps.delivery.models import DeliveryZone
 from apps.delivery.serializers import DeliveryZoneSerializer
 from apps.promotions.models import Coupon
@@ -51,7 +51,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         selected_options = attrs.get("selected_options") or []
         groups = {str(group.id): group for group in product.option_groups.prefetch_related("options").all()}
         selected_by_group = {}
-        is_restaurant_product = product.category.slug in MADE_TO_ORDER_CATEGORY_SLUGS
+        is_restaurant_product = is_made_to_order_category(product.category)
         normalized_options = []
 
         for selected in selected_options:

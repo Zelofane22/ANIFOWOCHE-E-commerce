@@ -6,6 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from apps.core.factories import CategoryFactory, CouponFactory, DeliveryZoneFactory, OptionFactory, OptionGroupFactory, OrderFactory, ProductFactory, UserFactory
+from apps.products.models import Category
 from apps.core.models import StoreSettings
 
 from .models import Order
@@ -86,9 +87,9 @@ class OrderApiTests(APITestCase):
         self.assertEqual(Order.objects.count(), 0)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
-    def test_restauration_options_are_optional(self, mock_post):
-        restauration = CategoryFactory(name="Restauration", slug="restauration")
-        product = ProductFactory(category=restauration, price_xof=3000, stock=0, made_to_order=True)
+    def test_food_branch_options_are_optional(self, mock_post):
+        repas = Category.objects.get(slug="food").children.get(slug="repas")
+        product = ProductFactory(category=repas, price_xof=3000, stock=0, made_to_order=True)
         group = OptionGroupFactory(product=product, is_required=True, min_selections=1, max_selections=1)
         OptionFactory(group=group, price_xof=500)
         payload = {
@@ -247,9 +248,9 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_ordering_made_to_order_product_does_not_decrement_stock(self, mock_post):
-        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        repas = Category.objects.get(slug="food").children.get(slug="repas")
         dish = ProductFactory(
-            category=restauration,
+            category=repas,
             name="Crêpes",
             slug="crepes",
             price_xof=1500,
@@ -282,9 +283,9 @@ class OrderApiTests(APITestCase):
         self.assertEqual(self.product.stock, 7)
 
     def test_cancelling_made_to_order_order_does_not_restore_stock(self):
-        restauration = CategoryFactory(name="Restauration", slug="restauration")
+        repas = Category.objects.get(slug="food").children.get(slug="repas")
         dish = ProductFactory(
-            category=restauration,
+            category=repas,
             name="Crêpes",
             slug="crepes",
             price_xof=1500,

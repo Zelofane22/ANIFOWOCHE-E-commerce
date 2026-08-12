@@ -35,8 +35,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.action == "list":
-            # Liste publique : types de catégorie (niveau 3) utilisés par les produits.
-            return Category.objects.filter(is_active=True, level=3)
+            # Liste publique : catégories actives de tous niveaux (L1/L2/L3)
+            # utilisables par le filtre du catalogue.
+            return Category.objects.filter(is_active=True)
         if self.action == "tree":
             # Arbre imbriqué : racines actives avec enfants préchargés (jusqu'au niveau 3).
             return (

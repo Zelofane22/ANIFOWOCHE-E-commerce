@@ -96,7 +96,7 @@ function ProductView({ slug }) {
   if (!product) return <p className="px-4 py-16 text-center text-muted">Chargement…</p>;
 
   const productInStock = product.in_stock ?? (Boolean(product.made_to_order) || (product.stock ?? 0) > 0);
-  const isRestaurantProduct = product.category?.slug === "restauration";
+  const isRestaurantProduct = Boolean(product.made_to_order);
 
   const handleAddToCart = () => {
     if (!productInStock) return;

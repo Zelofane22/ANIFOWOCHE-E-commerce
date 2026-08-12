@@ -4,12 +4,12 @@ from apps.sellers.models import Shop
 from apps.sellers.limits import FREE_MAX_PRODUCTS, can_create_product
 
 from .models import (
-    MADE_TO_ORDER_CATEGORY_SLUGS,
     Category,
     Option,
     OptionGroup,
     Product,
     ProductImage,
+    is_made_to_order_category,
 )
 
 
@@ -34,10 +34,14 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
     """Sérialiseur récursif pour l'endpoint `/categories/tree/`."""
 
     children = serializers.SerializerMethodField()
+    is_made_to_order = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ["id", "name", "slug", "level", "children"]
+        fields = ["id", "name", "slug", "level", "is_made_to_order", "children"]
+
+    def get_is_made_to_order(self, obj):
+        return is_made_to_order_category(obj)
 
     def get_children(self, obj):
         # Affiche uniquement les enfants actifs, triés comme défini dans Meta.
@@ -179,14 +183,6 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at", "updated_at"]
 
-    def validate_category_id(self, value):
-        # Un produit doit être rattaché à un nœud feuille (niveau 3).
-        if value.level != 3:
-            raise serializers.ValidationError(
-                "Un produit doit être rattaché à un type de catégorie (niveau 3)."
-            )
-        return value
-
     def get_rating_average(self, product):
         # Note moyenne arrondie à une décimale (None si aucun avis approuvé).
         average = getattr(product, "rating_average", None)
@@ -237,11 +233,13 @@ class SellerProductSerializer(ProductSerializer):
                 f"Plan gratuit : maximum {FREE_MAX_PRODUCTS} produits actifs. "
                 "Archivez un produit ou passez au plan Illimité."
             )
-        # Les produits de catégorie « sur commande » (ex. restauration) n'ont pas de stock.
+        # Les produits de la branche « Alimentation » sont « sur commande »
+        # (aucun stock). La correspondance s'applique à toute la branche,
+        # y compris les futures sous-catégories ajoutées par les vendeurs.
         category = attrs.get("category")
         if category is None and self.instance:
             category = self.instance.category
-        if category and category.slug in MADE_TO_ORDER_CATEGORY_SLUGS:
+        if category and is_made_to_order_category(category):
             attrs["made_to_order"] = True
         return attrs
 

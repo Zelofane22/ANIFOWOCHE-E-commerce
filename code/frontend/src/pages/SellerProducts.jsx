@@ -38,9 +38,8 @@ import ProductImage from "../components/ProductImage.jsx";
 import CategoryCascadeSelect from "../components/seller/CategoryCascadeSelect.jsx";
 import { findCategoryPath } from "../utils/categoryTree.js";
 
-// Configuration des champs par type de catégorie (nœud de niveau 3).
-// Ancien mapping plat : "electronique" → maintenant tous les types sous Électronique.
-// "restauration" conserve son slug car conservé comme nœud niveau 3 sous Alimentation.
+// Configuration des champs par type de catégorie.
+// Les catégories de la branche Alimentation n'ont pas de stock/unit/taille/couleurs.
 const ELECTRONIC_TYPE_SLUGS = [
   "smartphones",
   "phone-cases",
@@ -53,8 +52,9 @@ const ELECTRONIC_TYPE_SLUGS = [
   "large-appliances",
 ];
 
+const MADE_TO_ORDER_FIELD_CONFIG = { stock: false, unit: false, size: false, colors: false };
+
 const CATEGORY_FIELD_CONFIG = {
-  restauration: { stock: false, unit: false, size: false, colors: false },
   ...Object.fromEntries(
     ELECTRONIC_TYPE_SLUGS.map((slug) => [
       slug,
@@ -651,11 +651,14 @@ export default function SellerProducts() {
   const productLimit = seller?.limits?.max_products ?? null;
   const createLimitReached = productLimit != null && !editingSlug && activeProducts.length >= productLimit;
 
-  const selectedCategory = useMemo(
-    () => findCategoryPath(categoryTree, form.category_id)?.l3,
-    [categoryTree, form.category_id],
-  );
-  const fieldConfig = CATEGORY_FIELD_CONFIG[selectedCategory?.slug] ?? DEFAULT_FIELD_CONFIG;
+  const selectedCategory = useMemo(() => {
+    if (!form.category_id) return null;
+    const path = findCategoryPath(categoryTree, form.category_id);
+    return (path && (path.l3 ?? path.l2 ?? path.l1)) || null;
+  }, [categoryTree, form.category_id]);
+  const fieldConfig = selectedCategory?.is_made_to_order
+    ? MADE_TO_ORDER_FIELD_CONFIG
+    : CATEGORY_FIELD_CONFIG[selectedCategory?.slug] ?? DEFAULT_FIELD_CONFIG;
 
   const resetForm = () => {
     setEditingSlug(null);
@@ -675,8 +678,8 @@ export default function SellerProducts() {
       price_xof: String(product.price_xof ?? ""),
       stock: String(product.stock ?? ""),
       category_id: String(product.category?.id ?? ""),
-      category_l1_id: path ? String(path.l1.id) : "",
-      category_l2_id: path ? String(path.l2.id) : "",
+      category_l1_id: path?.l1 ? String(path.l1.id) : "",
+      category_l2_id: path?.l2 ? String(path.l2.id) : "",
       unit: product.unit || "piece",
       size: product.size || "UNIQUE",
       is_active: product.is_active,
@@ -690,12 +693,12 @@ export default function SellerProducts() {
   const handleCategoryCascadeChange = (level, value) => {
     setForm((current) => {
       if (level === "l1") {
-        return { ...current, category_l1_id: value, category_l2_id: "", category_id: "" };
+        return { ...current, category_l1_id: value, category_l2_id: "", category_id: value || "" };
       }
       if (level === "l2") {
-        return { ...current, category_l2_id: value, category_id: "" };
+        return { ...current, category_l2_id: value, category_id: value || "" };
       }
-      return { ...current, category_id: value };
+      return { ...current, category_id: value || "" };
     });
   };
 
@@ -713,6 +716,12 @@ export default function SellerProducts() {
     setSubmitting(true);
     setError(null);
     setSuccess(null);
+    if (!form.category_id) {
+      setError("Veuillez sélectionner une catégorie.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const payload = buildProductPayload(form, fieldConfig);
       const savedProduct = editingSlug
