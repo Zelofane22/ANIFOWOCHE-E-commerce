@@ -338,9 +338,9 @@ CATEGORY_TREE = [
                 "name": "Vêtements de sport",
                 "slug": "sportswear",
                 "children": [
-                    {"name": "Homme", "slug": "men"},
-                    {"name": "Femme", "slug": "women"},
-                    {"name": "Enfant", "slug": "kids"},
+                    {"name": "Homme", "slug": "sportswear-men"},
+                    {"name": "Femme", "slug": "sportswear-women"},
+                    {"name": "Enfant", "slug": "sportswear-kids"},
                 ],
             },
             {

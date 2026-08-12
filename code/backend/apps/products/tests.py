@@ -614,6 +614,21 @@ class CategoryTreeDefinitionTests(SimpleTestCase):
         duplicates = [slug for slug, count in Counter(slugs).items() if count > 1]
         self.assertEqual(duplicates, [], f"Slugs de niveau 3 dupliqués : {duplicates}")
 
+    def test_level3_slugs_do_not_collide_with_level1_slugs(self):
+        from apps.products.category_tree import CATEGORY_TREE, _walk
+
+        level1_slugs = {root["slug"] for root in CATEGORY_TREE}
+        level3_slugs = {
+            item["node"]["slug"]
+            for root in CATEGORY_TREE
+            for item in _walk(root, level=1)
+            if item["level"] == 3
+        }
+        collisions = sorted(level1_slugs & level3_slugs)
+        self.assertEqual(
+            collisions, [], f"Slugs partagés entre niveau 1 et niveau 3 : {collisions}"
+        )
+
     def test_get_leaf_paths_returns_real_level3_nodes(self):
         from apps.products.category_tree import get_leaf_paths
 
