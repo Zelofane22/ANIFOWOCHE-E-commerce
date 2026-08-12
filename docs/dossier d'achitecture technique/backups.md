@@ -58,6 +58,10 @@ docker compose -f code/docker-compose.yml exec db \
   -U anifowoche -d anifowoche /tmp/anifowoche-db.dump
 ```
 
+Après chaque restauration d'un dump prod en local, relancer toujours :
+```
+docker compose -f code/docker-compose.yml exec backend python manage.py migrate
+```
 ## Option : backups managés Render (plan payant)
 
 Si le projet passe la base sur un plan payant Render, les sauvegardes quotidiennes managées et la
