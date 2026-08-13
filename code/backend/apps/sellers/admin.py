@@ -29,7 +29,8 @@ class ShopAdmin(ModelAdmin):
     """Lecture seule : ces données appartiennent au vendeur (gérées via /seller/*),
     l'admin boutique ne doit pas pouvoir les modifier."""
 
-    list_display = ["name", "slug", "whatsapp_phone", "city", "is_published", "visible_on_main_store", "created_at"]
+    list_display = ["name", "seller", "whatsapp_phone", "city", "is_published", "visible_on_main_store", "created_at"]
+    list_select_related = ["seller"]
     list_filter = ["is_published", "visible_on_main_store", "city"]
     search_fields = ["name", "slug", "whatsapp_phone"]
     prepopulated_fields = {"slug": ("name",)}
