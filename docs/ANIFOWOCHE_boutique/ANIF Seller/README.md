@@ -32,6 +32,7 @@ pour mémoire — la documentation technique à jour reste celle du tableau ci-d
 | [Cadrage/06-reutilisation-anifowoche.md](Cadrage/06-reutilisation-anifowoche.md) | Réutilisation du projet ANIFOWOCHE |
 | [Cadrage/07-methode-agile.md](Cadrage/07-methode-agile.md) | Méthode Agile — ANIF Seller |
 | [Cadrage/08-backlog-agile.md](Cadrage/08-backlog-agile.md) | Backlog Agile — ANIF Seller |
+| [Cadrage/09-backlog-sprints-futurs.md](Cadrage/09-backlog-sprints-futurs.md) | Backlog Sprints futurs — Monétisation |
 | [Livrables/01-sprint-0-recherche-ia.md](Livrables/01-sprint-0-recherche-ia.md) | Sprint 0 — Recherche IA sans interviews |
 
 ## Fichiers modifiés

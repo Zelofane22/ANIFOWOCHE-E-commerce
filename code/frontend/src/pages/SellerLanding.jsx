@@ -90,7 +90,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "C'est gratuit ?",
-    a: "Oui, vous pouvez créer votre boutique gratuitement et vendre jusqu'à 10 produits. Un plan payant est disponible pour les vendeurs qui ont besoin de plus de produits et de fonctionnalités avancées.",
+    a: "Oui, vous pouvez créer votre boutique gratuitement et vendre jusqu'à 5 produits. Des plans payants (Starter et Pro) arrivent bientôt pour les vendeurs qui ont besoin de plus de produits et de fonctionnalités avancées.",
   },
   {
     q: "Je n'ai pas de site web, je peux quand même vendre ?",
@@ -106,7 +106,7 @@ const FAQ = [
   },
   {
     q: "Combien de produits puis-je ajouter ?",
-    a: "La version gratuite vous permet d'ajouter jusqu'à 10 produits et de recevoir jusqu'à 20 commandes par mois sur votre boutique publique. Le plan Illimité supprime toutes les limites et ajoute la visibilité sur le catalogue anifowoche.com.",
+    a: "La version gratuite vous permet d'ajouter jusqu'à 5 produits et de recevoir jusqu'à 5 commandes par mois sur votre boutique publique. Les offres payantes Starter et Pro (bientôt disponibles) augmenteront ces limites (100 produits et commandes illimitées pour Starter) et ajouteront la visibilité sur le catalogue anifowoche.com.",
   },
   {
     q: "Mes données sont-elles sécurisées ?",
@@ -348,7 +348,7 @@ function HowItWorksSection() {
 function PricingSection() {
   return (
     <section className="py-16 md:py-20" id="tarifs">
-      <div className="mx-auto max-w-5xl px-4">
+      <div className="mx-auto max-w-6xl px-4">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-ink md:text-3xl">
             Des offres pour tous les commerçants
@@ -358,7 +358,7 @@ function PricingSection() {
             êtes prêt.
           </p>
         </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
           <div className="rounded-xl border border-black/10 bg-white p-6 sm:p-8">
             <h3 className="text-lg font-bold text-ink">Gratuit</h3>
             <p className="mt-1 text-sm text-muted">Pour démarrer et tester</p>
@@ -368,8 +368,8 @@ function PricingSection() {
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Jusqu'à 10 produits",
-                "Jusqu'à 20 commandes/mois",
+                "Jusqu'à 5 produits",
+                "Jusqu'à 5 commandes/mois",
                 "Boutique publique dédiée",
                 "Lien WhatsApp",
                 "Messages de confirmation",
@@ -389,24 +389,22 @@ function PricingSection() {
               <ArrowRightIcon size={16} />
             </Link>
           </div>
-          <div className="relative rounded-xl border-2 border-brand bg-white p-6 sm:p-8">
-            <div className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
-          Populaire
-            </div>
-            <h3 className="text-lg font-bold text-ink">Illimité</h3>
+          <div className="rounded-xl border border-black/10 bg-white p-6 sm:p-8">
+            <h3 className="text-lg font-bold text-ink">Starter</h3>
             <p className="mt-1 text-sm text-muted">Pour les vendeurs actifs</p>
             <p className="mt-4">
-              <span className="text-4xl font-bold text-ink">Bientôt</span>
+              <span className="text-4xl font-bold text-ink">2 000 F</span>
+              <span className="text-sm text-muted">/mois</span>
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              pendant les 3 premiers mois, puis 5 000 F/mois
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Produits illimités",
+                "100 produits",
                 "Commandes illimitées",
-                "Visibilité sur le catalogue anifowoche.com",
-                "Statistiques avancées",
-                "Messages de relance",
-                "Catégories et variantes",
-                "Support prioritaire WhatsApp",
+                "Statistiques essentielles",
+                "Personnalisation de base",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2 text-sm text-ink">
                   <CheckIcon size={16} className="mt-0.5 shrink-0 text-brand-dark" />
@@ -415,7 +413,37 @@ function PricingSection() {
               ))}
             </ul>
             <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
-              Arrive bientôt — prévenez-moi
+              Bientôt disponible
+            </p>
+          </div>
+          <div className="relative rounded-xl border-2 border-brand bg-white p-6 sm:p-8">
+            <div className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
+              Populaire
+            </div>
+            <h3 className="text-lg font-bold text-ink">Pro</h3>
+            <p className="mt-1 text-sm text-muted">Mieux vendre et piloter</p>
+            <p className="mt-4">
+              <span className="text-4xl font-bold text-ink">10 000 F</span>
+              <span className="text-sm text-muted">/mois</span>
+            </p>
+            <ul className="mt-6 space-y-3">
+              {[
+                "Produits et commandes illimités",
+                "Statistiques avancées",
+                "Exports",
+                "Plusieurs utilisateurs",
+                "Outils promotionnels",
+                "Relances clients",
+                "Personnalisation avancée",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-ink">
+                  <CheckIcon size={16} className="mt-0.5 shrink-0 text-brand-dark" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
+              Bientôt disponible
             </p>
           </div>
         </div>

@@ -10,6 +10,7 @@ from django.urls import reverse
 from apps.core.models import SettingChangeRequest
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
+from apps.sellers.models import SellerSubscription
 
 from apps.core.store_scope import (
     get_main_store_shop,
@@ -56,6 +57,16 @@ def dashboard_callback(request, context):
 
     revenue_period = orders_period.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
     revenue_previous = orders_previous.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
+
+    subs_period = SellerSubscription.objects.filter(
+        status=SellerSubscription.Status.APPROVED, created_at__gte=period_start
+    )
+    subs_previous = SellerSubscription.objects.filter(
+        status=SellerSubscription.Status.APPROVED,
+        created_at__gte=previous_start, created_at__lt=period_start,
+    )
+    seller_revenue_period = subs_period.aggregate(total=Sum("amount_xof"))["total"] or 0
+    seller_revenue_previous = subs_previous.aggregate(total=Sum("amount_xof"))["total"] or 0
 
     orders_count = orders_period.count()
     orders_count_previous = orders_previous.count()
@@ -136,6 +147,7 @@ def dashboard_callback(request, context):
         ),
         "clients": reverse("admin:users_client_changelist"),
         "visits": reverse("admin:analytics_pageview_changelist"),
+        "seller_subscriptions": reverse("admin:sellers_sellersubscription_changelist"),
         "reports": reverse("admin_reports"),
     }
 
@@ -143,6 +155,8 @@ def dashboard_callback(request, context):
         {
             "kpi_revenue": revenue_period,
             "kpi_revenue_change": _percent_change(revenue_period, revenue_previous),
+            "kpi_seller_revenue": seller_revenue_period,
+            "kpi_seller_revenue_change": _percent_change(seller_revenue_period, seller_revenue_previous),
             "kpi_orders": orders_count,
             "kpi_orders_change": _percent_change(orders_count, orders_count_previous),
             "kpi_clients": clients_total,

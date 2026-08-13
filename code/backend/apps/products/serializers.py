@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.sellers.models import Shop
-from apps.sellers.limits import FREE_MAX_PRODUCTS, can_create_product
+from apps.sellers.limits import can_create_product, plan_limits
 
 from .models import (
     Category,
@@ -227,11 +227,12 @@ class SellerProductSerializer(ProductSerializer):
         seller = self.context.get("seller")
         if shop and seller and shop.seller != seller:
             raise serializers.ValidationError({"shop_id": "Ce shop ne vous appartient pas."})
-        # Limite du plan gratuit : 10 produits actifs maximum (création ou réactivation).
+        # Limite du plan gratuit : 5 produits actifs maximum (création ou réactivation).
         if seller and self._adds_active_product(attrs) and not can_create_product(seller):
+            max_products = plan_limits(seller)["max_products"]
             raise serializers.ValidationError(
-                f"Plan gratuit : maximum {FREE_MAX_PRODUCTS} produits actifs. "
-                "Archivez un produit ou passez au plan Illimité."
+                f"Palier {seller.get_plan_display()} : maximum {max_products} produits actifs. "
+                "Archivez un produit ou passez à un palier supérieur."
             )
         # Les produits de la branche « Alimentation » sont « sur commande »
         # (aucun stock). La correspondance s'applique à toute la branche,

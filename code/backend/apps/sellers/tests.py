@@ -494,17 +494,33 @@ class SellerAdminTests(TestCase):
         response = self.client.get("/admin/sellers/sellerprofile/")
         self.assertEqual(response.status_code, 200)
 
-    def test_sellerprofile_add_form(self):
+    def test_sellerprofile_add_form_readonly(self):
+        # Lecture seule : le bouton « Ajouter » ne doit plus exister.
         response = self.client.get("/admin/sellers/sellerprofile/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_sellerprofile_change_readonly(self):
+        # Détail toujours consultable, mais sans bouton Enregistrer/Supprimer.
+        profile = SellerProfileFactory()
+        response = self.client.get(f"/admin/sellers/sellerprofile/{profile.pk}/change/")
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="_save"')
 
     def test_shop_changelist(self):
         response = self.client.get("/admin/sellers/shop/")
         self.assertEqual(response.status_code, 200)
 
-    def test_shop_add_form(self):
+    def test_shop_add_form_readonly(self):
+        # Lecture seule : le bouton « Ajouter » ne doit plus exister.
         response = self.client.get("/admin/sellers/shop/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_shop_change_readonly(self):
+        # Détail toujours consultable, mais sans bouton Enregistrer/Supprimer.
+        shop = ShopFactory()
+        response = self.client.get(f"/admin/sellers/shop/{shop.pk}/change/")
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="_save"')
 
     def test_non_staff_cannot_access(self):
         user = UserFactory(username="regular-seller")
@@ -514,7 +530,7 @@ class SellerAdminTests(TestCase):
 
 
 class SellerPlanLimitsTests(APITestCase):
-    """Limites du plan gratuit : 10 produits actifs, 20 commandes/mois, vitrine principale."""
+    """Limites du plan gratuit : 5 produits actifs, 5 commandes/mois, vitrine principale."""
 
     def setUp(self):
         self.category = CategoryFactory(name="Tissus", slug="tissus")
@@ -569,16 +585,16 @@ class SellerPlanLimitsTests(APITestCase):
 
     # --- Limite produits -------------------------------------------------------
 
-    def test_free_seller_blocked_at_eleventh_active_product(self):
-        ProductFactory.create_batch(10, seller=self.seller, category=self.category)
+    def test_free_seller_blocked_at_sixth_active_product(self):
+        ProductFactory.create_batch(5, seller=self.seller, category=self.category)
 
         response = self._create_product_via_api()
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("10 produits actifs", str(response.data))
+        self.assertIn("5 produits actifs", str(response.data))
 
     def test_archived_products_do_not_count_toward_limit(self):
-        products = ProductFactory.create_batch(10, seller=self.seller, category=self.category)
+        products = ProductFactory.create_batch(5, seller=self.seller, category=self.category)
         products[0].is_active = False
         products[0].save(update_fields=["is_active"])
 
@@ -587,7 +603,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 201)
 
     def test_reactivation_blocked_at_limit(self):
-        products = ProductFactory.create_batch(11, seller=self.seller, category=self.category)
+        products = ProductFactory.create_batch(6, seller=self.seller, category=self.category)
         archived = products[0]
         archived.is_active = False
         archived.save(update_fields=["is_active"])
@@ -603,7 +619,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertFalse(archived.is_active)
 
     def test_paid_seller_can_exceed_product_limit(self):
-        self.seller.plan = SellerProfile.Plan.PAID
+        self.seller.plan = SellerProfile.Plan.PRO
         self.seller.save(update_fields=["plan"])
         ProductFactory.create_batch(10, seller=self.seller, category=self.category)
 
@@ -614,37 +630,37 @@ class SellerPlanLimitsTests(APITestCase):
     # --- Quota mensuel de commandes -------------------------------------------
 
     def test_free_shop_hidden_when_monthly_order_quota_reached(self):
-        self._create_orders_for_seller(20)
+        self._create_orders_for_seller(5)
 
         response = self.client.get("/api/public/shops/afi-wax/")
 
         self.assertEqual(response.status_code, 404)
 
     def test_free_shop_visible_below_monthly_quota(self):
-        self._create_orders_for_seller(19)
+        self._create_orders_for_seller(4)
 
         response = self.client.get("/api/public/shops/afi-wax/")
 
         self.assertEqual(response.status_code, 200)
 
     def test_cancelled_orders_do_not_count_toward_quota(self):
-        self._create_orders_for_seller(20, status=Order.Status.CANCELLED)
+        self._create_orders_for_seller(5, status=Order.Status.CANCELLED)
 
         response = self.client.get("/api/public/shops/afi-wax/")
 
         self.assertEqual(response.status_code, 200)
 
     def test_paid_shop_not_hidden_by_quota(self):
-        self.seller.plan = SellerProfile.Plan.PAID
+        self.seller.plan = SellerProfile.Plan.PRO
         self.seller.save(update_fields=["plan"])
-        self._create_orders_for_seller(20)
+        self._create_orders_for_seller(5)
 
         response = self.client.get("/api/public/shops/afi-wax/")
 
         self.assertEqual(response.status_code, 200)
 
     def test_order_rejected_when_seller_quota_reached(self):
-        product = self._create_orders_for_seller(20)
+        product = self._create_orders_for_seller(5)
         self.client.force_authenticate(user=None)
 
         response = self.client.post(
@@ -662,7 +678,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertIn("limite de commandes", str(response.data))
 
     def test_public_shop_product_detail_hidden_when_quota_reached(self):
-        product = self._create_orders_for_seller(20)
+        product = self._create_orders_for_seller(5)
 
         response = self.client.get(f"/api/public/shops/afi-wax/products/{product.slug}/")
 
@@ -674,7 +690,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.shop.slug = "ets-anifowoche"
         self.shop.visible_on_main_store = True
         self.shop.save()
-        product = self._create_orders_for_seller(20)
+        product = self._create_orders_for_seller(5)
 
         shop_response = self.client.get("/api/public/shops/ets-anifowoche/")
         catalog_response = self.client.get("/api/products/")
@@ -694,9 +710,96 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         limits = response.data["seller"]["limits"]
         self.assertEqual(limits["plan"], "FREE")
-        self.assertEqual(limits["max_products"], 10)
-        self.assertEqual(limits["max_orders_per_month"], 20)
+        self.assertEqual(limits["max_products"], 5)
+        self.assertEqual(limits["max_orders_per_month"], 5)
         self.assertEqual(limits["products_used"], 4)  # 3 + produit des commandes
         self.assertEqual(limits["orders_this_month"], 2)
         self.assertTrue(limits["public_shop_visible"])
         self.assertFalse(limits["can_appear_on_main_store"])
+
+    # --- Matrice des fonctionnalités par offre --------------------------------
+
+    def test_dashboard_exposes_features_matrix_for_free(self):
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        features = response.data["seller"]["limits"]["features"]
+        self.assertFalse(features["basic_customization"])
+        self.assertFalse(features["advanced_customization"])
+        self.assertFalse(features["essential_stats"])
+        self.assertFalse(features["advanced_stats"])
+        self.assertFalse(features["exports"])
+        self.assertFalse(features["team"])
+        self.assertFalse(features["promotions"])
+        self.assertFalse(features["client_relaunch"])
+        self.assertFalse(features["custom_domain"])
+        self.assertFalse(features["online_payment"])
+        self.assertFalse(features["multi_store"])
+        self.assertFalse(features["priority_support"])
+
+    def test_starter_plan_features(self):
+        self.seller.plan = SellerProfile.Plan.STARTER
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        features = response.data["seller"]["limits"]["features"]
+        self.assertTrue(features["basic_customization"])
+        self.assertTrue(features["essential_stats"])
+        self.assertTrue(features["online_payment"])
+        self.assertFalse(features["advanced_stats"])
+        self.assertFalse(features["exports"])
+        self.assertFalse(features["team"])
+        self.assertFalse(features["promotions"])
+        self.assertFalse(features["client_relaunch"])
+        self.assertFalse(features["custom_domain"])
+
+    def test_pro_plan_features(self):
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        features = response.data["seller"]["limits"]["features"]
+        for feature in (
+            "basic_customization",
+            "advanced_customization",
+            "essential_stats",
+            "advanced_stats",
+            "exports",
+            "team",
+            "promotions",
+            "client_relaunch",
+            "custom_domain",
+            "online_payment",
+        ):
+            self.assertTrue(features[feature], feature)
+        self.assertFalse(features["multi_store"])
+        self.assertFalse(features["priority_support"])
+
+    def test_business_plan_features(self):
+        self.seller.plan = SellerProfile.Plan.BUSINESS
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        features = response.data["seller"]["limits"]["features"]
+        self.assertTrue(features["multi_store"])
+        self.assertTrue(features["priority_support"])
+        self.assertTrue(features["advanced_stats"])
+        self.assertTrue(features["exports"])
+
+    def test_main_store_exempt_from_feature_limits(self):
+        self.shop.slug = "ets-anifowoche"
+        self.shop.save()
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        features = response.data["seller"]["limits"]["features"]
+        self.assertTrue(features["advanced_stats"])
+        self.assertTrue(features["priority_support"])
+        self.assertTrue(features["multi_store"])
