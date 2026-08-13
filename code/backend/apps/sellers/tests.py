@@ -494,17 +494,33 @@ class SellerAdminTests(TestCase):
         response = self.client.get("/admin/sellers/sellerprofile/")
         self.assertEqual(response.status_code, 200)
 
-    def test_sellerprofile_add_form(self):
+    def test_sellerprofile_add_form_readonly(self):
+        # Lecture seule : le bouton « Ajouter » ne doit plus exister.
         response = self.client.get("/admin/sellers/sellerprofile/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_sellerprofile_change_readonly(self):
+        # Détail toujours consultable, mais sans bouton Enregistrer/Supprimer.
+        profile = SellerProfileFactory()
+        response = self.client.get(f"/admin/sellers/sellerprofile/{profile.pk}/change/")
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="_save"')
 
     def test_shop_changelist(self):
         response = self.client.get("/admin/sellers/shop/")
         self.assertEqual(response.status_code, 200)
 
-    def test_shop_add_form(self):
+    def test_shop_add_form_readonly(self):
+        # Lecture seule : le bouton « Ajouter » ne doit plus exister.
         response = self.client.get("/admin/sellers/shop/add/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_shop_change_readonly(self):
+        # Détail toujours consultable, mais sans bouton Enregistrer/Supprimer.
+        shop = ShopFactory()
+        response = self.client.get(f"/admin/sellers/shop/{shop.pk}/change/")
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="_save"')
 
     def test_non_staff_cannot_access(self):
         user = UserFactory(username="regular-seller")
