@@ -90,7 +90,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "C'est gratuit ?",
-    a: "Oui, vous pouvez créer votre boutique gratuitement et vendre jusqu'à 5 produits. Des plans payants (Starter et Pro) sont disponibles pour les vendeurs qui ont besoin de plus de produits et de fonctionnalités avancées.",
+    a: "Oui, vous pouvez créer votre boutique gratuitement et vendre jusqu'à 5 produits. Des plans payants (Starter et Pro) arrivent bientôt pour les vendeurs qui ont besoin de plus de produits et de fonctionnalités avancées.",
   },
   {
     q: "Je n'ai pas de site web, je peux quand même vendre ?",
@@ -106,7 +106,7 @@ const FAQ = [
   },
   {
     q: "Combien de produits puis-je ajouter ?",
-    a: "La version gratuite vous permet d'ajouter jusqu'à 5 produits et de recevoir jusqu'à 5 commandes par mois sur votre boutique publique. Les offres Starter et Pro augmentent ces limites (100 produits et commandes illimitées pour Starter) et ajoutent la visibilité sur le catalogue anifowoche.com.",
+    a: "La version gratuite vous permet d'ajouter jusqu'à 5 produits et de recevoir jusqu'à 5 commandes par mois sur votre boutique publique. Les offres payantes Starter et Pro (bientôt disponibles) augmenteront ces limites (100 produits et commandes illimitées pour Starter) et ajouteront la visibilité sur le catalogue anifowoche.com.",
   },
   {
     q: "Mes données sont-elles sécurisées ?",
@@ -409,13 +409,9 @@ function PricingSection() {
                 </li>
               ))}
             </ul>
-            <Link
-              to="/register"
-              className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-bold text-white transition hover:bg-brand-medium"
-            >
-              Commencer
-              <ArrowRightIcon size={16} />
-            </Link>
+            <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
+              Bientôt disponible — prévenez-moi
+            </p>
           </div>
           <div className="relative rounded-xl border-2 border-brand bg-white p-6 sm:p-8">
             <div className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
@@ -443,13 +439,9 @@ function PricingSection() {
                 </li>
               ))}
             </ul>
-            <Link
-              to="/register"
-              className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-bold text-white transition hover:bg-brand-medium"
-            >
-              Choisir Pro
-              <ArrowRightIcon size={16} />
-            </Link>
+            <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
+              Bientôt disponible — prévenez-moi
+            </p>
           </div>
         </div>
       </div>
