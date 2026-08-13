@@ -227,7 +227,7 @@ class SellerProductSerializer(ProductSerializer):
         seller = self.context.get("seller")
         if shop and seller and shop.seller != seller:
             raise serializers.ValidationError({"shop_id": "Ce shop ne vous appartient pas."})
-        # Limite du plan gratuit : 10 produits actifs maximum (création ou réactivation).
+        # Limite du plan gratuit : 5 produits actifs maximum (création ou réactivation).
         if seller and self._adds_active_product(attrs) and not can_create_product(seller):
             max_products = plan_limits(seller)["max_products"]
             raise serializers.ValidationError(
