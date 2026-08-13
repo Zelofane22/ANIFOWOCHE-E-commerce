@@ -17,7 +17,7 @@ from apps.core.store_scope import get_main_store_slug
 
 PLAN_LIMITS = {
     "FREE": {"max_products": 10, "max_orders_per_month": 20, "price_xof": 0},
-    "STARTER": {"max_products": 100, "max_orders_per_month": None, "price_xof": 3000},
+    "STARTER": {"max_products": 100, "max_orders_per_month": None, "price_xof": 5000},
     "PRO": {"max_products": None, "max_orders_per_month": None, "price_xof": 10000},
     "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": None},
 }
