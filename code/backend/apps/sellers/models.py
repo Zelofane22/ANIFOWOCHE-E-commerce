@@ -77,3 +77,36 @@ class Shop(models.Model):
             slug = f"{base}-{suffix}"
             suffix += 1
         return slug
+
+
+class SellerSubscription(models.Model):
+    """Abonnement payant d'un vendeur ANIF Seller (mirroring apps.payments.Payment)."""
+
+    class Provider(models.TextChoices):
+        FEDAPAY = "fedapay", "FedaPay"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "En attente"
+        APPROVED = "approved", "Approuvé"
+        DECLINED = "declined", "Refusé"
+        CANCELED = "canceled", "Annulé"
+        FAILED = "failed", "Échec d'initialisation"
+
+    seller = models.ForeignKey(SellerProfile, on_delete=models.CASCADE, related_name="subscriptions")
+    plan = models.CharField(max_length=10, choices=SellerProfile.Plan.choices, default=SellerProfile.Plan.PAID)
+    amount_xof = models.PositiveIntegerField()
+    provider = models.CharField(max_length=20, choices=Provider.choices, default=Provider.FEDAPAY)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    fedapay_transaction_id = models.CharField(max_length=100, blank=True)
+    payment_url = models.URLField(blank=True)
+    last_webhook_payload = models.JSONField(blank=True, null=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Abonnement #{self.pk} — {self.seller.display_name} ({self.status})"

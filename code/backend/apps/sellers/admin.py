@@ -2,7 +2,7 @@ from unfold.admin import ModelAdmin
 
 from django.contrib import admin
 
-from .models import SellerProfile, Shop
+from .models import SellerProfile, Shop, SellerSubscription
 
 
 @admin.register(SellerProfile)
@@ -44,3 +44,14 @@ class ShopAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(SellerSubscription)
+class SellerSubscriptionAdmin(ModelAdmin):
+    list_display = ["seller", "plan", "amount_xof", "status", "starts_at", "ends_at", "created_at"]
+    list_filter = ["status", "plan", "provider"]
+    search_fields = ["seller__display_name", "fedapay_transaction_id"]
+    readonly_fields = ["last_webhook_payload"]
+    list_select_related = ["seller"]
+    date_hierarchy = "created_at"
+    ordering = ["-created_at"]
