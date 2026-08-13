@@ -23,7 +23,7 @@ const navItems = [
 const mobileNavItems = [
   navItems[0],
   navItems[1],
-  { to: "/products", label: "Ajouter", Icon: PlusIcon, centered: true },
+  { to: "/products/new", label: "Ajouter", Icon: PlusIcon, centered: true },
   navItems[2],
   navItems[3],
 ];
