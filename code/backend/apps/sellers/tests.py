@@ -619,7 +619,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertFalse(archived.is_active)
 
     def test_paid_seller_can_exceed_product_limit(self):
-        self.seller.plan = SellerProfile.Plan.PAID
+        self.seller.plan = SellerProfile.Plan.PRO
         self.seller.save(update_fields=["plan"])
         ProductFactory.create_batch(10, seller=self.seller, category=self.category)
 
@@ -651,7 +651,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_paid_shop_not_hidden_by_quota(self):
-        self.seller.plan = SellerProfile.Plan.PAID
+        self.seller.plan = SellerProfile.Plan.PRO
         self.seller.save(update_fields=["plan"])
         self._create_orders_for_seller(20)
 

@@ -44,7 +44,7 @@ class PublicProductVisibilityTests(APITestCase):
         )
         self.paid_user = UserFactory(username="paid_vendeur")
         self.paid_seller = SellerProfileFactory(
-            user=self.paid_user, display_name="Paid Shop", phone="+2290190000002", plan="PAID"
+            user=self.paid_user, display_name="Paid Shop", phone="+2290190000002", plan="PRO"
         )
         self.paid_product = ProductFactory(
             seller=self.paid_seller,

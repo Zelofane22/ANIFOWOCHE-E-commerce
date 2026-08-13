@@ -7,7 +7,9 @@ class SellerProfile(models.Model):
     """Profil commercial d'un utilisateur : identité publique et plan d'abonnement."""
     class Plan(models.TextChoices):
         FREE = "FREE", "Gratuit"
-        PAID = "PAID", "Payant"
+        STARTER = "STARTER", "Starter"
+        PRO = "PRO", "Pro"
+        BUSINESS = "BUSINESS", "Business"
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="seller_profile")
     display_name = models.CharField(max_length=150)
@@ -93,7 +95,7 @@ class SellerSubscription(models.Model):
         FAILED = "failed", "Échec d'initialisation"
 
     seller = models.ForeignKey(SellerProfile, on_delete=models.CASCADE, related_name="subscriptions")
-    plan = models.CharField(max_length=10, choices=SellerProfile.Plan.choices, default=SellerProfile.Plan.PAID)
+    plan = models.CharField(max_length=10, choices=SellerProfile.Plan.choices, default=SellerProfile.Plan.PRO)
     amount_xof = models.PositiveIntegerField()
     provider = models.CharField(max_length=20, choices=Provider.choices, default=Provider.FEDAPAY)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)

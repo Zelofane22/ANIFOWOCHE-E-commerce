@@ -1,9 +1,9 @@
-"""Limites des plans vendeurs : le plan FREE est borné, le plan PAID est illimité.
+"""Limites des plans vendeurs par palier (FREE/STARTER/PRO/BUSINESS).
 
 Règles métier (cf. page vendeur « Tarifs ») :
-- FREE : 10 produits actifs maximum, 20 commandes reçues par mois maximum.
-- FREE : les produits n'apparaissent jamais sur le catalogue principal
-  (anifowoche.com) — seule la boutique publique du vendeur les expose.
+- FREE : 10 produits actifs max, 20 commandes reçues par mois max ; produits
+  jamais visibles sur le catalogue principal (anifowoche.com).
+- STARTER/PRO/BUSINESS : montent en palier (voir PLAN_LIMITS).
 - Quota de commandes atteint : la boutique publique est masquée jusqu'au mois
   suivant (sans basculer ``is_published``, pour une réouverture automatique).
 - La boutique principale (entreprise, slug ``MAIN_STORE_SLUG``) n'est jamais
@@ -15,8 +15,17 @@ from django.utils import timezone
 
 from apps.core.store_scope import get_main_store_slug
 
-FREE_MAX_PRODUCTS = 10
-FREE_MAX_ORDERS_PER_MONTH = 20
+PLAN_LIMITS = {
+    "FREE": {"max_products": 10, "max_orders_per_month": 20, "price_xof": 0},
+    "STARTER": {"max_products": 100, "max_orders_per_month": None, "price_xof": 3000},
+    "PRO": {"max_products": None, "max_orders_per_month": None, "price_xof": 10000},
+    "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": None},
+}
+
+
+def plan_limits(seller):
+    """Limites du palier du vendeur (fallback FREE si valeur inconnue)."""
+    return PLAN_LIMITS.get(seller.plan, PLAN_LIMITS["FREE"])
 
 
 def is_free(seller):
@@ -66,12 +75,20 @@ def orders_this_month_count(seller):
 
 def can_create_product(seller):
     """True si le vendeur peut encore créer ou réactiver un produit actif."""
-    return not is_free(seller) or active_product_count(seller) < FREE_MAX_PRODUCTS
+    shop = getattr(seller, "shop", None)
+    if shop is not None and shop.slug == get_main_store_slug():
+        return True
+    max_products = plan_limits(seller)["max_products"]
+    return max_products is None or active_product_count(seller) < max_products
 
 
 def orders_quota_reached(seller):
-    """True si le vendeur FREE a atteint son quota mensuel de commandes."""
-    return is_free(seller) and orders_this_month_count(seller) >= FREE_MAX_ORDERS_PER_MONTH
+    """True si le vendeur a atteint son quota mensuel de commandes."""
+    shop = getattr(seller, "shop", None)
+    if shop is not None and shop.slug == get_main_store_slug():
+        return False
+    max_orders = plan_limits(seller)["max_orders_per_month"]
+    return max_orders is not None and orders_this_month_count(seller) >= max_orders
 
 
 def is_public_shop_visible(shop):
@@ -83,8 +100,9 @@ def main_store_catalog_q(prefix=""):
     """Filtre Q des produits visibles sur le catalogue principal (anifowoche.com).
 
     Visibles : les produits de la boutique entreprise, et ceux des vendeurs
-    PAID dont la boutique est marquée « visible sur la vitrine principale »
-    (ou sans boutique). Les produits des vendeurs FREE tiers en sont exclus.
+    payants (STARTER/PRO/BUSINESS) dont la boutique est marquée « visible sur
+    la vitrine principale » (ou sans boutique). Les produits des vendeurs FREE
+    tiers en sont exclus.
 
     ``prefix`` permet d'utiliser le filtre depuis un modèle lié (ex. « product__ »
     pour la wishlist).
@@ -112,11 +130,13 @@ def main_store_catalog_q(prefix=""):
 def build_limits_payload(seller):
     """Bloc « limits » exposé au frontend (dashboard, produits, paramètres)."""
     shop = getattr(seller, "shop", None)
+    limits = plan_limits(seller)
     free = is_free(seller)
     return {
         "plan": seller.plan,
-        "max_products": FREE_MAX_PRODUCTS if free else None,
-        "max_orders_per_month": FREE_MAX_ORDERS_PER_MONTH if free else None,
+        "max_products": limits["max_products"],
+        "max_orders_per_month": limits["max_orders_per_month"],
+        "price_xof": limits["price_xof"],
         "products_used": active_product_count(seller),
         "orders_this_month": orders_this_month_count(seller),
         "orders_quota_reached": orders_quota_reached(seller),
