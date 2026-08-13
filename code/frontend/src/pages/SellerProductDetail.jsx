@@ -188,9 +188,9 @@ export default function SellerProductDetail() {
           </div>
 
           <div>
-            {product.category && (
+            {product.category_path && (
               <p className="text-xs font-semibold text-brand-dark uppercase tracking-wide">
-                {product.category.name}
+                {product.category_path}
               </p>
             )}
             <h1 className="mt-2 text-2xl font-bold text-ink">{product.name}</h1>

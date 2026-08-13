@@ -4,21 +4,49 @@ from apps.sellers.models import Shop
 from apps.sellers.limits import FREE_MAX_PRODUCTS, can_create_product
 
 from .models import (
-    MADE_TO_ORDER_CATEGORY_SLUGS,
     Category,
     Option,
     OptionGroup,
     Product,
     ProductImage,
+    is_made_to_order_category,
 )
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    """Sérialise une catégorie de produits."""
+    """Sérialise une catégorie de produits (plat, usage public/nested)."""
 
     class Meta:
         model = Category
         fields = ["id", "name", "slug"]
+
+
+class CategoryAdminSerializer(serializers.ModelSerializer):
+    """Sérialiseur admin/backoffice : permet de créer/modifier l'arbre."""
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "slug", "parent", "level", "order", "is_active"]
+        read_only_fields = ["level"]
+
+
+class CategoryTreeSerializer(serializers.ModelSerializer):
+    """Sérialiseur récursif pour l'endpoint `/categories/tree/`."""
+
+    children = serializers.SerializerMethodField()
+    is_made_to_order = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "slug", "level", "is_made_to_order", "children"]
+
+    def get_is_made_to_order(self, obj):
+        return is_made_to_order_category(obj)
+
+    def get_children(self, obj):
+        # Affiche uniquement les enfants actifs, triés comme défini dans Meta.
+        active_children = obj.children.filter(is_active=True)
+        return CategoryTreeSerializer(active_children, many=True).data
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -31,11 +59,20 @@ class OptionSerializer(serializers.ModelSerializer):
 
 class OptionGroupSerializer(serializers.ModelSerializer):
     """Sérialise un groupe d'options avec ses options imbriquées (CRUD complet)."""
+
     options = OptionSerializer(many=True, read_only=False)
 
     class Meta:
         model = OptionGroup
-        fields = ["id", "name", "is_required", "min_selections", "max_selections", "order", "options"]
+        fields = [
+            "id",
+            "name",
+            "is_required",
+            "min_selections",
+            "max_selections",
+            "order",
+            "options",
+        ]
 
     def create(self, validated_data):
         # Création du groupe puis de toutes ses options imbriquées.
@@ -77,15 +114,28 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "alt_text", "color_name", "order", "is_cover", "is_active", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "image",
+            "alt_text",
+            "color_name",
+            "order",
+            "is_cover",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = ["is_active", "created_at", "updated_at"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
     """Sérialiseur public du produit : données liées, agrégats (note, avis, remise)."""
+
     category = CategorySerializer(read_only=True)
     seller_id = serializers.IntegerField(read_only=True)
-    seller_name = serializers.CharField(source="seller.display_name", read_only=True, allow_null=True)
+    seller_name = serializers.CharField(
+        source="seller.display_name", read_only=True, allow_null=True
+    )
     shop_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
@@ -96,6 +146,7 @@ class ProductSerializer(serializers.ModelSerializer):
     discounted_price_xof = serializers.SerializerMethodField()
     made_to_order = serializers.BooleanField(read_only=True)
     in_stock = serializers.SerializerMethodField()
+    category_path = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
     option_groups = OptionGroupSerializer(many=True, read_only=True)
 
@@ -122,6 +173,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "is_active",
             "category",
             "category_id",
+            "category_path",
             "rating_average",
             "review_count",
             "discount_percent",
@@ -147,10 +199,24 @@ class ProductSerializer(serializers.ModelSerializer):
         # Disponible si le produit est fabriqué à la commande (aucun stock) ou s'il reste du stock.
         return bool(product.made_to_order or product.stock > 0)
 
+    def get_category_path(self, product):
+        # Chemin complet de la catégorie (L1 > L2 > L3) pour l'affichage public.
+        if not product.category_id:
+            return ""
+        parts = []
+        current = product.category
+        while current:
+            parts.insert(0, current.name)
+            current = current.parent
+        return " > ".join(parts)
+
 
 class SellerProductSerializer(ProductSerializer):
     """Sérialiseur côté vendeur : ajoute la liaison boutique et la protection d'appartenance."""
-    shop_id = serializers.PrimaryKeyRelatedField(source="shop", queryset=Shop.objects.all(), write_only=True, required=False)
+
+    shop_id = serializers.PrimaryKeyRelatedField(
+        source="shop", queryset=Shop.objects.all(), write_only=True, required=False
+    )
 
     class Meta(ProductSerializer.Meta):
         read_only_fields = ["slug", "made_to_order", "created_at", "updated_at"]
@@ -167,11 +233,13 @@ class SellerProductSerializer(ProductSerializer):
                 f"Plan gratuit : maximum {FREE_MAX_PRODUCTS} produits actifs. "
                 "Archivez un produit ou passez au plan Illimité."
             )
-        # Les produits de catégorie « sur commande » (ex. restauration) n'ont pas de stock.
+        # Les produits de la branche « Alimentation » sont « sur commande »
+        # (aucun stock). La correspondance s'applique à toute la branche,
+        # y compris les futures sous-catégories ajoutées par les vendeurs.
         category = attrs.get("category")
         if category is None and self.instance:
             category = self.instance.category
-        if category and category.slug in MADE_TO_ORDER_CATEGORY_SLUGS:
+        if category and is_made_to_order_category(category):
             attrs["made_to_order"] = True
         return attrs
 

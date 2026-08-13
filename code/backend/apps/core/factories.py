@@ -65,14 +65,54 @@ class ProfileFactory(factory.django.DjangoModelFactory):
     notification_channel = Profile.NotificationChannel.EMAIL
 
 
+_SENTINEL = object()
+
+
 class CategoryFactory(factory.django.DjangoModelFactory):
-    """Factory de catégories de produits."""
+    """Factory de catégories de produits.
+
+    Par défaut crée un nœud de niveau 3 valide (avec parents auto-générés)
+    afin que les produits créés via ProductFactory respectent la règle métier.
+    Passer explicitement `level=1` ou `parent=None` crée une racine.
+    """
 
     class Meta:
         model = Category
 
     name = factory.Sequence(lambda n: f"Category {n}")
     slug = factory.Sequence(lambda n: f"category-{n}")
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        parent = kwargs.pop("parent", _SENTINEL)
+        level = kwargs.pop("level", _SENTINEL)
+
+        if parent is _SENTINEL and level is _SENTINEL:
+            # Création automatique d'une hiérarchie L1 > L2 > L3.
+            base_slug = kwargs.get("slug") or "category"
+            base_name = kwargs.get("name") or "Category"
+            root, _ = Category.objects.get_or_create(
+                parent=None,
+                slug=f"{base_slug}-root",
+                defaults={"name": f"{base_name} Root", "level": 1},
+            )
+            l2, _ = Category.objects.get_or_create(
+                parent=root,
+                slug=f"{base_slug}-sub",
+                defaults={"name": f"{base_name} Sub", "level": 2},
+            )
+            kwargs["parent"] = l2
+            kwargs["level"] = 3
+        elif parent is not _SENTINEL and level is _SENTINEL:
+            # Parent fourni : on déduit le niveau de l'arbre.
+            kwargs["parent"] = parent
+            kwargs["level"] = 1 if parent is None else parent.level + 1
+        else:
+            # Au moins l'un des deux est explicitement fourni.
+            kwargs["parent"] = None if parent is _SENTINEL or parent is None else parent
+            kwargs["level"] = level if level is not _SENTINEL else 1
+
+        return super()._create(model_class, *args, **kwargs)
 
 
 class SellerProfileFactory(factory.django.DjangoModelFactory):

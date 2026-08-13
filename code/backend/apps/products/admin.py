@@ -26,9 +26,10 @@ class LowStockListFilter(admin.SimpleListFilter):
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
-    list_display = ["name", "slug"]
+    list_display = ["name", "slug", "parent", "level", "order", "is_active"]
+    list_filter = ["level", "is_active", "parent"]
     prepopulated_fields = {"slug": ("name",)}
-    ordering = ["name"]
+    ordering = ["level", "order", "name"]
 
 
 class ProductImageInline(TabularInline):

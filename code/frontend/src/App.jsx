@@ -30,6 +30,8 @@ const SellerDashboard = lazy(() => import("./pages/SellerDashboard.jsx"));
 const SellerOrderDetail = lazy(() => import("./pages/SellerOrderDetail.jsx"));
 const SellerOrders = lazy(() => import("./pages/SellerOrders.jsx"));
 const SellerProducts = lazy(() => import("./pages/SellerProducts.jsx"));
+const SellerProductNew = lazy(() => import("./pages/SellerProductNew.jsx"));
+const SellerProductEdit = lazy(() => import("./pages/SellerProductEdit.jsx"));
 const SellerLanding = lazy(() => import("./pages/SellerLanding.jsx"));
 const SellerProductDetail = lazy(() => import("./pages/SellerProductDetail.jsx"));
 const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
@@ -62,6 +64,8 @@ export default function App() {
                 <Route path="/dashboard" element={<SellerDashboard />} />
                 <Route path="/orders" element={<SellerOrders />} />
                 <Route path="/orders/:id" element={<SellerOrderDetail />} />
+                <Route path="/products/new" element={<SellerProductNew />} />
+                <Route path="/products/:slug/edit" element={<SellerProductEdit />} />
                 <Route path="/products" element={<SellerProducts />} />
                 <Route path="/settings" element={<SellerSettings />} />
                 <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
