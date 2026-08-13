@@ -393,8 +393,11 @@ function PricingSection() {
             <h3 className="text-lg font-bold text-ink">Starter</h3>
             <p className="mt-1 text-sm text-muted">Pour les vendeurs actifs</p>
             <p className="mt-4">
-              <span className="text-4xl font-bold text-ink">5 000 F</span>
+              <span className="text-4xl font-bold text-ink">2 000 F</span>
               <span className="text-sm text-muted">/mois</span>
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              pendant les 3 premiers mois, puis 5 000 F/mois
             </p>
             <ul className="mt-6 space-y-3">
               {[
