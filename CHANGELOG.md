@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.1.0...v2.1.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **seller:** update dashboard label from 'Tableau de bord' to 'Acceuil' ([57813b7](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/57813b78bb9ebacffd763246454970b2d9216a22))
+* **seller:** update dashboard label from 'Tableau de bord' to 'Acceuil' ([ed008e5](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/ed008e5670d1566694ad0e6def8aeed742b624e5))
+
 ## [2.1.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.0.0...v2.1.0) (2026-08-13)
 
 
