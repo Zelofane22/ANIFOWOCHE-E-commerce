@@ -14,7 +14,7 @@ import { useAuth } from "../../context/useAuth.js";
 import BottomSheet from "../BottomSheet.jsx";
 
 const navItems = [
-  { to: "/dashboard", label: "Tableau de bord", Icon: LayoutDashboardIcon },
+  { to: "/dashboard", label: "Acceuil", Icon: LayoutDashboardIcon },
   { to: "/orders", label: "Commandes", Icon: TruckIcon },
   { to: "/products", label: "Produits", Icon: PackageIcon },
   { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
