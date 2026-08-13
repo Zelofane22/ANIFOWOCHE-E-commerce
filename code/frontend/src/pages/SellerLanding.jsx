@@ -413,7 +413,7 @@ function PricingSection() {
               ))}
             </ul>
             <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
-              Bientôt disponible — prévenez-moi
+              Bientôt disponible
             </p>
           </div>
           <div className="relative rounded-xl border-2 border-brand bg-white p-6 sm:p-8">
@@ -443,7 +443,7 @@ function PricingSection() {
               ))}
             </ul>
             <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
-              Bientôt disponible — prévenez-moi
+              Bientôt disponible
             </p>
           </div>
         </div>
