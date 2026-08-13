@@ -128,12 +128,6 @@ SAAS de vitrine privée pour vendeurs, hébergé sous le sous-domaine `seller.an
 dashboard de gestion (produits, commandes, paramètres) sur `anifowoche.com/seller/*`, vitrine publique
 par vendeur avec CTA WhatsApp comme unique moyen de contact. Voir [docs/ANIFOWOCHE_boutique/ANIF Seller/](docs/ANIFOWOCHE_boutique/ANIF%20Seller/README.md).
 
----
-
-## 📋 Contribuer
-
-Ce projet est développé en solo (méthodologie Agile).
-Toutes les tâches sont suivies via **[GitHub Projects](../../projects)**.
 
 ---
 
