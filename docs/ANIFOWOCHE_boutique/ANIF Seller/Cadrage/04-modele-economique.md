@@ -11,7 +11,7 @@ Monétiser ANIF Seller avec un abonnement mensuel accessible, adapté aux petits
 | Offre | Prix indicatif | Cible | Limites |
 |-------|----------------|-------|---------|
 | Gratuit | 0 FCFA/mois | Test et acquisition | 10 produits, 20 commandes/mois |
-| Starter | 2 000 à 5 000 FCFA/mois | Petit vendeur actif | 100 produits, commandes illimitées simples |
+| Starter | 5 000 FCFA/mois | Petit vendeur actif | 100 produits, commandes illimitées simples |
 | Pro | 10 000 FCFA/mois | Boutique structurée | statistiques, exports, plusieurs utilisateurs |
 | Business | Sur devis | Commerce avec équipe | multi-boutiques, support prioritaire, options avancées |
 
