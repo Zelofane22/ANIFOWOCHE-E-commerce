@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.3.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.2.0...v2.3.0) (2026-08-15)
+
+
+### Features
+
+* **fedapay:** enhance payment status handling and improve comments ([5645da0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/5645da0f041217280f83ca2695fdd27f06cadd82))
+* **paiement:** migrer FedaPay vers Checkout.js (modale intégrée) ([2eec0e6](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/2eec0e69b46438094adb93a16faa0b257854a93e))
+* **paiement:** vérifier et resynchroniser le statut FedaPay côté confirmation ([729e0f5](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/729e0f550dd4c90c887a51a2b8b3c55a5fffc889))
+
+
+### Bug Fixes
+
+* **docs:** correct branch name in AGENTS.md and clarify model identification in task execution ([1e728ae](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/1e728ae144a3dbc374ec26872b71928a548a5510))
+* **fedapay:** use widget object API with public_key and named constants ([6ec1467](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/6ec1467645fc9085e621ffd6d36b6b7a502c9955))
+
 ## [2.2.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.1.1...v2.2.0) (2026-08-13)
 
 
