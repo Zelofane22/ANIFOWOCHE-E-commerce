@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { absoluteUrl } from "../utils/siteUrl.js";
 
 const DEFAULT_DESCRIPTION =
-  "Tissus locaux, vêtements et accessoires homme à Cotonou — livraison rapide, paiement Mobile Money et carte.";
+  "Le site ecommerce 100% béninois, pour découvrir et acheter des produits locaux de qualité.";
 const DEFAULT_IMAGE = absoluteUrl("/anifowoche-logo.png");
 
 function buildBreadcrumbSchema(breadcrumbs) {
