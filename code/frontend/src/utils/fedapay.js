@@ -1,40 +1,46 @@
 import { getPayment } from "../api/payments.js";
 
-const PAYMENT_POLL_INTERVAL_MS = 2000;
-const PAYMENT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
-const PAYMENT_FAILURE_STATUSES = ["declined", "canceled", "failed"];
-
-// Sonde le statut réel du paiement (mis à jour par le webhook FedaPay) pendant que
-// le client complète le paiement dans la fenêtre ouverte, jusqu'à approbation,
-// échec, fermeture manuelle de la fenêtre ou expiration du délai.
-export function waitForPaymentApproval(paymentId, popup) {
+// Ouvre la modale de paiement FedaPay Checkout.js et retourne une Promise résolue
+// une fois le client avoir finalisé (ou fermé) le widget.
+//
+// Après CHECKOUT_COMPLETED on interroge une seule fois getPayment() pour récupérer
+// le statut réel confirmé par le webhook backend ("approved" ou "pending" si le
+// webhook n'a pas encore été traité).
+//
+// Les statuts retournés sont compatibles avec PAYMENT_CONTENT dans
+// OrderConfirmation.jsx : "approved" | "pending" | "declined" | "canceled" |
+// "closed" | "failed".
+export function openFedapayCheckout(payment) {
   return new Promise((resolve) => {
-    const startedAt = Date.now();
-    const timer = window.setInterval(async () => {
-      if (!popup || popup.closed) {
-        window.clearInterval(timer);
-        resolve("closed");
-        return;
-      }
-      if (Date.now() - startedAt > PAYMENT_POLL_TIMEOUT_MS) {
-        window.clearInterval(timer);
-        resolve("timeout");
-        return;
-      }
-      try {
-        const payment = await getPayment(paymentId);
-        if (payment.status === "approved") {
-          window.clearInterval(timer);
-          popup.close();
-          resolve("approved");
-        } else if (PAYMENT_FAILURE_STATUSES.includes(payment.status)) {
-          window.clearInterval(timer);
-          popup.close();
-          resolve(payment.status);
+    window.FedaPay.init({
+      public_key: import.meta.env.VITE_FEDAPAY_PUBLIC_KEY,
+      transaction: { id: payment.fedapay_transaction_id },
+      onComplete(resp) {
+        const reason = resp?.reason;
+
+        if (reason === window.FedaPay.CHECKOUT_COMPLETED) {
+          getPayment(payment.id)
+            .then((data) => {
+              resolve(data?.status ?? "pending");
+            })
+            .catch(() => {
+              const txStatus = resp?.transaction?.status;
+              if (txStatus === "approved" || txStatus === "transferred") {
+                resolve("approved");
+              } else {
+                resolve("pending");
+              }
+            });
+        } else if (reason === window.FedaPay.DIALOG_DISMISSED) {
+          resolve("closed");
+        } else if (resp?.transaction?.status === "declined") {
+          resolve("declined");
+        } else if (resp?.transaction?.status === "canceled") {
+          resolve("canceled");
+        } else {
+          resolve("failed");
         }
-      } catch {
-        // Erreur réseau transitoire : on continue de sonder jusqu'au prochain intervalle.
-      }
-    }, PAYMENT_POLL_INTERVAL_MS);
+      },
+    }).open();
   });
 }

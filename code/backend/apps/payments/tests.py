@@ -24,7 +24,7 @@ from apps.notifications.models import BackofficeNotification, Notification
 from apps.orders.models import Order, OrderItem
 
 from .models import Payment, PaymentSettings
-from .services import FedaPayError, PaymentRelaunchError, relaunch_payment
+from .services import FedaPayClient, FedaPayError, PaymentRelaunchError, relaunch_payment
 
 User = get_user_model()
 
@@ -49,6 +49,7 @@ class PaymentApiTests(APITestCase):
         OrderItemFactory(order=self.order, product=self.product, quantity=1, unit_price_xof=1000)
         self.staff_user = UserFactory(username="admin", is_staff=True)
 
+    @mock.patch("apps.payments.services.RETRY_DELAYS", ())
     @mock.patch("apps.payments.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_initiate_payment_handles_provider_failure_gracefully(self, mock_post):
         response = self.client.post(
@@ -231,6 +232,154 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.data["results"][0]["order"], self.order.id)
 
 
+    @mock.patch("apps.payments.services.RETRY_DELAYS", ())
+    def test_initiate_payment_retries_on_transient_network_error(self):
+        transaction_response = mock.Mock()
+        transaction_response.json.return_value = {"v1/transaction": {"id": 43}}
+        transaction_response.raise_for_status.return_value = None
+        token_response = mock.Mock()
+        token_response.json.return_value = {"url": "https://sandbox-pay.fedapay.com/t/43"}
+        token_response.raise_for_status.return_value = None
+
+        with mock.patch(
+            "apps.payments.services.requests.post",
+            side_effect=[requests.exceptions.ConnectionError, transaction_response, token_response],
+        ):
+            response = self.client.post(
+                "/api/payments/initiate/", {"order_id": self.order.id, "method": "mtn"}, format="json"
+            )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["fedapay_transaction_id"], "43")
+
+    def test_create_transaction_does_not_retry_http_error(self):
+        http_response = mock.Mock()
+        http_response.raise_for_status.side_effect = requests.exceptions.HTTPError("400 Bad Request")
+        with mock.patch("apps.payments.services.requests.post", return_value=http_response) as mock_post:
+            with self.assertRaises(FedaPayError):
+                FedaPayClient().create_transaction(
+                    amount_xof=1000,
+                    description="test",
+                    callback_url="https://example.com/retour",
+                    customer_phone="+2290190000000",
+                )
+        self.assertEqual(mock_post.call_count, 1)
+
+    def test_get_transaction_raises_on_network_error(self):
+        with mock.patch("apps.payments.services.requests.get", side_effect=requests.exceptions.ConnectionError):
+            with self.assertRaises(FedaPayError):
+                FedaPayClient().get_transaction("42")
+
+    @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
+    def test_webhook_rejects_amount_mismatch(self):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="890")
+        body = json.dumps({"name": "transaction.approved", "entity": {"id": "890", "amount": 999}})
+        signature = _sign(body, "test_webhook_secret")
+
+        response = self.client.post(
+            "/api/payments/webhook/",
+            data=body,
+            content_type="application/json",
+            HTTP_X_FEDAPAY_SIGNATURE=signature,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertIsNone(payment.last_webhook_payload)
+
+    @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
+    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
+    def test_webhook_approves_when_amount_matches(self, mock_post):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="891")
+        body = json.dumps({"name": "transaction.approved", "entity": {"id": "891", "amount": 1000}})
+        signature = _sign(body, "test_webhook_secret")
+
+        response = self.client.post(
+            "/api/payments/webhook/",
+            data=body,
+            content_type="application/json",
+            HTTP_X_FEDAPAY_SIGNATURE=signature,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.APPROVED)
+        self.assertEqual(payment.last_webhook_payload, json.loads(body))
+
+    def test_status_check_anonymous_rejected(self):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="558")
+        response = self.client.get(f"/api/payments/status/{payment.id}/")
+        self.assertEqual(response.status_code, 401)
+
+    def test_status_check_other_customer_rejected(self):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="558")
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.get(f"/api/payments/status/{payment.id}/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_status_check_resyncs_approved_payment(self):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="555")
+        self.client.force_authenticate(user=self.owner)
+        tx_response = mock.Mock()
+        tx_response.json.return_value = {"id": "555", "status": "approved", "amount": 1000}
+        tx_response.raise_for_status.return_value = None
+        with mock.patch("apps.payments.services.requests.get", return_value=tx_response), mock.patch(
+            "apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError
+        ):
+            response = self.client.get(f"/api/payments/status/{payment.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "approved")
+        payment.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.APPROVED)
+        self.assertEqual(self.order.status, Order.Status.PREPARED)
+
+    def test_status_check_idempotent_when_webhook_already_processed(self):
+        payment = PaymentFactory(
+            order=self.order,
+            method="mtn",
+            amount_xof=1000,
+            fedapay_transaction_id="555b",
+            status=Payment.Status.APPROVED,
+        )
+        self.client.force_authenticate(user=self.owner)
+        tx_response = mock.Mock()
+        tx_response.json.return_value = {"id": "555b", "status": "approved", "amount": 1000}
+        tx_response.raise_for_status.return_value = None
+        with mock.patch("apps.payments.services.requests.get", return_value=tx_response), mock.patch(
+            "apps.notifications.services.requests.post"
+        ) as notify_post:
+            response = self.client.get(f"/api/payments/status/{payment.id}/")
+
+        self.assertEqual(response.status_code, 200)
+        notify_post.assert_not_called()
+
+    def test_status_check_rejects_amount_mismatch(self):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="556")
+        self.client.force_authenticate(user=self.owner)
+        tx_response = mock.Mock()
+        tx_response.json.return_value = {"id": "556", "status": "approved", "amount": 999}
+        tx_response.raise_for_status.return_value = None
+        with mock.patch("apps.payments.services.requests.get", return_value=tx_response):
+            response = self.client.get(f"/api/payments/status/{payment.id}/")
+
+        self.assertEqual(response.status_code, 400)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+
+    def test_status_check_returns_502_on_fedapay_error(self):
+        payment = PaymentFactory(order=self.order, method="mtn", amount_xof=1000, fedapay_transaction_id="557")
+        self.client.force_authenticate(user=self.owner)
+        with mock.patch("apps.payments.services.requests.get", side_effect=requests.exceptions.ConnectionError):
+            response = self.client.get(f"/api/payments/status/{payment.id}/")
+
+        self.assertEqual(response.status_code, 502)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+
+
 def _fedapay_success_responses(transaction_id=99, url="https://sandbox-pay.fedapay.com/t/99"):
     transaction_response = mock.Mock()
     transaction_response.json.return_value = {"v1/transaction": {"id": transaction_id}}
@@ -317,6 +466,7 @@ class PaymentRelaunchTests(APITestCase):
         with self.assertRaises(PaymentRelaunchError):
             relaunch_payment(self.failed_payment)
 
+    @mock.patch("apps.payments.services.RETRY_DELAYS", ())
     @mock.patch("apps.payments.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_relaunch_marks_new_payment_failed_on_fedapay_error(self, mock_post):
         with self.assertRaises(FedaPayError):

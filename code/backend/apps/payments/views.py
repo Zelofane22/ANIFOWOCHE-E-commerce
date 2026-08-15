@@ -7,13 +7,13 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from apps.notifications.services import notify_invoice
-from apps.orders.models import Order
-
 from .models import Payment, PaymentSettings
 from .serializers import InitiatePaymentSerializer, PaymentSerializer
 from .services import (
+    FEDAPAY_TRANSACTION_STATUS_MAP,
+    FedaPayClient,
     FedaPayError,
+    apply_payment_status,
     signal_payment_failure,
     start_fedapay_transaction,
     verify_webhook_signature,
@@ -138,6 +138,26 @@ class FedaPayWebhookView(APIView):
         except Payment.DoesNotExist:
             return Response({"detail": "Paiement introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Contrôle du montant : un écart entre le montant reçu et celui de la
+        # commande signale une transaction douteuse — on refuse de mettre à jour
+        # le statut tant que l'incohérence n'est pas résolue.
+        amount_xof = entity.get("amount")
+        if amount_xof is not None:
+            try:
+                amount_xof = int(amount_xof)
+            except (TypeError, ValueError):
+                logger.error(
+                    "Webhook FedaPay: montant invalide %r pour la transaction %s.", amount_xof, transaction_id
+                )
+                return Response({"detail": "Montant invalide."}, status=status.HTTP_400_BAD_REQUEST)
+            if amount_xof != payment.amount_xof:
+                logger.error(
+                    "Webhook FedaPay: montant incohérent pour la transaction %s (%s) : "
+                    "reçu %s, attendu %s — statut non mis à jour.",
+                    transaction_id, event_name, amount_xof, payment.amount_xof,
+                )
+                return Response({"detail": "Montant incohérent."}, status=status.HTTP_400_BAD_REQUEST)
+
         # Mappage des événements FedaPay vers les statuts locaux.
         status_map = {
             "transaction.approved": Payment.Status.APPROVED,
@@ -146,21 +166,62 @@ class FedaPayWebhookView(APIView):
         }
         new_status = status_map.get(event_name)
         if new_status:
-            payment.status = new_status
-        # Conservation du payload reçu pour l'audit.
-        payment.last_webhook_payload = event
-        payment.save(update_fields=["status", "last_webhook_payload", "updated_at"])
-
-        # Paiement approuvé : la commande passe en « préparée » et la facture est envoyée.
-        if payment.status == Payment.Status.APPROVED:
-            order = payment.order
-            order.status = Order.Status.PREPARED
-            order.save(update_fields=["status", "updated_at"])
-            notify_invoice(payment)
-        # Paiement refusé/annulé : l'échec est signalé au backoffice pour relance.
-        elif new_status in (Payment.Status.DECLINED, Payment.Status.CANCELED):
-            # US-34 : l'échec remonte dans la cloche backoffice, d'où l'admin
-            # peut ouvrir le paiement et le relancer.
-            signal_payment_failure(payment)
+            # Application du statut + effets de bord (commande, facture, relance).
+            apply_payment_status(payment, new_status, webhook_payload=event)
+        else:
+            # Événement non mappé : conservation du payload pour l'audit, sans toucher au statut.
+            payment.last_webhook_payload = event
+            payment.save(update_fields=["last_webhook_payload", "updated_at"])
 
         return Response({"detail": "ok"})
+
+
+class PaymentStatusCheckView(APIView):
+    """Vérifie l'état d'un paiement FedaPay directement auprès de FedaPay
+    (polling depuis la page de confirmation) : resynchronise le statut local si
+    le webhook n'est pas encore arrivé. Idempotent si le webhook est déjà passé
+    (aucun effet de bord rejoué, pas de double envoi de facture)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, payment_id):
+        # Un client ne consulte que les paiements de ses propres commandes ; le staff voit tout.
+        try:
+            payment = Payment.objects.select_related("order").get(pk=payment_id)
+        except Payment.DoesNotExist:
+            return Response({"detail": "Paiement introuvable."}, status=status.HTTP_404_NOT_FOUND)
+        if not request.user.is_staff and payment.order.customer_id != request.user.id:
+            return Response({"detail": "Paiement introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Seuls les paiements en ligne FedaPay lancés sont resynchronisables.
+        if payment.provider != Payment.Provider.FEDAPAY or not payment.fedapay_transaction_id:
+            return Response(PaymentSerializer(payment).data)
+
+        # Interrogation de l'état réel de la transaction chez FedaPay.
+        try:
+            transaction = FedaPayClient().get_transaction(payment.fedapay_transaction_id)
+        except FedaPayError as exc:
+            logger.warning("Vérification FedaPay échouée pour le paiement #%s : %s", payment.pk, exc)
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        # Contrôle du montant (même garde que le webhook) : transaction douteuse refusée.
+        amount_xof = transaction.get("amount")
+        if amount_xof is not None:
+            try:
+                amount_xof = int(amount_xof)
+            except (TypeError, ValueError):
+                return Response({"detail": "Montant invalide."}, status=status.HTTP_400_BAD_REQUEST)
+            if amount_xof != payment.amount_xof:
+                logger.error(
+                    "FedaPay: montant incohérent pour le paiement #%s (transaction %s) : "
+                    "reçu %s, attendu %s.",
+                    payment.pk, payment.fedapay_transaction_id, amount_xof, payment.amount_xof,
+                )
+                return Response({"detail": "Montant incohérent."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Resynchronisation si FedaPay a déjà un statut final non encore reçu par webhook.
+        new_status = FEDAPAY_TRANSACTION_STATUS_MAP.get(transaction.get("status", ""))
+        if new_status:
+            apply_payment_status(payment, new_status)
+
+        return Response(PaymentSerializer(payment).data)
