@@ -243,10 +243,12 @@ export default function Checkout() {
       }
 
       let paymentStatus = "cash_on_delivery";
+      let paymentId = null;
       if (!isSelectedMethodOffline) {
         paymentStatus = "failed";
         try {
           const payment = await initiatePayment({ order_id: order.id, method: effectivePaymentMethodValue });
+          paymentId = payment.id;
           if (payment.payment_url) {
             setWaitingForPayment(true);
             paymentStatus = await openFedapayCheckout(payment);
@@ -263,7 +265,13 @@ export default function Checkout() {
 
       if (paymentStatus === "approved" || paymentStatus === "cash_on_delivery") clearCart();
       navigate("/commande/confirmation", {
-        state: { orderId: order.id, total: orderTotal, paymentStatus, method: effectivePaymentMethodValue },
+        state: {
+          orderId: order.id,
+          total: orderTotal,
+          paymentStatus,
+          method: effectivePaymentMethodValue,
+          paymentId,
+        },
       });
     } catch (err) {
       setError(extractErrorMessage(err));

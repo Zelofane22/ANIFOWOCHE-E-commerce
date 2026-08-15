@@ -1,11 +1,17 @@
 import hashlib
 import hmac
+import time
 
 import requests
 from django.conf import settings
 
 from apps.notifications.models import BackofficeNotification
-from apps.notifications.services import create_backoffice_notification, notify_payment_retry
+from apps.notifications.services import (
+    create_backoffice_notification,
+    notify_invoice,
+    notify_payment_retry,
+)
+from apps.orders.models import Order
 
 from .models import Payment, PaymentSettings
 
@@ -17,6 +23,21 @@ class FedaPayError(Exception):
 class PaymentRelaunchError(Exception):
     """Relance impossible pour une raison métier (statut, moyen de paiement,
     commande déjà payée…) — distincte d'un échec technique FedaPay."""
+
+
+# Retry limité aux erreurs réseau transitoires (timeout/connexion) : une erreur
+# HTTP 4xx/5xx signale un problème métier à corriger, pas une panne à retenter.
+RETRY_DELAYS = (1, 2, 4)
+MAX_ATTEMPTS = 3
+
+# Statuts FedaPay (objet transaction récupéré via GET /v1/transactions/{id})
+# vers les statuts locaux, pour resynchroniser un paiement dont le webhook
+# n'est pas encore arrivé (polling page de confirmation).
+FEDAPAY_TRANSACTION_STATUS_MAP = {
+    "approved": Payment.Status.APPROVED,
+    "declined": Payment.Status.DECLINED,
+    "canceled": Payment.Status.CANCELED,
+}
 
 
 class FedaPayClient:
@@ -39,6 +60,25 @@ class FedaPayClient:
             "Content-Type": "application/json",
         }
 
+    def _post(self, url, *, error_message, **kwargs):
+        """POST avec 3 tentatives sur erreurs réseau (Timeout/ConnectionError)
+        uniquement, backoff 1s/2s/4s. Les erreurs HTTP (4xx/5xx) ne sont pas
+        retentées : elles signalent un problème à corriger, pas une panne."""
+        delays = RETRY_DELAYS
+        last_exc = None
+        for attempt in range(MAX_ATTEMPTS):
+            try:
+                response = requests.post(url, **kwargs)
+                response.raise_for_status()
+                return response
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+                last_exc = exc
+                if attempt < MAX_ATTEMPTS - 1 and attempt < len(delays):
+                    time.sleep(delays[attempt])
+            except requests.exceptions.RequestException as exc:
+                raise FedaPayError(f"{error_message} : {exc}") from exc
+        raise FedaPayError(f"{error_message} : {last_exc}") from last_exc
+
     def create_transaction(self, *, amount_xof, description, callback_url, customer_phone, customer_email=""):
         # Construction du corps de la transaction (montant, devise, client).
         payload = {
@@ -51,30 +91,37 @@ class FedaPayClient:
                 "email": customer_email or None,
             },
         }
-        try:
-            # Création de la transaction côté FedaPay.
-            response = requests.post(
-                f"{self.base_url}/v1/transactions",
-                json=payload,
-                headers=self._headers(),
-                timeout=10,
-            )
-            response.raise_for_status()
-        except requests.RequestException as exc:
-            raise FedaPayError(f"Échec de création de la transaction FedaPay : {exc}") from exc
+        response = self._post(
+            f"{self.base_url}/v1/transactions",
+            error_message="Échec de création de la transaction FedaPay",
+            json=payload,
+            headers=self._headers(),
+            timeout=10,
+        )
         return response.json()
 
     def generate_token(self, transaction_id):
         # Génération du jeton/lien de paiement d'une transaction existante.
+        response = self._post(
+            f"{self.base_url}/v1/transactions/{transaction_id}/token",
+            error_message="Échec de génération du lien de paiement FedaPay",
+            headers=self._headers(),
+            timeout=10,
+        )
+        return response.json()
+
+    def get_transaction(self, transaction_id):
+        # Récupération de l'état réel d'une transaction (resynchronisation si le
+        # webhook n'est pas encore arrivé).
         try:
-            response = requests.post(
-                f"{self.base_url}/v1/transactions/{transaction_id}/token",
+            response = requests.get(
+                f"{self.base_url}/v1/transactions/{transaction_id}",
                 headers=self._headers(),
                 timeout=10,
             )
             response.raise_for_status()
         except requests.RequestException as exc:
-            raise FedaPayError(f"Échec de génération du lien de paiement FedaPay : {exc}") from exc
+            raise FedaPayError(f"Échec de récupération de la transaction FedaPay : {exc}") from exc
         return response.json()
 
 
@@ -123,6 +170,35 @@ def start_fedapay_transaction(payment):
     payment.payment_url = token_data.get("url", "")
     payment.save(update_fields=["fedapay_transaction_id", "payment_url", "updated_at"])
     return payment
+
+
+def apply_payment_status(payment, new_status, webhook_payload=None):
+    """Applique un statut final issu de FedaPay au paiement local et déclenche
+    les effets de bord associés : commande « préparée » + envoi de facture pour
+    un paiement approuvé ; notification backoffice de relance pour un
+    refus/annulation. Idempotent : si le statut est déjà appliqué, aucun effet
+    de bord n'est rejoué (le webhook et le polling de confirmation peuvent se
+    croiser). Retourne True si le statut a été changé."""
+    if payment.status == new_status and webhook_payload is None:
+        return False
+
+    payment.status = new_status
+    update_fields = ["status", "updated_at"]
+    if webhook_payload is not None:
+        payment.last_webhook_payload = webhook_payload
+        update_fields.append("last_webhook_payload")
+    payment.save(update_fields=update_fields)
+
+    if new_status == Payment.Status.APPROVED:
+        order = payment.order
+        order.status = Order.Status.PREPARED
+        order.save(update_fields=["status", "updated_at"])
+        notify_invoice(payment)
+    elif new_status in (Payment.Status.DECLINED, Payment.Status.CANCELED):
+        # US-34 : l'échec remonte dans la cloche backoffice, d'où l'admin
+        # peut ouvrir le paiement et le relancer.
+        signal_payment_failure(payment)
+    return True
 
 
 RELAUNCHABLE_STATUSES = (Payment.Status.FAILED, Payment.Status.DECLINED, Payment.Status.CANCELED)

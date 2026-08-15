@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { initiatePayment } from "../api/payments.js";
+import { checkPaymentStatus, initiatePayment } from "../api/payments.js";
 import { ONLINE_PAYMENT_METHODS } from "../constants/payments.js";
+import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { openFedapayCheckout } from "../utils/fedapay.js";
@@ -60,11 +61,18 @@ const TONE_STYLES = {
 
 const RETRYABLE_STATUSES = ["declined", "canceled", "closed", "timeout", "failed"];
 
+// Polling du statut FedaPay tant que le paiement n'est pas finalisé : le
+// webhook peut mettre quelques secondes à arriver, on resynchronise via
+// /payments/status/{id}/ jusqu'à obtenir un statut terminal.
+const POLL_INTERVAL_MS = 5000;
+const POLLABLE_STATUSES = ["pending", "closed", "timeout"];
+
 export default function OrderConfirmation() {
   const location = useLocation();
   const navigate = useNavigate();
   const { clearCart } = useCart();
-  const { orderId, total, method: initialMethod } = location.state ?? {};
+  const { isAuthenticated } = useAuth();
+  const { orderId, total, method: initialMethod, paymentId } = location.state ?? {};
 
   const [paymentStatus, setPaymentStatus] = useState(location.state?.paymentStatus);
   const [retryMethod, setRetryMethod] = useState(initialMethod ?? ONLINE_PAYMENT_METHODS[0].value);
@@ -74,6 +82,30 @@ export default function OrderConfirmation() {
   useEffect(() => {
     if (!orderId) navigate("/", { replace: true });
   }, [orderId, navigate]);
+
+  // Resynchronisation du statut FedaPay si le webhook n'est pas encore arrivé.
+  useEffect(() => {
+    if (!paymentId || !isAuthenticated || !POLLABLE_STATUSES.includes(paymentStatus)) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const payment = await checkPaymentStatus(paymentId);
+        if (cancelled || payment.status === paymentStatus) return;
+        setPaymentStatus(payment.status);
+        if (payment.status === "approved") clearCart();
+      } catch {
+        // Réseau/401 : on laisse l'affichage en l'état, le prochain tick réessaiera.
+      }
+    };
+
+    poll();
+    const timer = setInterval(poll, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [paymentId, isAuthenticated, paymentStatus, clearCart]);
 
   if (!orderId) return null;
 

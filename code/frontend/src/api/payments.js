@@ -6,3 +6,6 @@ export const initiatePayment = (payload) =>
 export const getPayment = (id) => apiClient.get(`/payments/${id}/`).then((res) => res.data);
 
 export const getPayments = () => apiClient.get("/payments/").then((res) => res.data);
+
+export const checkPaymentStatus = (id) =>
+  apiClient.get(`/payments/status/${id}/`).then((res) => res.data);
