@@ -283,6 +283,12 @@ function ProductView({ slug }) {
         image={product.image ? optimizedImage(product.image, 800) : undefined}
         type="product"
         jsonLd={productJsonLd}
+        breadcrumbs={[
+          { name: "Accueil", path: "/" },
+          { name: "Catalogue", path: "/catalogue" },
+          ...(product.category?.name ? [{ name: product.category.name, path: "/catalogue" }] : []),
+          { name: product.name },
+        ]}
       />
       <div className="mb-5 flex items-center gap-2 text-xs text-muted">
         <button type="button" onClick={() => navigate("/catalogue")} className="transition hover:text-brand-dark">

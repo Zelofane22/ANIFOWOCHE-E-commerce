@@ -19,6 +19,7 @@ import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
+import Seo from "../components/Seo.jsx";
 
 const emptyRegisterForm = {
   username: "",
@@ -323,6 +324,7 @@ export default function Account() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-10">
+      <Seo title="Mon compte" path="/compte" type="website" />
       <h1 className="mb-6 text-xl font-bold text-ink">Mon compte</h1>
       <div className="rounded-xl border border-black/10 bg-white p-6">
         <div className="mb-6 flex gap-4 border-b border-gray-200 text-sm font-medium">

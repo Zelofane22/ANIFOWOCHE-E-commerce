@@ -188,6 +188,10 @@ export default function Catalogue() {
         title="Catalogue"
         description="Parcourez tous les tissus, vêtements et accessoires homme disponibles chez ANIFOWOCHE, avec livraison à Cotonou."
         path="/catalogue"
+        breadcrumbs={[
+          { name: "Accueil", path: "/" },
+          { name: "Catalogue" },
+        ]}
       />
       <section className="bg-brand-pale">
         <div className="mx-auto max-w-7xl px-4 py-8 md:py-10">
