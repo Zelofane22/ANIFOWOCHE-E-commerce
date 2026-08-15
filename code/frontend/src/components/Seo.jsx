@@ -2,8 +2,36 @@ import { Helmet } from "react-helmet-async";
 import { absoluteUrl } from "../utils/siteUrl.js";
 
 const DEFAULT_DESCRIPTION =
-  "Tissus locaux, vêtements et accessoires homme à Cotonou — livraison rapide, paiement Mobile Money et carte.";
+  "Le site ecommerce 100% béninois, pour découvrir et acheter des produits locaux de qualité.";
 const DEFAULT_IMAGE = absoluteUrl("/anifowoche-logo.png");
+
+function buildBreadcrumbSchema(breadcrumbs) {
+  if (!breadcrumbs || breadcrumbs.length === 0) return null;
+
+  const items = breadcrumbs.map((crumb, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: crumb.name,
+    ...(crumb.path ? { item: absoluteUrl(crumb.path) } : {}),
+  }));
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items,
+  };
+}
+
+function buildOrganizationSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "ANIFOWOCHE",
+    url: absoluteUrl("/"),
+    logo: DEFAULT_IMAGE,
+    sameAs: [],
+  };
+}
 
 export default function Seo({
   title,
@@ -12,9 +40,21 @@ export default function Seo({
   image = DEFAULT_IMAGE,
   type = "website",
   jsonLd,
+  breadcrumbs,
 }) {
   const fullTitle = title ? `${title} — ANIFOWOCHE` : "ANIFOWOCHE — Tissus, vêtements & accessoires";
   const url = absoluteUrl(path);
+
+  const schemas = [];
+
+  const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbs);
+  if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+
+  if (type === "website" && path === "/" && !jsonLd) {
+    schemas.push(buildOrganizationSchema());
+  }
+
+  const allSchemas = jsonLd ? [...schemas, jsonLd] : schemas;
 
   return (
     <Helmet>
@@ -34,7 +74,11 @@ export default function Seo({
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
 
-      {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
+      {allSchemas.map((schema, i) => (
+        <script key={i} type="application/ld+json">
+          {JSON.stringify(schema)}
+        </script>
+      ))}
     </Helmet>
   );
 }

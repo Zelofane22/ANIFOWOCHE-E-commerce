@@ -13,6 +13,7 @@ import { extractErrorMessage } from "../utils/apiError.js";
 import { openFedapayCheckout } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
+import Seo from "../components/Seo.jsx";
 
 const DEFAULT_STORE_STATUS = {
   online_payment_enabled: true,
@@ -292,6 +293,7 @@ export default function Checkout() {
 
   return (
     <form onSubmit={handlePay} className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
+      <Seo title="Commande" path="/commande" type="website" />
       <div className="mb-6 flex items-center gap-2 text-sm text-muted">
         <button type="button" onClick={() => navigate("/panier")} className="font-medium transition hover:text-brand-dark">
           Panier

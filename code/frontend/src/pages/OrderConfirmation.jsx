@@ -6,6 +6,7 @@ import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { openFedapayCheckout } from "../utils/fedapay.js";
+import Seo from "../components/Seo.jsx";
 import { formatXof } from "../utils/format.js";
 
 // tone détermine l'icône/couleur : "success" (coche, paiement confirmé),
@@ -136,6 +137,7 @@ export default function OrderConfirmation() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-16 text-center">
+      <Seo title={content.title} path="/confirmation" type="website" />
       <div className={`flex h-16 w-16 items-center justify-center rounded-full ${style.badge}`}>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={style.stroke} strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d={style.path} />
