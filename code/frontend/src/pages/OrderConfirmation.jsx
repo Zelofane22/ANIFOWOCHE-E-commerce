@@ -4,7 +4,7 @@ import { initiatePayment } from "../api/payments.js";
 import { ONLINE_PAYMENT_METHODS } from "../constants/payments.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
-import { waitForPaymentApproval } from "../utils/fedapay.js";
+import { openFedapayCheckout } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
 
 // tone détermine l'icône/couleur : "success" (coche, paiement confirmé),
@@ -85,24 +85,17 @@ export default function OrderConfirmation() {
     setRetryError(null);
     setRetrying(true);
 
-    // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le
-    // blocage popup des navigateurs.
-    const paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
-
     try {
       const payment = await initiatePayment({ order_id: orderId, method: retryMethod });
       let newStatus;
-      if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
-        paymentWindow.location.href = payment.payment_url;
-        newStatus = await waitForPaymentApproval(payment.id, paymentWindow);
+      if (payment.payment_url) {
+        newStatus = await openFedapayCheckout(payment);
       } else {
-        paymentWindow?.close();
         newStatus = payment.status;
       }
       if (newStatus === "approved") clearCart();
       setPaymentStatus(newStatus);
     } catch (err) {
-      paymentWindow?.close();
       setRetryError(extractErrorMessage(err));
     } finally {
       setRetrying(false);

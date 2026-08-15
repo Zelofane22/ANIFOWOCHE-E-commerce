@@ -10,7 +10,7 @@ import { PAYMENT_METHODS } from "../constants/payments.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
-import { waitForPaymentApproval } from "../utils/fedapay.js";
+import { openFedapayCheckout } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
 
@@ -211,14 +211,6 @@ export default function Checkout() {
     setError(null);
     setSubmitting(true);
 
-    let paymentWindow = null;
-    if (!isSelectedMethodOffline) {
-      // Ouverte tout de suite, dans le geste utilisateur (clic), pour éviter le blocage
-      // popup des navigateurs — elle affiche une page vide le temps que le paiement soit
-      // initié, puis est redirigée vers le vrai payment_url FedaPay.
-      paymentWindow = window.open("", "fedapay_payment", "width=480,height=720");
-    }
-
     const zone = selectedZone;
     const slot = selectedSlot;
     const address = [zone.name, addressLine.trim(), "créneau : " + slot.label, notes.trim()].filter(Boolean).join(" — ");
@@ -255,17 +247,14 @@ export default function Checkout() {
         paymentStatus = "failed";
         try {
           const payment = await initiatePayment({ order_id: order.id, method: effectivePaymentMethodValue });
-          if (payment.payment_url && paymentWindow && !paymentWindow.closed) {
-            paymentWindow.location.href = payment.payment_url;
+          if (payment.payment_url) {
             setWaitingForPayment(true);
-            paymentStatus = await waitForPaymentApproval(payment.id, paymentWindow);
+            paymentStatus = await openFedapayCheckout(payment);
           } else {
-            paymentWindow?.close();
             paymentStatus = payment.status;
           }
         } catch {
           // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
-          paymentWindow?.close();
           paymentStatus = "failed";
         }
       } else {
@@ -277,7 +266,6 @@ export default function Checkout() {
         state: { orderId: order.id, total: orderTotal, paymentStatus, method: effectivePaymentMethodValue },
       });
     } catch (err) {
-      paymentWindow?.close();
       setError(extractErrorMessage(err));
     } finally {
       setWaitingForPayment(false);
@@ -386,7 +374,7 @@ export default function Checkout() {
                 <div className="rounded-lg border border-brand/20 bg-brand-pale px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-ink">Localiser l’adresse</p>
+                      <p className="text-sm font-semibold text-ink">Localiser l'adresse</p>
                       <p className="mt-1 text-xs text-muted">La position servira à confirmer la zone de livraison.</p>
                     </div>
                     <button 
