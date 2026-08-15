@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.3.0...v2.4.0) (2026-08-15)
+
+
+### Features
+
+* **seo:** enhance structured data and add SEO to missing pages ([6f92e9f](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/6f92e9fc804b99bc96654ba090843f2b0c051e36))
+
+
+### Bug Fixes
+
+* **seo:** update default description for improved clarity and relevance ([9ba1517](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/9ba1517db17702dc95b4744b35206495f88e84b2))
+
 ## [2.3.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.2.0...v2.3.0) (2026-08-15)
 
 
