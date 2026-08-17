@@ -472,7 +472,7 @@ export default function Checkout() {
             <>
               <h1 className="text-xl font-bold text-ink">Moyen de paiement</h1>
               <div className="mt-5 space-y-3">
-                {PAYMENT_METHODS.filter((method) => isAuthenticated || method.type === "offline").map((method) => {
+                {PAYMENT_METHODS.map((method) => {
                   const disabled = isMethodDisabled(method);
                   const selected = effectivePaymentMethodValue === method.value;
                   return (
@@ -526,6 +526,31 @@ export default function Checkout() {
                   );
                 })}
               </div>
+
+              {!isAuthenticated && (
+                <div className="flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold">Connectez-vous pour payer en ligne</p>
+                    <p className="mt-1 text-xs">
+                      Créez un compte ou connectez-vous pour utiliser le Mobile Money et la carte bancaire.
+                      Vous pouvez toutefois commander et payer à la livraison.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <a href="/connexion" className="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700">
+                        Se connecter
+                      </a>
+                      <a href="/inscription" className="inline-block rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
+                        Créer un compte
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 rounded-[10px] border border-brand/20 bg-brand-light p-4 text-sm text-brand-dark">
                 {isSelectedMethodOffline
