@@ -5,7 +5,7 @@ export default function ShopRedirect() {
   const { slug } = useParams();
 
   useEffect(() => {
-    window.location.replace(`https://seller.anifowoche.com/${slug}`);
+    const isDev = import.meta.env.DEV; window.location.replace(isDev ? `http://selle.localhost:5173/${slug}` : `https://seller.anifowoche.com/${slug}`);
   }, [slug]);
 
   return (

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router";
 import { pingPageView } from "./api/analytics.js";
 import Footer from "./components/Footer.jsx";
 import MobileTabBar from "./components/MobileTabBar.jsx";
@@ -12,7 +12,7 @@ import Home from "./pages/Home.jsx";
 import ShopRedirect from "./pages/ShopRedirect.jsx";
 
 const hostname = window.location.hostname;
-const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname.startsWith("seller.") || window.location.search.includes("seller=1");
+const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname === "selle.localhost" || hostname.startsWith("seller.") || hostname.startsWith("selle.");
 
 const Account = lazy(() => import("./pages/Account.jsx"));
 const Addresses = lazy(() => import("./pages/Addresses.jsx"));
@@ -36,6 +36,11 @@ const SellerLanding = lazy(() => import("./pages/SellerLanding.jsx"));
 const SellerProductDetail = lazy(() => import("./pages/SellerProductDetail.jsx"));
 const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
 const Wishlist = lazy(() => import("./pages/Wishlist.jsx"));
+
+function SellerShopRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/${slug}`} replace />;
+}
 
 function PageViewTracker() {
   const location = useLocation();
@@ -69,6 +74,7 @@ export default function App() {
                 <Route path="/products" element={<SellerProducts />} />
                 <Route path="/settings" element={<SellerSettings />} />
                 <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
+                <Route path="/shop/:slug" element={<SellerShopRedirect />} />
                 <Route path="/:slug" element={<PublicShop />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

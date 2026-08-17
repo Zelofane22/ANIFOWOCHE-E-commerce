@@ -26,6 +26,7 @@ export default function SellerProductDetail() {
   const [order, setOrder] = useState(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     Promise.all([
@@ -56,6 +57,21 @@ export default function SellerProductDetail() {
   );
   const deliveryFee = zone?.fee_xof ?? 0;
   const total = productTotal + deliveryFee;
+
+  const galleryImages = [
+    ...(product?.image ? [{ id: "cover", image: product.image, color_name: "" }] : []),
+    ...(product?.images ?? []),
+  ];
+  const displayImages = galleryImages.length > 0 ? galleryImages : [];
+  const hasGallery = displayImages.length > 1;
+  const currentImage = displayImages[activeImageIndex] ?? displayImages[0];
+
+  const showPreviousImage = () => {
+    setActiveImageIndex((index) => (index - 1 + displayImages.length) % displayImages.length);
+  };
+  const showNextImage = () => {
+    setActiveImageIndex((index) => (index + 1) % displayImages.length);
+  };
 
   const canSubmit = Boolean(
     zone &&
@@ -152,7 +168,7 @@ export default function SellerProductDetail() {
   }
 
   const whatsappMessage = order
-    ? `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}.\n\nProduit : ${product.name}\nQuantité : ${quantity}\nPrix unitaire : ${formatXof(product.price_xof)}\nFrais de livraison (${zone.name}) : ${formatXof(zone.fee_xof)}\nTotal : ${formatXof(order.total_xof)}\n\nNom : ${form.fullName.trim()}\nTéléphone : ${form.phone.trim()}\nAdresse : ${form.address.trim()}\n\nMerci !`
+    ? `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}\n\nProduit : ${product.name}\nQuantité : ${quantity}\nPrix unitaire : ${formatXof(product.price_xof)}\nFrais de livraison (${zone.name}) : ${formatXof(zone.fee_xof)}\nTotal : ${formatXof(order.total_xof)}\n\nNom : ${form.fullName.trim()}\nTéléphone : ${form.phone.trim()}\nAdresse : ${form.address.trim()}\n\nMerci !`
     : "";
   const whatsappUrl = buildWhatsappUrl(shop?.whatsapp_phone, whatsappMessage);
 
@@ -168,23 +184,87 @@ export default function SellerProductDetail() {
 
       <main className="mx-auto max-w-5xl px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
-          <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-pale">
-            {product.image ? (
-              <ProductImage
-                src={product.image}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-bold text-brand-dark">
-                {product.name?.[0] || "?"}
+          <div className="flex gap-3">
+            <div className="no-scrollbar hidden max-h-[32rem] flex-col gap-2 overflow-y-auto sm:flex">
+              {displayImages.length > 0 ? (
+                displayImages.map((img, index) => (
+                  <button
+                    key={img.id}
+                    type="button"
+                    onClick={() => setActiveImageIndex(index)}
+                    aria-label={"Afficher l'image " + (index + 1)}
+                    aria-current={index === activeImageIndex ? "true" : undefined}
+                    className={"h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 bg-brand-pale transition " + (index === activeImageIndex ? "border-brand" : "border-transparent hover:border-brand/50")}
+                  >
+                    <ProductImage src={img.image} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))
+              ) : (
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border-2 border-brand bg-brand-pale text-[10px] font-bold text-brand-dark">
+                  ANI
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-pale">
+                {currentImage ? (
+                  <ProductImage
+                    src={currentImage.image}
+                    alt={currentImage.alt_text || product.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-bold text-brand-dark">
+                    {product.name?.[0] || "?"}
+                  </div>
+                )}
+                {!product.made_to_order && product.stock <= 0 && (
+                  <span className="absolute right-3 top-3 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white z-10">
+                    Rupture
+                  </span>
+                )}
+                {hasGallery && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={showPreviousImage}
+                      className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white z-10"
+                      aria-label="Image précédente"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={showNextImage}
+                      className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white z-10"
+                      aria-label="Image suivante"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
+                      </svg>
+                    </button>
+                  </>
+                )}
               </div>
-            )}
-            {!product.made_to_order && product.stock <= 0 && (
-              <span className="absolute right-3 top-3 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
-                Rupture
-              </span>
-            )}
+              {hasGallery && (
+                <div className="mt-2 flex justify-center gap-1.5 sm:hidden">
+                  {displayImages.map((img, index) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setActiveImageIndex(index)}
+                      aria-label={`Aller à l'image ${index + 1}`}
+                      className={`h-2 rounded-full transition-all ${
+                        index === activeImageIndex ? "w-4 bg-brand" : "w-2 bg-black/20"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -302,7 +382,7 @@ export default function SellerProductDetail() {
                       <option value="">Choisir une zone</option>
                       {deliveryZones.map((z) => (
                         <option key={z.id} value={z.id}>
-                          {z.name} · {formatXof(z.fee_xof)}
+                          {z.name} . {formatXof(z.fee_xof)}
                         </option>
                       ))}
                     </select>
@@ -330,7 +410,7 @@ export default function SellerProductDetail() {
                         className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/15 text-lg font-semibold text-ink transition hover:border-brand"
                         aria-label="Diminuer la quantité"
                       >
-                        −
+                        -
                       </button>
                       <input
                         type="number"

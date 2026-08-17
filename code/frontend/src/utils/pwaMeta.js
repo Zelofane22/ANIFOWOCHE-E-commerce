@@ -14,8 +14,8 @@ function isSellerSubdomain() {
   if (typeof window === "undefined") return false;
   const hostname = window.location.hostname;
   return (
-    hostname === SELLER_HOST ||
-    hostname.startsWith("seller.") ||
+    hostname === SELLER_HOST || hostname === "selle.localhost" ||
+    hostname.startsWith("seller.") || hostname.startsWith("selle.") ||
     window.location.search.includes("seller=1")
   );
 }

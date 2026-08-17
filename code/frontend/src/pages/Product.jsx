@@ -274,10 +274,13 @@ function ProductView({ slug }) {
     },
   };
 
+  const seoTitle = product.category?.name
+    ? `${product.name} — ${product.category.name}`
+    : product.name;
   return (
     <article className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
       <Seo
-        title={product.name}
+        title={seoTitle}
         description={productDescription}
         path={`/produits/${slug}`}
         image={product.image ? optimizedImage(product.image, 800) : undefined}

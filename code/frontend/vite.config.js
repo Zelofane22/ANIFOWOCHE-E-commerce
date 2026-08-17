@@ -25,6 +25,7 @@ export default defineConfig({
     sourcemap: sentryEnabled ? "hidden" : false,
   },
   server: {
+    allowedHosts: ["localhost", "selle.localhost", ".localhost"],
     port: 5173,
     proxy: {
       "/media": {
