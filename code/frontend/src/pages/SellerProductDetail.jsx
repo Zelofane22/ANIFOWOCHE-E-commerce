@@ -89,7 +89,7 @@ export default function SellerProductDetail() {
 
   const handleGeolocate = () => {
     if (!navigator.geolocation) {
-      setGeoError("La g\u00e9olocalisation n'est pas disponible sur cet appareil.");
+      setGeoError("La géolocalisation n'est pas disponible sur cet appareil.");
       return;
     }
     setGeoLoading(true);
@@ -111,13 +111,13 @@ export default function SellerProductDetail() {
             setGeoError("Votre position n'est pas desservie par cette boutique.");
           }
         } catch {
-          setGeoError("Impossible de v\u00e9rifier votre position. Veuillez choisir une zone manuellement.");
+          setGeoError("Impossible de vérifier votre position. Veuillez choisir une zone manuellement.");
         } finally {
           setGeoLoading(false);
         }
       },
       () => {
-        setGeoError("Impossible d'acc\u00e9der \u00e0 votre position. Veuillez choisir une zone manuellement.");
+        setGeoError("Impossible d'accéder à votre position. Veuillez choisir une zone manuellement.");
         setGeoLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -157,7 +157,7 @@ export default function SellerProductDetail() {
           to={`/${shopSlug}`}
           className="mt-5 inline-block rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white"
         >
-          Retour \u00e0 la boutique
+          Retour à la boutique
         </Link>
       </div>
     );
@@ -168,7 +168,7 @@ export default function SellerProductDetail() {
   }
 
   const whatsappMessage = order
-    ? `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}\n\nProduit : ${product.name}\nQuantit\u00e9 : ${quantity}\nPrix unitaire : ${formatXof(product.price_xof)}\nFrais de livraison (${zone.name}) : ${formatXof(zone.fee_xof)}\nTotal : ${formatXof(order.total_xof)}\n\nNom : ${form.fullName.trim()}\nT\u00e9l\u00e9phone : ${form.phone.trim()}\nAdresse : ${form.address.trim()}\n\nMerci !`
+    ? `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}\n\nProduit : ${product.name}\nQuantité : ${quantity}\nPrix unitaire : ${formatXof(product.price_xof)}\nFrais de livraison (${zone.name}) : ${formatXof(zone.fee_xof)}\nTotal : ${formatXof(order.total_xof)}\n\nNom : ${form.fullName.trim()}\nTéléphone : ${form.phone.trim()}\nAdresse : ${form.address.trim()}\n\nMerci !`
     : "";
   const whatsappUrl = buildWhatsappUrl(shop?.whatsapp_phone, whatsappMessage);
 
@@ -230,7 +230,7 @@ export default function SellerProductDetail() {
                       type="button"
                       onClick={showPreviousImage}
                       className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:bg-white z-10"
-                      aria-label="Image pr\u00e9c\u00e9dente"
+                      aria-label="Image précédente"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
@@ -256,7 +256,7 @@ export default function SellerProductDetail() {
                       key={img.id}
                       type="button"
                       onClick={() => setActiveImageIndex(index)}
-                      aria-label={`Aller \u00e0 l'image ${index + 1}`}
+                      aria-label={`Aller à l'image ${index + 1}`}
                       className={`h-2 rounded-full transition-all ${
                         index === activeImageIndex ? "w-4 bg-brand" : "w-2 bg-black/20"
                       }`}
@@ -320,9 +320,9 @@ export default function SellerProductDetail() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <h2 className="mt-4 text-lg font-bold text-ink">Commande confirm\u00e9e</h2>
+                <h2 className="mt-4 text-lg font-bold text-ink">Commande confirmée</h2>
                 <p className="mt-1 text-sm text-muted">
-                  Votre commande <span className="font-semibold text-ink">{order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}</span> a bien \u00e9t\u00e9 enregistr\u00e9e.
+                  Votre commande <span className="font-semibold text-ink">{order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}</span> a bien été enregistrée.
                 </p>
 
                 <div className="mt-5 space-y-2 text-sm">
@@ -331,7 +331,7 @@ export default function SellerProductDetail() {
                     <span className="font-semibold text-ink">{product.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted">Quantit\u00e9</span>
+                    <span className="text-muted">Quantité</span>
                     <span className="font-semibold text-ink">{quantity}</span>
                   </div>
                   <div className="flex justify-between">
@@ -394,7 +394,7 @@ export default function SellerProductDetail() {
                       disabled={geoLoading}
                       className="text-xs font-semibold text-brand-dark underline hover:text-brand disabled:text-muted"
                     >
-                      {geoLoading ? "Localisation\u2026" : "Utiliser ma position"}
+                      {geoLoading ? "Localisation…" : "Utiliser ma position"}
                     </button>
                     {geoError && <span role="alert" className="text-xs text-red-600">{geoError}</span>}
                   </div>
@@ -402,15 +402,15 @@ export default function SellerProductDetail() {
 
                 <div>
                   <label className="block text-sm font-semibold text-ink">
-                    Quantit\u00e9 *
+                    Quantité *
                     <div className="mt-1.5 flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                         className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/15 text-lg font-semibold text-ink transition hover:border-brand"
-                        aria-label="Diminuer la quantit\u00e9"
+                        aria-label="Diminuer la quantité"
                       >
-                        \u2212
+                        -
                       </button>
                       <input
                         type="number"
@@ -436,7 +436,7 @@ export default function SellerProductDetail() {
                         onClick={() => setQuantity((q) => (canIncreaseQuantity ? q + 1 : q))}
                         disabled={!canIncreaseQuantity}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink text-lg font-semibold text-white transition hover:bg-brand-medium disabled:bg-gray-300"
-                        aria-label="Augmenter la quantit\u00e9"
+                        aria-label="Augmenter la quantité"
                       >
                         +
                       </button>
@@ -453,11 +453,11 @@ export default function SellerProductDetail() {
                       onChange={(e) => updateForm("fullName", e.target.value)}
                       required
                       className={inputClass}
-                      placeholder="Pr\u00e9nom et nom"
+                      placeholder="Prénom et nom"
                     />
                   </label>
                   <label className="block text-sm font-semibold text-ink">
-                    T\u00e9l\u00e9phone WhatsApp *
+                    Téléphone WhatsApp *
                     <input
                       type="tel"
                       value={form.phone}
@@ -501,7 +501,7 @@ export default function SellerProductDetail() {
                   disabled={!canSubmit}
                   className="w-full rounded-lg bg-brand px-6 py-3.5 text-sm font-bold text-white transition hover:bg-brand-medium disabled:bg-gray-200 disabled:text-gray-500"
                 >
-                  {submitting ? "Confirmation\u2026" : "Confirmer la commande"}
+                  {submitting ? "Confirmation…" : "Confirmer la commande"}
                 </button>
               </form>
             )}
