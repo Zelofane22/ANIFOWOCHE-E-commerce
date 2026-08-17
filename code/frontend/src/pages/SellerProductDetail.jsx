@@ -382,7 +382,7 @@ export default function SellerProductDetail() {
                       <option value="">Choisir une zone</option>
                       {deliveryZones.map((z) => (
                         <option key={z.id} value={z.id}>
-                          {z.name} \u00b7 {formatXof(z.fee_xof)}
+                          {z.name} . {formatXof(z.fee_xof)}
                         </option>
                       ))}
                     </select>
@@ -477,7 +477,7 @@ export default function SellerProductDetail() {
                     onChange={(e) => updateForm("address", e.target.value)}
                     required
                     className={inputClass}
-                    placeholder="Quartier, rue, rep\u00e8re proche"
+                    placeholder="Quartier, rue, repère proche"
                   />
                 </label>
 
