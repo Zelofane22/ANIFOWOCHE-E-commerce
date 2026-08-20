@@ -60,6 +60,35 @@ def _seller_plan_url():
     return f"{base.rstrip('/')}/plan"
 
 
+def starter_launch_price(seller):
+    """Prix du plan Starter pour ce vendeur (tarif de lancement ou de référence).
+
+    Les 3 premiers mois d'abonnement Starter sont facturés au tarif de lancement
+    (``promo_price_xof``), puis au prix de référence (``price_xof``). Le compteur
+    repose sur les abonnements Starter créés par le vendeur (APPROVED uniquement,
+    pour éviter qu'un abonnement PENDING/FAILED ne consume le tarif promo).
+    """
+    limits = PLAN_LIMITS["STARTER"]
+    promo_months = limits.get("promo_duration_months") or 0
+    promo_price = limits.get("promo_price_xof")
+    if promo_price is None or promo_months <= 0:
+        return limits["price_xof"]
+    approved_starter = SellerSubscription.objects.filter(
+        seller=seller,
+        plan=SellerProfile.Plan.STARTER,
+        status=SellerSubscription.Status.APPROVED,
+    ).count()
+    return promo_price if approved_starter < promo_months else limits["price_xof"]
+
+
+def plan_price_for(seller, plan):
+    """Prix effectif d'un plan pour ce vendeur (tarif promo Starter appliqué)."""
+    limits = PLAN_LIMITS[plan]
+    if plan == SellerProfile.Plan.STARTER:
+        return starter_launch_price(seller)
+    return limits["price_xof"]
+
+
 def create_subscription(seller, plan):
     """Crée un abonnement PENDING pour un plan souscriptible et initie FedaPay.
 
@@ -69,8 +98,8 @@ def create_subscription(seller, plan):
     if plan not in SUBSCRIPTABLE_PLANS:
         raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
     limits = PLAN_LIMITS.get(plan)
-    price_xof = limits["price_xof"]
-    if not price_xof:
+    price_xof = plan_price_for(seller, plan)
+    if not limits["price_xof"] and not price_xof:
         raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
 
     subscription = SellerSubscription.objects.create(

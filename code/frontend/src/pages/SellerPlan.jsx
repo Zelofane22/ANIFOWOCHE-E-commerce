@@ -159,10 +159,28 @@ export default function SellerPlan() {
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-muted">{PLAN_META[plan.code]?.note}</p>
-                  <p className="mt-3">
-                    <span className="text-2xl font-bold text-ink">{formatPrice(price)}</span>
-                    {price != null && price > 0 && <span className="text-sm text-muted">/mois</span>}
-                  </p>
+                  {plan.promo_price_xof != null && plan.promo_price_xof > 0 ? (
+                    <div className="mt-3">
+                      <p>
+                        <span className="text-2xl font-bold text-brand-dark">
+                          {formatPrice(plan.promo_price_xof)}
+                        </span>
+                        <span className="text-sm text-muted">/mois</span>
+                        <span className="ml-2 text-sm text-muted line-through">
+                          {formatPrice(plan.price_xof)}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        Tarif de lancement pendant les {plan.promo_duration_months} premiers
+                        mois, puis {formatPrice(plan.price_xof)}/mois.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-3">
+                      <span className="text-2xl font-bold text-ink">{formatPrice(price)}</span>
+                      {price != null && price > 0 && <span className="text-sm text-muted">/mois</span>}
+                    </p>
+                  )}
                   <ul className="mt-4 space-y-2">
                     {(plan.features || []).map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm text-ink">

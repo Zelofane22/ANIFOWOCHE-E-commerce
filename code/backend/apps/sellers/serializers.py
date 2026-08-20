@@ -312,6 +312,8 @@ class SellerPlanSerializer(serializers.Serializer):
     code = serializers.CharField()
     name = serializers.CharField()
     price_xof = serializers.IntegerField(allow_null=True)
+    promo_price_xof = serializers.IntegerField(allow_null=True)
+    promo_duration_months = serializers.IntegerField(allow_null=True)
     max_products = serializers.IntegerField(allow_null=True)
     max_orders_per_month = serializers.IntegerField(allow_null=True)
     features = serializers.ListField(child=serializers.CharField())

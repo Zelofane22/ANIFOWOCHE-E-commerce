@@ -72,9 +72,29 @@ class SellerSubscriptionFlowTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["plan"], SellerProfile.Plan.STARTER)
         self.assertEqual(response.data["status"], SellerSubscription.Status.PENDING)
-        self.assertEqual(response.data["amount_xof"], 5000)
+        self.assertEqual(response.data["amount_xof"], 2000)
         self.assertEqual(response.data["fedapay_transaction_id"], "42")
         self.assertEqual(response.data["payment_url"], "https://sandbox-pay.fedapay.com/t/42")
+
+    def test_starter_uses_launch_price_for_first_three_months(self):
+        # Trois premiers mois à 2 000 F (abonnements APPROVED), puis 5 000 F.
+        for _ in range(3):
+            with _fedapay_success_mock():
+                response = self.client.post(
+                    "/api/seller/subscription/", {"plan": "STARTER"}, format="json"
+                )
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.data["amount_xof"], 2000)
+            sub = SellerSubscription.objects.get(id=response.data["id"])
+            sub.status = SellerSubscription.Status.APPROVED
+            sub.save(update_fields=["status"])
+
+        with _fedapay_success_mock():
+            response = self.client.post(
+                "/api/seller/subscription/", {"plan": "STARTER"}, format="json"
+            )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["amount_xof"], 5000)
 
     def test_create_subscription_rejects_free_plan(self):
         response = self.client.post("/api/seller/subscription/", {"plan": "FREE"}, format="json")

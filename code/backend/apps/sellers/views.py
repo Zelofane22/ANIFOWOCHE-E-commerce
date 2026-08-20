@@ -392,6 +392,7 @@ class SellerPlansView(APIView):
 
     def get(self, request):
         from .limits import PLAN_LIMITS, PLAN_FEATURES
+        from .serializers import SellerPlanSerializer
 
         plans = []
         for code, limits in PLAN_LIMITS.items():
@@ -400,12 +401,14 @@ class SellerPlansView(APIView):
                     "code": code,
                     "name": SellerProfile.Plan(code).label,
                     "price_xof": limits["price_xof"],
+                    "promo_price_xof": limits.get("promo_price_xof"),
+                    "promo_duration_months": limits.get("promo_duration_months"),
                     "max_products": limits["max_products"],
                     "max_orders_per_month": limits["max_orders_per_month"],
                     "features": sorted(PLAN_FEATURES.get(code, frozenset())),
                 }
             )
-        return Response({"plans": plans})
+        return Response({"plans": SellerPlanSerializer(plans, many=True).data})
 
 
 class SellerSubscriptionView(APIView):

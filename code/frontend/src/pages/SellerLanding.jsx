@@ -399,14 +399,27 @@ function PricingSection() {
                 )}
                 <h3 className="text-lg font-bold text-ink">{plan.name}</h3>
                 <p className="mt-1 text-sm text-muted">{copy.tagline}</p>
-                <p className="mt-4">
-                  <span className="text-4xl font-bold text-ink">
-                    {formatPrice(plan.price_xof)}
-                  </span>
-                  {plan.price_xof != null && plan.price_xof > 0 && (
+                {plan.promo_price_xof != null && plan.promo_price_xof > 0 ? (
+                  <p className="mt-4">
+                    <span className="text-4xl font-bold text-ink">
+                      {formatPrice(plan.promo_price_xof)}
+                    </span>
                     <span className="text-sm text-muted">/mois</span>
-                  )}
-                </p>
+                    <span className="block text-xs text-muted">
+                      pendant les {plan.promo_duration_months} premiers mois, puis{" "}
+                      {formatPrice(plan.price_xof)}/mois
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-4">
+                    <span className="text-4xl font-bold text-ink">
+                      {formatPrice(plan.price_xof)}
+                    </span>
+                    {plan.price_xof != null && plan.price_xof > 0 && (
+                      <span className="text-sm text-muted">/mois</span>
+                    )}
+                  </p>
+                )}
                 <ul className="mt-6 space-y-3">
                   {(plan.features || []).map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-ink">

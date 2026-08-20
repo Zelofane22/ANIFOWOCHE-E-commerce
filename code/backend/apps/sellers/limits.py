@@ -21,7 +21,15 @@ from apps.core.store_scope import get_main_store_slug
 
 PLAN_LIMITS = {
     "FREE": {"max_products": 5, "max_orders_per_month": 5, "price_xof": 0},
-    "STARTER": {"max_products": 100, "max_orders_per_month": None, "price_xof": 5000},
+    # STARTER : tarif de lancement à 2 000 F/mois pendant les 3 premiers mois,
+    # puis prix de référence à 5 000 F/mois (cf. docs/.../04-modele-economique.md).
+    "STARTER": {
+        "max_products": 100,
+        "max_orders_per_month": None,
+        "price_xof": 5000,
+        "promo_price_xof": 2000,
+        "promo_duration_months": 3,
+    },
     "PRO": {"max_products": None, "max_orders_per_month": None, "price_xof": 10000},
     "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": None},
 }
