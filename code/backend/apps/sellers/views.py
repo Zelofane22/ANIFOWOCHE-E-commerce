@@ -124,10 +124,18 @@ class SellerDashboardView(APIView):
         )
 
         # KPIs de revenus et de commandes sur les deux périodes (hors annulations).
-        revenue_period = orders_period.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
-        revenue_previous = orders_previous.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
+        non_cancelled_period = orders_period.exclude(status=Order.Status.CANCELLED)
+        non_cancelled_previous = orders_previous.exclude(status=Order.Status.CANCELLED)
+        revenue_period = non_cancelled_period.aggregate(total=Sum("total_xof"))["total"] or 0
+        revenue_previous = non_cancelled_previous.aggregate(total=Sum("total_xof"))["total"] or 0
         orders_count_period = orders_period.count()
         orders_count_previous = orders_previous.count()
+        non_cancelled_count_period = non_cancelled_period.count()
+
+        # Statistiques avancées (#250) : panier moyen (revenu / commandes non
+        # annulées) et taux de conversion (part des commandes non annulées).
+        avg_order_value = round(revenue_period / non_cancelled_count_period) if non_cancelled_count_period else 0
+        conversion_rate = round(non_cancelled_count_period / orders_count_period * 100, 1) if orders_count_period else 0
 
         # Série des ventes par jour pour le graphique d'évolution.
         sales_by_day = (
@@ -192,6 +200,8 @@ class SellerDashboardView(APIView):
                     "revenue_change": _percent_change(revenue_period, revenue_previous),
                     "orders": orders_count_period,
                     "orders_change": _percent_change(orders_count_period, orders_count_previous),
+                    "avg_order_value": avg_order_value,
+                    "conversion_rate": conversion_rate,
                     "period_days": KPI_PERIOD_DAYS,
                 },
                 "sales_chart": [
@@ -371,3 +381,77 @@ class PublicShopProductDetailView(generics.RetrieveAPIView):
                 {"error": str(e), "detail": "Erreur lors du chargement du produit"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class SellerPlansView(APIView):
+    """Catalogue public des offres vendeur (prix + limites + fonctionnalités).
+    Alimente la page d'atterrissage (#228) et la page plan du dashboard (#245).
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .limits import PLAN_LIMITS, PLAN_FEATURES
+
+        plans = []
+        for code, limits in PLAN_LIMITS.items():
+            plans.append(
+                {
+                    "code": code,
+                    "name": SellerProfile.Plan(code).label,
+                    "price_xof": limits["price_xof"],
+                    "max_products": limits["max_products"],
+                    "max_orders_per_month": limits["max_orders_per_month"],
+                    "features": sorted(PLAN_FEATURES.get(code, frozenset())),
+                }
+            )
+        return Response({"plans": plans})
+
+
+class SellerSubscriptionView(APIView):
+    """Abonnement payant du vendeur (pipeline E9).
+
+    - POST : souscrit à un plan (checkout FedaPay), retourne l'abonnement avec
+      son lien de paiement.
+    - GET  : retourne l'abonnement le plus récent + le plan actuel et ses limites.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def _get_seller(self):
+        try:
+            return self.request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+    def post(self, request):
+        from .services import SubscriptionError, create_subscription
+
+        seller = self._get_seller()
+        plan = request.data.get("plan", "").upper()
+        try:
+            subscription = create_subscription(seller, plan)
+        except SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        from .serializers import SellerSubscriptionSerializer
+        return Response(
+            SellerSubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED
+        )
+
+    def get(self, request):
+        from .limits import build_limits_payload
+        from .serializers import SellerSubscriptionSerializer
+
+        seller = self._get_seller()
+        latest = seller.subscriptions.order_by("-created_at").first()
+        return Response(
+            {
+                "subscription": (
+                    SellerSubscriptionSerializer(latest).data if latest else None
+                ),
+                "current_plan": seller.plan,
+                "limits": build_limits_payload(seller),
+            }
+        )

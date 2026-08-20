@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import Seo from "../components/Seo.jsx";
+import { getSellerPlans } from "../api/seller.js";
 import {
   StoreIcon,
   PackageIcon,
@@ -345,7 +347,31 @@ function HowItWorksSection() {
   );
 }
 
+const PLAN_COPY = {
+  FREE: { tagline: "Pour démarrer et tester", highlight: false },
+  STARTER: { tagline: "Pour les vendeurs actifs", highlight: false },
+  PRO: { tagline: "Mieux vendre et piloter", highlight: true },
+};
+
+function formatPrice(price) {
+  if (price == null) return "Sur devis";
+  return new Intl.NumberFormat("fr-FR").format(price) + " F";
+}
+
 function PricingSection() {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getSellerPlans()
+      .then((data) => setPlans(data.plans || []))
+      .catch(() => setPlans([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Affiche Gratuit + Starter + Pro ; BUSINESS (sur devis) n'est pas en ligne.
+  const visible = plans.filter((p) => ["FREE", "STARTER", "PRO"].includes(p.code));
+
   return (
     <section className="py-16 md:py-20" id="tarifs">
       <div className="mx-auto max-w-6xl px-4">
@@ -359,93 +385,61 @@ function PricingSection() {
           </p>
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
-          <div className="rounded-xl border border-black/10 bg-white p-6 sm:p-8">
-            <h3 className="text-lg font-bold text-ink">Gratuit</h3>
-            <p className="mt-1 text-sm text-muted">Pour démarrer et tester</p>
-            <p className="mt-4">
-              <span className="text-4xl font-bold text-ink">0 F</span>
-              <span className="text-sm text-muted">/mois</span>
+          {(loading ? [] : visible).map((plan) => {
+            const copy = PLAN_COPY[plan.code] || {};
+            const card = copy.highlight
+              ? "relative rounded-xl border-2 border-brand bg-white p-6 sm:p-8"
+              : "rounded-xl border border-black/10 bg-white p-6 sm:p-8";
+            return (
+              <div key={plan.code} className={card}>
+                {copy.highlight && (
+                  <div className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
+                    Populaire
+                  </div>
+                )}
+                <h3 className="text-lg font-bold text-ink">{plan.name}</h3>
+                <p className="mt-1 text-sm text-muted">{copy.tagline}</p>
+                <p className="mt-4">
+                  <span className="text-4xl font-bold text-ink">
+                    {formatPrice(plan.price_xof)}
+                  </span>
+                  {plan.price_xof != null && plan.price_xof > 0 && (
+                    <span className="text-sm text-muted">/mois</span>
+                  )}
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {(plan.features || []).map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-ink">
+                      <CheckIcon size={16} className="mt-0.5 shrink-0 text-brand-dark" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                {plan.code === "FREE" ? (
+                  <Link
+                    to="/register"
+                    className="mt-6 flex items-center justify-center gap-2 rounded-lg border border-brand/40 px-5 py-2.5 font-bold text-brand-dark transition hover:bg-brand-light"
+                  >
+                    C'est parti
+                    <ArrowRightIcon size={16} />
+                  </Link>
+                ) : (
+                  <Link
+                    to="/register"
+                    className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-bold text-white transition hover:bg-brand-medium"
+                  >
+                    Choisir {plan.name}
+                    <ArrowRightIcon size={16} />
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+          {loading && (
+            <p className="col-span-full py-10 text-center text-sm text-muted">
+              Chargement des offres…
             </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "Jusqu'à 5 produits",
-                "Jusqu'à 5 commandes/mois",
-                "Boutique publique dédiée",
-                "Lien WhatsApp",
-                "Messages de confirmation",
-                "Support email",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-ink">
-                  <CheckIcon size={16} className="mt-0.5 shrink-0 text-brand-dark" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link
-              to="/register"
-              className="mt-6 flex items-center justify-center gap-2 rounded-lg border border-brand/40 px-5 py-2.5 font-bold text-brand-dark transition hover:bg-brand-light"
-            >
-              C'est parti
-              <ArrowRightIcon size={16} />
-            </Link>
-          </div>
-          <div className="rounded-xl border border-black/10 bg-white p-6 sm:p-8">
-            <h3 className="text-lg font-bold text-ink">Starter</h3>
-            <p className="mt-1 text-sm text-muted">Pour les vendeurs actifs</p>
-            <p className="mt-4">
-              <span className="text-4xl font-bold text-ink">2 000 F</span>
-              <span className="text-sm text-muted">/mois</span>
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              pendant les 3 premiers mois, puis 5 000 F/mois
-            </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "100 produits",
-                "Commandes illimitées",
-                "Statistiques essentielles",
-                "Personnalisation de base",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-ink">
-                  <CheckIcon size={16} className="mt-0.5 shrink-0 text-brand-dark" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
-              Bientôt disponible
-            </p>
-          </div>
-          <div className="relative rounded-xl border-2 border-brand bg-white p-6 sm:p-8">
-            <div className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
-              Populaire
-            </div>
-            <h3 className="text-lg font-bold text-ink">Pro</h3>
-            <p className="mt-1 text-sm text-muted">Mieux vendre et piloter</p>
-            <p className="mt-4">
-              <span className="text-4xl font-bold text-ink">10 000 F</span>
-              <span className="text-sm text-muted">/mois</span>
-            </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "Produits et commandes illimités",
-                "Statistiques avancées",
-                "Exports",
-                "Plusieurs utilisateurs",
-                "Outils promotionnels",
-                "Relances clients",
-                "Personnalisation avancée",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-ink">
-                  <CheckIcon size={16} className="mt-0.5 shrink-0 text-brand-dark" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-brand/10 px-5 py-2.5 text-center text-sm font-semibold text-brand-dark">
-              Bientôt disponible
-            </p>
-          </div>
+          )}
         </div>
       </div>
     </section>

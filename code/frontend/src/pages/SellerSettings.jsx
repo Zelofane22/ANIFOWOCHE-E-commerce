@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { checkShopSlugAvailability, getSellerProfile, updateSellerProfile } from "../api/seller.js";
 import { CheckIcon } from "../components/icons.jsx";
@@ -245,9 +245,15 @@ export default function SellerSettings() {
           <p className="mt-3 flex items-center gap-2 text-sm text-muted">
             Plan actuel
             <span className="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-bold text-brand-dark">
-              {seller.limits?.max_products != null ? "Gratuit" : "Illimité"}
+              {seller.plan === "FREE" ? "Gratuit" : seller.plan}
             </span>
           </p>
+          <Link
+            to="/plan"
+            className="mt-3 inline-block w-full rounded-lg bg-brand px-4 py-2 text-center text-sm font-bold text-white transition hover:bg-brand-medium"
+          >
+            {seller.plan === "FREE" ? "Passer au plan payant" : "Gérer mon abonnement"}
+          </Link>
           <label className="mt-4 flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-medium text-ink">
             <input
               type="checkbox"

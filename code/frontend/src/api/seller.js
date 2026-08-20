@@ -81,3 +81,12 @@ export const updateOption = (slug, groupId, id, data) =>
 
 export const deleteOption = (slug, groupId, id) =>
   apiClient.delete(`/seller/products/${slug}/option-groups/${groupId}/options/${id}/`).then((res) => res.data);
+
+export const getSellerPlans = () =>
+  publicClient.get("/public/plans/").then((res) => res.data);
+
+export const getSellerSubscription = () =>
+  apiClient.get("/seller/subscription/").then((res) => res.data);
+
+export const createSellerSubscription = (plan) =>
+  apiClient.post("/seller/subscription/", { plan }).then((res) => res.data);

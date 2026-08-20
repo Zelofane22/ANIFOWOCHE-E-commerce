@@ -162,13 +162,27 @@ export default function PublicShop() {
                         Rupture
                       </span>
                     )}
+                    {inStock && product.discount_percent != null && product.discount_percent > 0 && (
+                      <span className="absolute left-2 top-2 rounded-full bg-brand px-2.5 py-1 text-xs font-bold text-white">
+                        -{product.discount_percent}%
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-1 flex-col p-3">
                     <p className="text-xs font-semibold text-brand-dark">{product.category?.name}</p>
                     <h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-bold leading-5 text-ink">
                       {product.name}
                     </h3>
-                    <p className="mt-auto pt-3 text-base font-bold text-ink">{formatXof(product.price_xof)}</p>
+                    <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-3">
+                      {product.discount_percent != null && product.discount_percent > 0 ? (
+                        <>
+                          <p className="text-base font-bold text-brand-dark">{formatXof(product.discounted_price_xof ?? product.price_xof)}</p>
+                          <p className="text-xs text-muted line-through">{formatXof(product.price_xof)}</p>
+                        </>
+                      ) : (
+                        <p className="text-base font-bold text-ink">{formatXof(product.price_xof)}</p>
+                      )}
+                    </div>
                     <span className="mt-3 inline-flex items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition group-hover:bg-brand-medium">
                       Voir le produit
                     </span>

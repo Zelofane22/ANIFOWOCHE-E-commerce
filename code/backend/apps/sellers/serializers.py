@@ -17,7 +17,7 @@ from apps.products.models import Product, ProductImage
 from apps.products.serializers import ProductSerializer
 
 from .limits import build_limits_payload
-from .models import SellerProfile, Shop
+from .models import SellerProfile, SellerSubscription, Shop
 
 User = get_user_model()
 
@@ -278,3 +278,40 @@ class PublicShopSerializer(serializers.ModelSerializer):
             .order_by("-updated_at")
         )
         return ProductSerializer(products, many=True, context=self.context).data
+
+
+class SellerSubscriptionSerializer(serializers.ModelSerializer):
+    """Sérialise un abonnement vendeur (pipeline E9, flux FedaPay)."""
+
+    plan_name = serializers.CharField(source="get_plan_display", read_only=True)
+    status_name = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = SellerSubscription
+        fields = [
+            "id",
+            "seller",
+            "plan",
+            "plan_name",
+            "amount_xof",
+            "provider",
+            "status",
+            "status_name",
+            "fedapay_transaction_id",
+            "payment_url",
+            "starts_at",
+            "ends_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class SellerPlanSerializer(serializers.Serializer):
+    """Catalogue public des offres vendeur (prix, limites, fonctionnalités)."""
+    code = serializers.CharField()
+    name = serializers.CharField()
+    price_xof = serializers.IntegerField(allow_null=True)
+    max_products = serializers.IntegerField(allow_null=True)
+    max_orders_per_month = serializers.IntegerField(allow_null=True)
+    features = serializers.ListField(child=serializers.CharField())

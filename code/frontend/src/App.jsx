@@ -34,6 +34,7 @@ const SellerProductNew = lazy(() => import("./pages/SellerProductNew.jsx"));
 const SellerProductEdit = lazy(() => import("./pages/SellerProductEdit.jsx"));
 const SellerLanding = lazy(() => import("./pages/SellerLanding.jsx"));
 const SellerProductDetail = lazy(() => import("./pages/SellerProductDetail.jsx"));
+const SellerPlan = lazy(() => import("./pages/SellerPlan.jsx"));
 const SellerSettings = lazy(() => import("./pages/SellerSettings.jsx"));
 const Wishlist = lazy(() => import("./pages/Wishlist.jsx"));
 
@@ -72,6 +73,7 @@ export default function App() {
                 <Route path="/products/new" element={<SellerProductNew />} />
                 <Route path="/products/:slug/edit" element={<SellerProductEdit />} />
                 <Route path="/products" element={<SellerProducts />} />
+                <Route path="/plan" element={<SellerPlan />} />
                 <Route path="/settings" element={<SellerSettings />} />
                 <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
                 <Route path="/shop/:slug" element={<SellerShopRedirect />} />

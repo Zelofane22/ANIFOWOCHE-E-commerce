@@ -11,9 +11,11 @@ from .views import (
     SellerConfirmPaymentView,
     SellerDashboardView,
     SellerPaymentRelaunchView,
+    SellerPlansView,
     SellerProfileView,
     SellerRegisterView,
     SellerOrderViewSet,
+    SellerSubscriptionView,
     ShopSlugAvailabilityView,
 )
 
@@ -38,6 +40,8 @@ urlpatterns = [
     path("seller/profile/", SellerProfileView.as_view(), name="seller-profile"),
     path("seller/shop/slug-availability/", ShopSlugAvailabilityView.as_view(), name="seller-shop-slug-availability"),
     path("seller/dashboard/", SellerDashboardView.as_view(), name="seller-dashboard"),
+    path("seller/subscription/", SellerSubscriptionView.as_view(), name="seller-subscription"),
+    path("public/plans/", SellerPlansView.as_view(), name="public-plans"),
     path("seller/orders/<int:order_id>/relance-paiement/", SellerPaymentRelaunchView.as_view(), name="seller-payment-relaunch"),
     path("seller/orders/<int:order_id>/confirmer-paiement/", SellerConfirmPaymentView.as_view(), name="seller-confirm-payment"),
     path("public/shops/<slug:slug>/", PublicShopView.as_view(), name="public-shop-detail"),

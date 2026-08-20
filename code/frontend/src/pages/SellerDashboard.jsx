@@ -32,6 +32,13 @@ const STATUS_COLORS = {
   cancelled: "bg-gray-300",
 };
 
+const PLAN_META = {
+  FREE: { label: "Gratuit", badge: "bg-brand-light text-brand-dark" },
+  STARTER: { label: "Starter", badge: "bg-amber-100 text-amber-700" },
+  PRO: { label: "Pro", badge: "bg-blue-100 text-blue-700" },
+  BUSINESS: { label: "Entreprise", badge: "bg-purple-100 text-purple-700" },
+};
+
 function formatXOF(amount) {
   return new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
 }
@@ -211,9 +218,20 @@ export default function SellerDashboard() {
 
       {limits?.max_products != null && (
         <section className="mt-5 rounded-xl border border-black/10 bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-bold text-ink">Votre plan</h3>
-            <span className="rounded-full bg-brand-light px-2.5 py-1 text-xs font-bold text-brand-dark">Gratuit</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-bold text-ink">Votre plan</h3>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${PLAN_META[seller.plan]?.badge || "bg-brand-light text-brand-dark"}`}>
+                {PLAN_META[seller.plan]?.label || seller.plan}
+              </span>
+            </div>
+            <Link
+              to="/plan"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white transition hover:bg-brand-medium"
+            >
+              <SettingsIcon size={13} />
+              {seller.plan === "FREE" ? "Passer au plan payant" : "Gérer mon abonnement"}
+            </Link>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <PlanUsage label="Produits actifs" used={limits.products_used} max={limits.max_products} />
@@ -224,8 +242,8 @@ export default function SellerDashboard() {
             />
           </div>
           <p className="mt-3 text-xs leading-5 text-muted">
-            Le plan Illimité (bientôt disponible) supprime ces limites et ajoute la visibilité sur le
-            catalogue anifowoche.com.
+            Un plan payant supprime ces limites et ajoute la visibilité sur le catalogue
+            anifowoche.com. Gérez votre abonnement sur la page Plan.
           </p>
         </section>
       )}
@@ -233,8 +251,11 @@ export default function SellerDashboard() {
       <section className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label="Revenu (30j)" value={kpi.revenue} format={formatXOF} Icon={DollarSignIcon} change={kpi.revenue_change} />
         <KPICard label="Commandes (30j)" value={kpi.orders} Icon={LayoutDashboardIcon} change={kpi.orders_change} />
+        <KPICard label="Commandes aujourd'hui" value={metrics.orders_today} Icon={StoreIcon} />
+        <KPICard label="En attente" value={metrics.pending_orders} Icon={BarChartIcon} />
+        <KPICard label="Panier moyen" value={kpi.avg_order_value} format={formatXOF} Icon={DollarSignIcon} />
+        <KPICard label="Conversion" value={`${kpi.conversion_rate}%`} Icon={TrendingUpIcon} />
         <KPICard label="Produits" value={metrics.products} Icon={PackageIcon} />
-        <KPICard label="En attente" value={metrics.pending_orders} Icon={StoreIcon} />
       </section>
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
