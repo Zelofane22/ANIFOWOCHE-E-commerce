@@ -130,6 +130,11 @@ def verify_webhook_signature(raw_body: bytes, signature_header: str, secret: str
 
     FedaPay envoie un en-tête `X-FEDAPAY-SIGNATURE` au format
     "t=<timestamp>,s=<signature>" où signature = HMAC-SHA256(secret, "<timestamp>.<body>").
+    En plus de la signature, la fraîcheur de l'horodatage est contrôlée : un
+    événement plus vieux que `FEDAPAY_WEBHOOK_TOLERANCE_SECONDS` (par défaut 300 s,
+    réglable via l'environnement) est rejeté, ce qui empêche le rejeu d'événements
+    interceptés. Un écart dans le futur est aussi rejeté (dérive d'horloge du
+    serveur FedaPay au-delà de la tolérance).
     """
     if not signature_header:
         return False
@@ -139,6 +144,16 @@ def verify_webhook_signature(raw_body: bytes, signature_header: str, secret: str
     timestamp = parts.get("t")
     provided_signature = parts.get("s")
     if not timestamp or not provided_signature:
+        return False
+
+    # Contrôle de fraîcheur : l'événement ne doit pas être trop ancien (ni dans
+    # le futur au-delà de la tolérance) pour empêcher le rejeu.
+    try:
+        event_time = int(timestamp)
+    except (TypeError, ValueError):
+        return False
+    tolerance = getattr(settings, "FEDAPAY_WEBHOOK_TOLERANCE_SECONDS", 300)
+    if abs(time.time() - event_time) > tolerance:
         return False
 
     # Recalcule la signature attendue puis compare de manière constante.

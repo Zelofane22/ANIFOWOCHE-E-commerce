@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import time
 from unittest import mock
 
 import requests
@@ -29,7 +30,11 @@ from .services import FedaPayClient, FedaPayError, PaymentRelaunchError, relaunc
 User = get_user_model()
 
 
-def _sign(body: str, secret: str, timestamp: str = "1700000000") -> str:
+def _sign(body: str, secret: str, timestamp=None) -> str:
+    # Par défaut, l'horodatage courant : la vérification de fraîcheur du webhook
+    # rejette les signatures trop anciennes (voir FEDAPAY_WEBHOOK_TOLERANCE_SECONDS).
+    if timestamp is None:
+        timestamp = str(int(time.time()))
     signed_payload = f"{timestamp}.{body}".encode()
     signature = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
     return f"t={timestamp},s={signature}"
@@ -148,6 +153,21 @@ class PaymentApiTests(APITestCase):
             data=body,
             content_type="application/json",
             HTTP_X_FEDAPAY_SIGNATURE="t=1,s=invalide",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")
+    def test_webhook_rejects_stale_signature(self):
+        # Une signature HMAC valide mais trop ancienne doit être rejetée pour
+        # empêcher le rejeu d'un événement intercepté.
+        body = json.dumps({"name": "transaction.approved", "entity": {"id": "999"}})
+        stale = str(int(time.time()) - 7200)
+        signature = _sign(body, "test_webhook_secret", timestamp=stale)
+        response = self.client.post(
+            "/api/payments/webhook/",
+            data=body,
+            content_type="application/json",
+            HTTP_X_FEDAPAY_SIGNATURE=signature,
         )
         self.assertEqual(response.status_code, 401)
 

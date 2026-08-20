@@ -84,3 +84,35 @@ voir Sprint 7 / US-41 pour l'intégration en CI).
 - `code/backend/.env.example` : commande pour générer une vraie `SECRET_KEY`.
 
 Suite de tests complète (81 tests) verte après ces changements, testée via Docker.
+
+---
+
+## Re-vérification — Sprint 6 (suite, 2026-08-20)
+
+Re-audit des mêmes axes après évolution du code (nouveaux apps, seller, webhooks).
+Vérifié via Docker (`manage.py check --deploy` simulé en conditions Render) :
+**0 avertissement** avec `RENDER=1 DEBUG=False` + `SECRET_KEY` longue.
+
+### Correctifs appliqués lors de cette revue
+
+1. **En-têtes de sécurité manquants** (`config/settings.py`) :
+   - `SECURE_CONTENT_TYPE_NOSNIFF = True` — refuse le sniffing MIME.
+   - `SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"` — borne le Referer.
+   - `X_FRAME_OPTIONS = "DENY"` — explicite (déjà la valeur par défaut du middleware).
+
+2. **Rejeu de webhooks FedaPay** (point « Noté mais non corrigé » de la revue initiale) :
+   FedaPay signe avec `t=<timestamp>,s=<signature>` ; la fraîcheur de `t` n'était pas
+   contrôlée, un événement intercepté pouvait être rejoué indéfiniment.
+   - `verify_webhook_signature` rejette désormais tout horodatage hors d'une fenêtre
+     de tolérance (passé **et** futur), protégeant contre le rejeu.
+   - Tolérance réglable : `FEDAPAY_WEBHOOK_TOLERANCE_SECONDS` (défaut 300 s).
+   - Test ajouté : `test_webhook_rejects_stale_signature` (401 sur signature HMAC
+     valide mais vieille de 2 h).
+
+### Toujours en recommandation (hors code)
+
+- Énumération de codes coupon via `ValidateCouponView` (`AllowAny` + throttle anon) —
+  risque faible, à réévaluer si des coupons à forte valeur sont introduits.
+- Rotation des clés prod (FedaPay, WhatsApp, Resend, Cloudinary, `SECRET_KEY` Render)
+  et vérification que `DEFAULT_SUPERUSER_PASSWORD` a une vraie valeur en variable
+  d'environnement Render.

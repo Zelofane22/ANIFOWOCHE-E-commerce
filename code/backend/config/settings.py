@@ -142,6 +142,12 @@ if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+# Durcissement des en-têtes de réponse : refuse le sniffing MIME
+# (X-Content-Type-Options: nosniff) et borne les infos envoyées au
+# navigateur via le Referer (Referrer-Policy: strict-origin-when-cross-origin).
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+X_FRAME_OPTIONS = "DENY"
 
 # Render injecte DATABASE_URL (PostgreSQL) : on l'utilise si présente,
 # sinon on retombe sur les variables DB_* discrètes (docker compose local).
@@ -239,6 +245,9 @@ SIMPLE_JWT = {
 FEDAPAY_BASE_URL = config("FEDAPAY_BASE_URL", default="https://sandbox-api.fedapay.com")
 FEDAPAY_SECRET_KEY = config("FEDAPAY_SECRET_KEY", default="sk_sandbox_placeholder")
 FEDAPAY_WEBHOOK_SECRET = config("FEDAPAY_WEBHOOK_SECRET", default="whsec_placeholder")
+# Tolerance (secondes) sur l'horodatage des webhooks FedaPay : au-dela,
+# l'evenement est rejete (protection contre le rejeu d'evenements interceptes).
+FEDAPAY_WEBHOOK_TOLERANCE_SECONDS = config("FEDAPAY_WEBHOOK_TOLERANCE_SECONDS", default=300, cast=int)
 FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
 SELLER_FRONTEND_BASE_URL = config("SELLER_FRONTEND_BASE_URL", default=FRONTEND_BASE_URL)
 
