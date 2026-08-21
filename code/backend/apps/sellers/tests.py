@@ -687,12 +687,12 @@ class SellerPlanLimitsTests(APITestCase):
     # --- Exemption de la boutique entreprise -----------------------------------
 
     def test_main_store_shop_exempt_from_free_limits(self):
-        self.shop.slug = "ets-anifowoche"
+        self.shop.is_official = True
         self.shop.visible_on_main_store = True
         self.shop.save()
         product = self._create_orders_for_seller(5)
 
-        shop_response = self.client.get("/api/public/shops/ets-anifowoche/")
+        shop_response = self.client.get(f"/api/public/shops/{self.shop.slug}/")
         catalog_response = self.client.get("/api/products/")
 
         self.assertEqual(shop_response.status_code, 200)
@@ -793,7 +793,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertTrue(features["exports"])
 
     def test_main_store_exempt_from_feature_limits(self):
-        self.shop.slug = "ets-anifowoche"
+        self.shop.is_official = True
         self.shop.save()
 
         response = self.client.get("/api/seller/dashboard/")

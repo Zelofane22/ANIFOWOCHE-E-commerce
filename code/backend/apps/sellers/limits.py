@@ -17,7 +17,6 @@ Règles métier (cf. docs/.../04-modele-economique.md) :
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.core.store_scope import get_main_store_slug
 
 PLAN_LIMITS = {
     "FREE": {"max_products": 5, "max_orders_per_month": 5, "price_xof": 0},
@@ -81,7 +80,7 @@ def plan_features(seller):
 def _is_main_store(seller):
     """True si la boutique du vendeur est la boutique entreprise (exempte)."""
     shop = getattr(seller, "shop", None)
-    return shop is not None and shop.slug == get_main_store_slug()
+    return shop is not None and shop.is_official
 
 
 def is_free(seller):
@@ -187,8 +186,8 @@ def main_store_catalog_q(prefix=""):
 
     # Boutique entreprise : via la boutique du produit ou celle de son vendeur
     # (miroir de l'exemption de is_free).
-    company = Q(**{f"{prefix}shop__slug": get_main_store_slug()}) | Q(
-        **{f"{prefix}seller__shop__slug": get_main_store_slug()}
+    company = Q(**{f"{prefix}shop__is_official": True}) | Q(
+        **{f"{prefix}seller__shop__is_official": True}
     )
     third_party = (
         (

@@ -433,7 +433,7 @@ class DashboardStoreScopeTests(TestCase):
     def setUp(self):
         self.superuser = SuperUserFactory(username="dashboard-admin")
         self.client.force_login(self.superuser)
-        self.main_shop = ShopFactory(name="Ets ANIFOWOCHE", slug="ets-anifowoche")
+        self.main_shop = ShopFactory(name="Ets ANIFOWOCHE", slug="ets-anifowoche", is_official=True)
         self.other_shop = ShopFactory(name="Les Douceurs de Tinouke", slug="les-douceurs-de-tinouke")
         self.category = CategoryFactory(name="Mode")
 
@@ -497,14 +497,20 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(response.context["kpi_clients"], 4)
         self.assertEqual(response.context["kpi_visits"], 1)
 
-    @override_settings(MAIN_STORE_SLUG="les-douceurs-de-tinouke")
     def test_main_shop_slug_is_configurable(self):
+        # Basculer l'officialité sur la deuxième boutique pour vérifier
+        # que le dashboard suit bien le flag is_official.
+        self.main_shop.is_official = False
+        self.main_shop.save()
+        self.other_shop.is_official = True
+        self.other_shop.save()
         context = dashboard_callback(mock.Mock(), {})
 
         self.assertEqual(context["kpi_orders"], 1)
         self.assertEqual(context["kpi_revenue"], 8000)
         self.assertEqual(context["kpi_products"], 1)
-        # Le slug configuré ne s'applique pas aux comptes clients.
+        # Les comptes clients sont plateforme (pas de boutique) : les 2
+        # vendeurs des boutiques et les 2 clients des commandes comptent.
         self.assertEqual(context["kpi_clients"], 4)
 
     def test_dashboard_kpi_clients_counts_clients_without_orders(self):

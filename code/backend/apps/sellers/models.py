@@ -37,6 +37,7 @@ class Shop(models.Model):
     description = models.TextField(blank=True)
     delivery_zones = models.ManyToManyField("delivery.DeliveryZone", blank=True, related_name="shops")
     is_published = models.BooleanField(default=True)
+    is_official = models.BooleanField(default=False, help_text="Boutique officielle anifowoche.com : aucune limite de plan. Une seule boutique peut être officielle.")
     visible_on_main_store = models.BooleanField(
         default=True,
         help_text="Afficher les produits de cette boutique dans le catalogue, "
@@ -61,6 +62,9 @@ class Shop(models.Model):
         # Génère automatiquement un slug unique à partir du nom si absent.
         if not self.slug:
             self.slug = self._build_unique_slug(self.name)
+        # Une seule boutique peut être officielle à la fois.
+        if self.is_official:
+            Shop.objects.filter(is_official=True).exclude(pk=self.pk).update(is_official=False)
         # Hygiène des données : une boutique FREE tierce ne peut pas figurer sur
         # le catalogue principal (la règle est aussi appliquée côté requêtes).
         from apps.sellers.limits import is_free  # Import local : évite le cycle au chargement.
