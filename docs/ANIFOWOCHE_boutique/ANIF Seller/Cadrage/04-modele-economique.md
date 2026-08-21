@@ -120,7 +120,7 @@ Objectif : observer leur usage réel et corriger les frictions.
 
 Proposer un tarif simple aux premiers utilisateurs sérieux :
 
-- 2 000 FCFA/mois pendant 3 mois ;
+- Plan Starter 2 000 FCFA/mois les trois premier mois puis 5000F/mois ;
 - support direct ;
 - migration gratuite de leurs produits ;
 - feedback prioritaire.
