@@ -6,7 +6,6 @@ de ce module délimitent ce périmètre (fallback : toutes les données si la
 boutique n'existe pas, pour ne jamais casser l'admin).
 """
 
-from django.conf import settings
 from django.db.models import Q
 
 from apps.orders.models import Order
@@ -14,13 +13,14 @@ from apps.products.models import Product
 from apps.sellers.models import Shop
 
 def get_main_store_slug():
-    """Slug de la boutique principale (lu dynamiquement pour rester configurable)."""
-    return getattr(settings, "MAIN_STORE_SLUG", "ets-anifowoche")
+    """Slug de la boutique principale (wrapper pour compatibilité descendante)."""
+    shop = get_main_store_shop()
+    return shop.slug if shop else "ets-anifowoche"
 
 
 def get_main_store_shop():
-    """Retourne la boutique principale (None si introuvable)."""
-    return Shop.objects.filter(slug=get_main_store_slug()).first()
+    """Retourne la boutique officielle (None si aucune n'est marquée officielle)."""
+    return Shop.objects.filter(is_official=True).first()
 
 
 def scoped_orders(shop=None):

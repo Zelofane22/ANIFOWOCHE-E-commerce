@@ -58,9 +58,7 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 DEFAULT_SUPERUSER_USERNAME = config("DEFAULT_SUPERUSER_USERNAME", default="anifowoche")
 DEFAULT_SUPERUSER_PASSWORD = config("DEFAULT_SUPERUSER_PASSWORD", default="Anifowoche123!")
 
-# Boutique principale de l’entreprise : seules ses statistiques sont affichées
-# sur le dashboard admin et les rapports (voir apps.core.dashboard et apps.core.views).
-MAIN_STORE_SLUG = config("MAIN_STORE_SLUG", default="ets-anifowoche")
+# La boutique principale est identifiée par le flag is_official sur le modèle Shop.
 
 INSTALLED_APPS = [
     "unfold",
