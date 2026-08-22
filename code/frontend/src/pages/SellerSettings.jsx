@@ -2,13 +2,28 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import { checkShopSlugAvailability, getSellerProfile, updateSellerProfile } from "../api/seller.js";
-import { CheckIcon } from "../components/icons.jsx";
+import {
+  BarChartIcon,
+  BellIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  ExternalLinkIcon,
+  GlobeIcon,
+  InfoIcon,
+  LogOutIcon,
+  MessageCircleIcon,
+  SettingsIcon,
+  StoreIcon,
+  TagIcon,
+  UserIcon,
+  ZapIcon,
+} from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 
 const inputClass =
-  "w-full rounded-lg border border-black/15 bg-white px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-[12px] border border-black/[0.12] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#C99F08] focus:ring-2 focus:ring-[#C99F08]/15";
 
 const toSlug = (value) =>
   value
@@ -19,18 +34,75 @@ const toSlug = (value) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 150);
 
-function Field({ label, children }) {
+const getInitials = (name) =>
+  (name || "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("") || "";
+
+function SettingsRow({ icon: Icon, label, desc, onClick, gold, badge }) {
   return (
-    <label className="block text-sm font-medium text-ink">
-      {label}
-      <div className="mt-1.5">{children}</div>
-    </label>
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors active:bg-[#F5F5F5]"
+    >
+      <div
+        className={`w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 ${
+          gold ? "bg-[#FEF9E7] text-[#C99F08]" : "bg-[#F3F4F6] text-[#374151]"
+        }`}
+      >
+        <Icon size={17} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`font-semibold text-sm ${gold ? "text-[#C99F08]" : "text-[#111827]"}`}>{label}</p>
+        {desc && <p className="text-xs text-[#9CA3AF] mt-0.5 truncate">{desc}</p>}
+      </div>
+      {badge ? (
+        <span className="flex-shrink-0 text-[10px] font-bold bg-[#FEF9E7] text-[#8B6604] border border-[#C99F08]/25 px-2.5 py-1 rounded-full">
+          {badge}
+        </span>
+      ) : (
+        <ChevronRightIcon size={15} className="text-[#9CA3AF] flex-shrink-0" />
+      )}
+    </button>
+  );
+}
+
+function ToggleSwitch({ enabled, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      onClick={() => onChange(!enabled)}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#C99F08]/30 focus:ring-offset-2 ${
+        enabled ? "bg-[#C99F08]" : "bg-[#D1D5DB]"
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+          enabled ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
+function NotificationToggle({ label, enabled, onChange }) {
+  return (
+    <div className="flex items-center justify-between py-3">
+      <span className="text-sm font-medium text-[#111827]">{label}</span>
+      <ToggleSwitch enabled={enabled} onChange={onChange} />
+    </div>
   );
 }
 
 export default function SellerSettings() {
   const navigate = useNavigate();
-  const { loading, isAuthenticated } = useAuth();
+  const { logout, loading, isAuthenticated, user } = useAuth();
   const [seller, setSeller] = useState(null);
   const [deliveryZones, setDeliveryZones] = useState([]);
   const [form, setForm] = useState(null);
@@ -39,6 +111,14 @@ export default function SellerSettings() {
   const [submitting, setSubmitting] = useState(false);
   const [slugError, setSlugError] = useState(null);
   const [slugChecking, setSlugChecking] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingShop, setEditingShop] = useState(false);
+  const [notifications, setNotifications] = useState({
+    new_orders: true,
+    payments: true,
+    low_stock: true,
+    promotions: false,
+  });
   const slugEditedRef = useRef(false);
   const slugRequestIdRef = useRef(0);
 
@@ -77,9 +157,7 @@ export default function SellerSettings() {
 
   useEffect(() => {
     const requestId = ++slugRequestIdRef.current;
-    if (!shopSlug || shopSlug === savedSlug) {
-      return;
-    }
+    if (!shopSlug || shopSlug === savedSlug) return;
     const timer = setTimeout(() => {
       setSlugChecking(true);
       checkShopSlugAvailability(shopSlug)
@@ -105,8 +183,27 @@ export default function SellerSettings() {
     updateShop({ delivery_zone_ids: next });
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleProfileSave = async () => {
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+    try {
+      const data = await updateSellerProfile({
+        display_name: form.display_name,
+        phone: form.phone,
+        city: form.city,
+      });
+      setSeller((prev) => ({ ...prev, ...data, shop: prev.shop }));
+      setSuccess("Profil mis à jour.");
+      setEditingProfile(false);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleShopSave = async () => {
     setError(null);
     setSuccess(null);
     setSubmitting(true);
@@ -116,6 +213,7 @@ export default function SellerSettings() {
       setSlugError(null);
       setSlugChecking(false);
       setSuccess("Boutique mise à jour.");
+      setEditingShop(false);
     } catch (err) {
       const slugMessages = err?.response?.data?.shop?.slug;
       if (Array.isArray(slugMessages) && slugMessages.length > 0) {
@@ -128,44 +226,177 @@ export default function SellerSettings() {
     }
   };
 
+  const handleFullSave = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+    try {
+      const data = await updateSellerProfile(form);
+      setSeller(data);
+      setSlugError(null);
+      setSlugChecking(false);
+      setSuccess("Paramètres sauvegardés.");
+      setEditingProfile(false);
+      setEditingShop(false);
+    } catch (err) {
+      const slugMessages = err?.response?.data?.shop?.slug;
+      if (Array.isArray(slugMessages) && slugMessages.length > 0) {
+        setSlugError(slugMessages[0]);
+      } else {
+        setError(extractErrorMessage(err));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   if (loading || !seller || !form) {
-    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
+    return (
+      <div className="min-h-screen bg-[#F4F4F8] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#C99F08] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-[#9CA3AF]">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
+  const initials = getInitials(seller.display_name);
+  const quotaReached = seller.limits?.orders_quota_reached;
+
   return (
-    <SellerShell title="Paramètres boutique" seller={seller}>
-      <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <section className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-ink">Profil vendeur</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Field label="Nom vendeur">
+    <SellerShell seller={seller} pendingCount={0}>
+      {/* Header */}
+      <div className="bg-white px-5 pt-12 pb-4 border-b border-black/[0.05] sticky top-0 z-10">
+        <h1 className="text-xl font-bold text-[#111827]">Plus</h1>
+      </div>
+
+      <div className="px-4 pt-4 pb-8 space-y-3 max-w-lg mx-auto">
+        {/* ── Profile Card ── */}
+        <button
+          type="button"
+          onClick={() => setEditingProfile(!editingProfile)}
+          className="w-full bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4 text-left active:scale-[0.99] transition-transform"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#C99F08]/15 flex items-center justify-center flex-shrink-0">
+              {initials ? (
+                <span className="font-bold text-[#C99F08] text-lg">{initials}</span>
+              ) : (
+                <UserIcon size={20} className="text-[#C99F08]" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[#111827] truncate">{seller.display_name}</p>
+              <p className="text-xs text-[#9CA3AF] truncate">{seller.shop?.name}</p>
+              {user?.email && <p className="text-xs text-[#9CA3AF] truncate">{user.email}</p>}
+            </div>
+            <ChevronRightIcon size={16} className="text-[#9CA3AF] flex-shrink-0" />
+          </div>
+        </button>
+
+        {/* ── Inline Profile Edit ── */}
+        {editingProfile && (
+          <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4 space-y-3">
+            <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">Profil vendeur</p>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Nom vendeur</label>
               <input
                 className={inputClass}
                 required
                 value={form.display_name}
                 onChange={(e) => setForm({ ...form, display_name: e.target.value })}
               />
-            </Field>
-            <Field label="Téléphone">
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Téléphone</label>
               <input
                 className={inputClass}
                 required
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
-            </Field>
-            <Field label="Ville vendeur">
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Ville</label>
               <input
                 className={inputClass}
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
               />
-            </Field>
+            </div>
+            {success && (
+              <p className="flex items-center gap-2 rounded-[12px] bg-green-50 px-3 py-2 text-xs text-green-700">
+                <CheckIcon size={14} /> {success}
+              </p>
+            )}
+            {error && <p className="rounded-[12px] bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setEditingProfile(false); setError(null); setSuccess(null); }}
+                className="flex-1 rounded-[10px] border border-black/[0.12] bg-white px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleProfileSave}
+                disabled={submitting}
+                className="flex-1 rounded-[10px] bg-[#C99F08] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06] disabled:opacity-60"
+              >
+                {submitting ? "..." : "Enregistrer"}
+              </button>
+            </div>
           </div>
+        )}
 
-          <h2 className="mt-8 text-lg font-bold text-ink">Boutique publique</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Field label="Nom de boutique">
+        {/* ── Ma Boutique ── */}
+        <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Ma boutique</p>
+          </div>
+          <SettingsRow
+            icon={StoreIcon}
+            label="Paramètres boutique"
+            desc={`${seller.shop?.name} · ${seller.shop?.slug}`}
+            onClick={() => setEditingShop(!editingShop)}
+          />
+          <div className="px-4 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                <GlobeIcon size={17} className="text-[#374151]" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm text-[#111827]">Boutique publique</p>
+                <p className="text-xs text-[#9CA3AF] mt-0.5">{form.shop.is_published ? "Visible" : "Masquée"}</p>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={form.shop.is_published}
+              onChange={(val) => updateShop({ is_published: val })}
+            />
+          </div>
+          <SettingsRow
+            icon={ExternalLinkIcon}
+            label="Voir ma boutique"
+            desc={seller.shop?.public_url}
+            onClick={() => window.open(seller.shop?.public_url, "_blank")}
+          />
+        </div>
+
+        {/* ── Inline Shop Edit ── */}
+        {editingShop && (
+          <form onSubmit={handleFullSave} className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4 space-y-3">
+            <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">Paramètres boutique</p>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Nom de boutique</label>
               <input
                 className={inputClass}
                 required
@@ -181,8 +412,9 @@ export default function SellerSettings() {
                   }
                 }}
               />
-            </Field>
-            <Field label="Slug (lien de la boutique)">
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Lien boutique (slug)</label>
               <input
                 className={`${inputClass} ${slugError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                 required
@@ -197,97 +429,202 @@ export default function SellerSettings() {
               {slugError ? (
                 <p role="alert" className="mt-1.5 text-xs font-medium text-red-600">{slugError}</p>
               ) : (
-                <p className="mt-1.5 text-xs text-muted">
+                <p className="mt-1.5 text-xs text-[#9CA3AF]">
                   {slugChecking
                     ? "Vérification de la disponibilité..."
-                    : `Lien public de votre boutique : /shop/${form.shop.slug || "..."}`}
+                    : `/shop/${form.shop.slug || "..."}`}
                 </p>
               )}
-            </Field>
-            <Field label="WhatsApp boutique">
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">WhatsApp boutique</label>
               <input
                 className={inputClass}
                 required
                 value={form.shop.whatsapp_phone}
                 onChange={(e) => updateShop({ whatsapp_phone: e.target.value })}
               />
-            </Field>
-            <Field label="Ville boutique">
-              <input className={inputClass} value={form.shop.city} onChange={(e) => updateShop({ city: e.target.value })} />
-            </Field>
-          </div>
-          <div className="mt-4">
-            <Field label="Description">
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Ville boutique</label>
+              <input
+                className={inputClass}
+                value={form.shop.city}
+                onChange={(e) => updateShop({ city: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Description</label>
               <textarea
-                className={`${inputClass} min-h-28 resize-y`}
+                className={`${inputClass} min-h-24 resize-y`}
                 value={form.shop.description}
                 onChange={(e) => updateShop({ description: e.target.value })}
               />
-            </Field>
-          </div>
-          <div className="mt-5 rounded-lg border border-black/10 bg-gray-50 p-4">
-            <h3 className="text-sm font-bold text-ink">Zones de livraison couvertes</h3>
-            <p className="mt-1 text-xs text-muted">Les clients verront ces zones sur votre vitrine.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {deliveryZones.map((zone) => (
-                <label key={zone.id} className="flex items-center gap-2 text-sm text-ink">
-                  <input type="checkbox" checked={(form.shop.delivery_zone_ids || []).includes(zone.id)} onChange={() => toggleDeliveryZone(zone.id)} className="h-4 w-4 accent-brand" />
-                  <span>{zone.name}</span>
-                </label>
-              ))}
             </div>
-            {deliveryZones.length === 0 && <p className="mt-2 text-xs text-muted">Aucune zone active configurée.</p>}
-          </div>
-        </section>
+            {deliveryZones.length > 0 && (
+              <div className="rounded-[12px] border border-black/[0.06] bg-[#F9FAFB] p-3">
+                <p className="text-xs font-bold text-[#111827] mb-2">Zones de livraison</p>
+                <div className="grid gap-1.5">
+                  {deliveryZones.map((zone) => (
+                    <label key={zone.id} className="flex items-center gap-2 text-sm text-[#374151] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(form.shop.delivery_zone_ids || []).includes(zone.id)}
+                        onChange={() => toggleDeliveryZone(zone.id)}
+                        className="h-4 w-4 accent-[#C99F08] rounded"
+                      />
+                      <span>{zone.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {success && (
+              <p className="flex items-center gap-2 rounded-[12px] bg-green-50 px-3 py-2 text-xs text-green-700">
+                <CheckIcon size={14} /> {success}
+              </p>
+            )}
+            {error && <p className="rounded-[12px] bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setEditingShop(false); setError(null); setSuccess(null); }}
+                className="flex-1 rounded-[10px] border border-black/[0.12] bg-white px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || Boolean(slugError)}
+                className="flex-1 rounded-[10px] bg-[#C99F08] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06] disabled:opacity-60"
+              >
+                {submitting ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          </form>
+        )}
 
-        <aside className="rounded-xl border border-black/10 bg-white p-5">
-          <h2 className="text-base font-bold text-ink">Publication</h2>
-          <p className="mt-3 flex items-center gap-2 text-sm text-muted">
-            Plan actuel
-            <span className="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-bold text-brand-dark">
-              {seller.plan === "FREE" ? "Gratuit" : seller.plan}
+        {/* ── Mon Abonnement ── */}
+        <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Abonnement</p>
+          </div>
+          <div className="px-4 py-3.5 flex items-center gap-4">
+            <div className="w-9 h-9 rounded-[10px] bg-[#FEF9E7] flex items-center justify-center flex-shrink-0">
+              <ZapIcon size={17} className="text-[#C99F08]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-[#111827]">Plan actuel</p>
+              <p className="text-xs text-[#9CA3AF] mt-0.5">
+                {seller.plan === "FREE"
+                  ? "Offre gratuite — produits et commandes limités"
+                  : `Offre ${seller.plan}`}
+              </p>
+            </div>
+            <span className="flex-shrink-0 text-[10px] font-bold bg-[#FEF9E7] text-[#8B6604] border border-[#C99F08]/25 px-2.5 py-1 rounded-full">
+              {seller.plan === "FREE" ? "GRATUIT" : seller.plan}
             </span>
-          </p>
+          </div>
           <Link
             to="/plan"
-            className="mt-3 inline-block w-full rounded-lg bg-brand px-4 py-2 text-center text-sm font-bold text-white transition hover:bg-brand-medium"
+            className="block px-4 py-3.5 text-left hover:bg-[#FAFAFA] transition-colors active:bg-[#F5F5F5]"
           >
-            {seller.plan === "FREE" ? "Passer au plan payant" : "Gérer mon abonnement"}
+            <div className="flex items-center gap-4">
+              <div className="w-9 h-9 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                <SettingsIcon size={17} className="text-[#374151]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-[#C99F08]">
+                  {seller.plan === "FREE" ? "Passer au plan payant" : "Gérer mon abonnement"}
+                </p>
+                <p className="text-xs text-[#9CA3AF] mt-0.5">Produits illimités, commission réduite</p>
+              </div>
+              <ChevronRightIcon size={15} className="text-[#9CA3AF] flex-shrink-0" />
+            </div>
           </Link>
-          <label className="mt-4 flex items-center gap-3 rounded-lg border border-black/10 p-3 text-sm font-medium text-ink">
-            <input
-              type="checkbox"
-              checked={form.shop.is_published}
-              onChange={(e) => updateShop({ is_published: e.target.checked })}
-              className="h-4 w-4 accent-brand"
+          {quotaReached && (
+            <div className="px-4 pb-3">
+              <p className="rounded-[12px] bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700">
+                Quota mensuel de commandes atteint. Votre boutique est masquée jusqu'au mois prochain.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Préférences ── */}
+        <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Préférences</p>
+          </div>
+          <div className="px-4 divide-y divide-black/[0.04]">
+            <NotificationToggle
+              label="Nouvelles commandes"
+              enabled={notifications.new_orders}
+              onChange={(val) => setNotifications((n) => ({ ...n, new_orders: val }))}
             />
-            Boutique visible publiquement
-          </label>
-          {seller.limits?.orders_quota_reached && (
-            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700">
-              Quota mensuel de commandes atteint : votre boutique est masquée jusqu'au mois prochain,
-              même si la publication est activée.
-            </p>
-          )}
-          <p className="mt-4 break-all rounded-lg bg-gray-50 px-3 py-2 text-sm text-muted">
-            {seller.shop.public_url}
-          </p>
-          {success && (
-            <p role="status" aria-live="polite" className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-              <CheckIcon size={15} />
-              {success}
-            </p>
-          )}
-          {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+            <NotificationToggle
+              label="Paiements reçus"
+              enabled={notifications.payments}
+              onChange={(val) => setNotifications((n) => ({ ...n, payments: val }))}
+            />
+            <NotificationToggle
+              label="Alertes stock"
+              enabled={notifications.low_stock}
+              onChange={(val) => setNotifications((n) => ({ ...n, low_stock: val }))}
+            />
+            <NotificationToggle
+              label="Promotions & offres"
+              enabled={notifications.promotions}
+              onChange={(val) => setNotifications((n) => ({ ...n, promotions: val }))}
+            />
+          </div>
+        </div>
+
+        {/* ── Aide & Support ── */}
+        <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Aide & support</p>
+          </div>
+          <SettingsRow
+            icon={MessageCircleIcon}
+            label="Contacter le support"
+            desc="Chat avec notre équipe"
+            onClick={() => {}}
+          />
+          <SettingsRow
+            icon={BarChartIcon}
+            label="Statistiques avancées"
+            desc="Analyse détaillée de vos ventes"
+            onClick={() => {}}
+          />
+          <SettingsRow
+            icon={TagIcon}
+            label="Promotions"
+            desc="Codes promo et réductions"
+            onClick={() => {}}
+          />
+          <SettingsRow
+            icon={InfoIcon}
+            label="À propos"
+            desc="ANIF Seller — v1.4.2"
+            onClick={() => {}}
+          />
+        </div>
+
+        {/* ── Compte ── */}
+        <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05]">
           <button
-            type="submit"
-            disabled={submitting || Boolean(slugError)}
-            className="mt-4 w-full rounded-lg bg-brand px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-brand-medium disabled:opacity-60 sticky bottom-[calc(var(--tabbar-h)+var(--tabbar-safe)+1rem)] lg:static lg:shadow-none"
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-red-50 transition-colors active:bg-red-100 rounded-[16px]"
           >
-            {submitting ? "Enregistrement..." : "Enregistrer"}
+            <div className="w-9 h-9 rounded-[10px] bg-red-50 flex items-center justify-center flex-shrink-0">
+              <LogOutIcon size={17} className="text-red-500" />
+            </div>
+            <p className="font-semibold text-sm text-red-600">Se déconnecter</p>
           </button>
-        </aside>
-      </form>
+        </div>
+      </div>
     </SellerShell>
   );
 }
