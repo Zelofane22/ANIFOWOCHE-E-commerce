@@ -140,6 +140,39 @@
             </div>
         </a>
     </div>
+    <div class="anw-card-title" style="margin-top: 24px;">Business ANIF Seller</div>
+    <p class="anw-subgreeting">Abonnements payants, sur les {{ period_days }} derniers jours sauf mention contraire.</p>
+    <div class="anw-grid anw-kpi-grid">
+        <a class="anw-card anw-card-link" href="{% url 'admin:sellers_sellerprofile_changelist' %}">
+            <div class="anw-kpi-label">Mix des plans</div>
+            <ul class="anw-plan-breakdown">
+                {% for row in plan_mix %}
+                    <li>{{ row.plan }} : {{ row.count|intcomma }}</li>
+                {% endfor %}
+            </ul>
+        </a>
+        <a class="anw-card anw-card-link" href="{{ action_links.seller_subscriptions }}">
+            <div class="anw-kpi-label">ARPU</div>
+            <div class="anw-kpi-value">
+                {% if arpu is not None %}{{ arpu|intcomma }} FCFA{% else %}—{% endif %}
+            </div>
+            <div class="anw-kpi-change flat">Revenu abonnements / vendeur payant, période</div>
+        </a>
+        <a class="anw-card anw-card-link" href="{{ action_links.seller_subscriptions }}">
+            <div class="anw-kpi-label">MRR</div>
+            <div class="anw-kpi-value">{{ mrr|intcomma }} FCFA</div>
+            <div class="anw-kpi-change flat">Abonnements actifs aujourd'hui</div>
+        </a>
+        <a class="anw-card anw-card-link" href="{{ action_links.seller_subscriptions }}">
+            <div class="anw-kpi-label">Churn mensuel</div>
+            <div class="anw-kpi-value">
+                {% if churn_rate is not None %}{{ churn_rate }} %{% else %}—{% endif %}
+            </div>
+            <div class="anw-kpi-change flat">
+                {{ churned_vendors_count|intcomma }} / {{ vendors_active_period_start_count|intcomma }} vendeurs non renouvelés
+            </div>
+        </a>
+    </div>
 
     <div class="anw-grid anw-main-grid">
         <div class="anw-card">

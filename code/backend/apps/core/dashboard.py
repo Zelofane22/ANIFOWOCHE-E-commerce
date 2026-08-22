@@ -77,6 +77,37 @@ def _activation_stats(vendor_sellers):
     return total, activated, rate
 
 
+def _paying_vendor_ids(as_of):
+    """IDs des vendeurs ayant un abonnement approuvé actif à un instant donné."""
+    return set(
+        SellerSubscription.objects.filter(
+            status=SellerSubscription.Status.APPROVED,
+            starts_at__lte=as_of,
+            ends_at__gte=as_of,
+        ).values_list("seller_id", flat=True)
+    )
+
+
+def _current_mrr(now):
+    """MRR : somme du dernier abonnement actif de chaque vendeur payant (dédupliqué)."""
+    active_subs = (
+        SellerSubscription.objects.filter(
+            status=SellerSubscription.Status.APPROVED,
+            starts_at__lte=now,
+            ends_at__gte=now,
+        )
+        .order_by("seller_id", "-starts_at")
+    )
+    seen_sellers = set()
+    total = 0
+    for sub in active_subs:
+        if sub.seller_id in seen_sellers:
+            continue
+        seen_sellers.add(sub.seller_id)
+        total += sub.amount_xof
+    return total
+
+
 def dashboard_callback(request, context):
     """Callback de l'admin Django : injecte les KPIs du tableau de bord dans le contexte.
 
@@ -197,6 +228,28 @@ def dashboard_callback(request, context):
         vendor_sellers
     )
 
+    # Mix des plans (vendeurs hors boutique officielle).
+    plan_mix = _plan_breakdown(vendor_sellers, "plan")
+
+    # ARPU : revenu abonnements de la période / vendeurs payants distincts de la période.
+    paying_vendors_period_count = subs_period.values("seller").distinct().count()
+    arpu = (
+        round(seller_revenue_period / paying_vendors_period_count)
+        if paying_vendors_period_count else None
+    )
+
+    # MRR : somme du dernier abonnement actif de chaque vendeur, à l'instant présent.
+    mrr = _current_mrr(now)
+
+    # Churn mensuel : vendeurs payants actifs il y a 30 jours qui n'ont pas renouvelé.
+    vendors_active_period_start = _paying_vendor_ids(period_start)
+    vendors_active_now = _paying_vendor_ids(now)
+    churned_vendors_count = len(vendors_active_period_start - vendors_active_now)
+    churn_rate = (
+        round(churned_vendors_count / len(vendors_active_period_start) * 100, 1)
+        if vendors_active_period_start else None
+    )
+
     # Liens « liste filtrée » pour rendre chaque carte et ligne actionnables.
     action_links = {
         "orders": reverse("admin:orders_order_changelist"),
@@ -263,6 +316,12 @@ def dashboard_callback(request, context):
             "activation_rate": activation_rate,
             "activation_min_products": ACTIVATION_MIN_PRODUCTS,
             "activation_min_orders": ACTIVATION_MIN_ORDERS,
+            "plan_mix": plan_mix,
+            "arpu": arpu,
+            "mrr": mrr,
+            "churn_rate": churn_rate,
+            "churned_vendors_count": churned_vendors_count,
+            "vendors_active_period_start_count": len(vendors_active_period_start),
             "action_links": action_links,
             "period_days": PERIOD_DAYS,
         }

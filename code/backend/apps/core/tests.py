@@ -16,6 +16,7 @@ from apps.delivery.models import DeliverySlot, DeliveryZone
 from apps.products.models import Category, Product
 
 from apps.orders.models import Order
+from apps.sellers.models import SellerSubscription, SellerProfile
 
 from apps.core.factories import (
     CategoryFactory,
@@ -502,6 +503,38 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(context["activation_vendors_total"], 2)
         self.assertEqual(context["activation_vendors_activated"], 1)
         self.assertEqual(context["activation_rate"], 50.0)
+
+    def test_dashboard_mrr_arpu_and_churn(self):
+        now = timezone.now()
+
+        renewing_seller = self.other_shop.seller
+        # Abonnement actif aujourd'hui (couvre period_start et maintenant) : ARPU + MRR.
+        SellerSubscription.objects.create(
+            seller=renewing_seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=now - timedelta(days=5),
+            ends_at=now + timedelta(days=25),
+        )
+
+        churned_shop = ShopFactory(name="Boutique churn", slug="boutique-churn")
+        churned_seller = churned_shop.seller
+        # Abonnement expiré il y a 5 jours, non renouvelé : compte dans le churn.
+        SellerSubscription.objects.create(
+            seller=churned_seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=now - timedelta(days=35),
+            ends_at=now - timedelta(days=5),
+        )
+
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["mrr"], 5000)
+        self.assertIsNotNone(context["churn_rate"])
+        self.assertEqual(context["churned_vendors_count"], 1)
 
 
     def test_dashboard_low_stock_scoped_to_main_shop(self):
