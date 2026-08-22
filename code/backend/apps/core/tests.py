@@ -465,6 +465,17 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(context["category_breakdown"][0]["name"], self.category.name)
         self.assertEqual(context["category_breakdown"][0]["total"], 5000)
 
+    def test_dashboard_platform_kpis_exclude_official_shop_and_group_by_plan(self):
+        context = dashboard_callback(mock.Mock(), {})
+
+        # La boutique officielle (self.main_shop) est exclue des métriques plateforme.
+        self.assertEqual(context["platform_shops_total"], 1)
+        self.assertEqual(context["platform_products_total"], 1)
+        self.assertEqual(context["platform_orders_total"], 1)
+
+        plan_counts = {row["plan"]: row["count"] for row in context["platform_shops_by_plan"]}
+        self.assertEqual(sum(plan_counts.values()), 1)
+
     def test_dashboard_low_stock_scoped_to_main_shop(self):
         ProductFactory(
             category=self.category, shop=self.other_shop, is_active=True, price_xof=1000, stock=3

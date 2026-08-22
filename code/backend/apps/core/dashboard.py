@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import F, Sum
+from django.db.models import Count, F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.urls import reverse
@@ -10,7 +10,8 @@ from django.urls import reverse
 from apps.core.models import SettingChangeRequest
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
-from apps.sellers.models import SellerSubscription
+from apps.products.models import Product
+from apps.sellers.models import SellerSubscription, SellerProfile, Shop
 
 from apps.core.store_scope import (
     get_main_store_shop,
@@ -32,6 +33,24 @@ def _percent_change(current, previous):
         return None
     return round((current - previous) / previous * 100, 1)
 
+
+PLAN_LABELS = dict(SellerProfile.Plan.choices)
+
+
+def _plan_breakdown(queryset, plan_field):
+    """Regroupe un queryset par plan vendeur, avec libellés lisibles."""
+    rows = (
+        queryset.values(plan_field)
+        .annotate(count=Count("id", distinct=True))
+        .order_by(plan_field)
+    )
+    return [
+        {
+            "plan": PLAN_LABELS.get(row[plan_field], row[plan_field] or "Sans plan"),
+            "count": row["count"],
+        }
+        for row in rows
+    ]
 
 def dashboard_callback(request, context):
     """Callback de l'admin Django : injecte les KPIs du tableau de bord dans le contexte.
@@ -133,6 +152,20 @@ def dashboard_callback(request, context):
         status=SettingChangeRequest.Status.PENDING
     ).count()
 
+    # KPIs plateforme ANIF Seller : tous vendeurs, hors boutique officielle.
+    vendor_shops = Shop.objects.exclude(is_official=True)
+    vendor_products = Product.objects.filter(is_active=True, shop__is_official=False)
+    vendor_orders = Order.objects.filter(items__product__shop__is_official=False).distinct()
+
+    platform_shops_total = vendor_shops.count()
+    platform_shops_by_plan = _plan_breakdown(vendor_shops, "seller__plan")
+
+    platform_products_total = vendor_products.count()
+    platform_products_by_plan = _plan_breakdown(vendor_products, "shop__seller__plan")
+
+    platform_orders_total = vendor_orders.count()
+    platform_orders_by_plan = _plan_breakdown(vendor_orders, "items__product__shop__seller__plan")
+
     # Liens « liste filtrée » pour rendre chaque carte et ligne actionnables.
     action_links = {
         "orders": reverse("admin:orders_order_changelist"),
@@ -188,6 +221,12 @@ def dashboard_callback(request, context):
             "low_stock_threshold": LOW_STOCK_THRESHOLD,
             "failed_payments_count": failed_payments_count,
             "pending_settings_count": pending_settings_count,
+            "platform_shops_total": platform_shops_total,
+            "platform_shops_by_plan": platform_shops_by_plan,
+            "platform_products_total": platform_products_total,
+            "platform_products_by_plan": platform_products_by_plan,
+            "platform_orders_total": platform_orders_total,
+            "platform_orders_by_plan": platform_orders_by_plan,
             "action_links": action_links,
             "period_days": PERIOD_DAYS,
         }

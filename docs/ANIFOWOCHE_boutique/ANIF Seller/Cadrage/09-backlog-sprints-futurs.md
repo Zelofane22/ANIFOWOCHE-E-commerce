@@ -129,7 +129,7 @@ L'inventaire de référence : backend `apps/sellers/` (endpoints, `limits.py`,
 
 | ID | User Story | Priorité | Points | Constat |
 |----|-----------|----------|--------|---------|
-| US-1801 | En tant que fondateur, je vois le nombre de boutiques créées, produits publiés et commandes reçues (global et par plan) | P1 | 3 | Partiel dans le backoffice admin |
+| US-1801 | En tant que fondateur, je vois le nombre de boutiques créées, produits publiés et commandes reçues (global et par plan) | P1 | 3 | Fait — KPIs globaux + par plan sur le dashboard admin |
 | US-1802 | En tant que fondateur, je vois le taux d'activation (vendeurs ≥ 5 produits publiés et ≥ 1 commande) | P1 | 3 | Défini dans le doc (tunnel commercial) mais pas suivi |
 | US-1803 | En tant que fondateur, je vois le mix Free/Starter/Pro/Business, l'ARPU, le MRR et le churn | P1 | 5 | Non implémenté ; `SellerSubscription` disponible en admin |
 | US-1804 | En tant que fondateur, je vois le délai moyen jusqu'à la première commande d'un vendeur | P2 | 2 | Non implémenté |
