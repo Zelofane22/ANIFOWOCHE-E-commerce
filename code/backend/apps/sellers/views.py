@@ -1,6 +1,6 @@
 import logging
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Q
@@ -34,6 +34,7 @@ from .serializers import (
 )
 
 KPI_PERIOD_DAYS = 30
+VALID_PERIODS = (7, 30, 90)
 LOW_STOCK_THRESHOLD = 10
 
 
@@ -115,8 +116,65 @@ class SellerDashboardView(APIView):
 
         # Bornes temporelles des deux périodes comparées (actuelle et précédente).
         now = timezone.now()
-        period_start = now - timedelta(days=KPI_PERIOD_DAYS)
-        previous_start = now - timedelta(days=2 * KPI_PERIOD_DAYS)
+        now_bound = now
+
+        # --- Query params : period / date_from / date_to ---
+        period_raw = request.query_params.get("period")
+        date_from_raw = request.query_params.get("date_from")
+        date_to_raw = request.query_params.get("date_to")
+
+        has_date_range = date_from_raw or date_to_raw
+
+        if has_date_range:
+            # Validation : les deux dates ou aucune ne doit manquer.
+            if not date_from_raw or not date_to_raw:
+                return Response(
+                    {"detail": "Les paramètres date_from et date_to doivent être fournis ensemble."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                period_start = date.fromisoformat(date_from_raw)
+            except (ValueError, TypeError):
+                return Response(
+                    {"detail": "Format de date_from invalide. Utilisez le format YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                now_bound = date.fromisoformat(date_to_raw)
+            except (ValueError, TypeError):
+                return Response(
+                    {"detail": "Format de date_to invalide. Utilisez le format YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if period_start > now_bound:
+                return Response(
+                    {"detail": "La date_from doit être antérieure ou égale à date_to."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            duration_days = (now_bound - period_start).days
+            previous_start = period_start - timedelta(days=duration_days)
+            days_used = duration_days
+        else:
+            # Paramètre period : 7, 30 ou 90 jours.
+            if period_raw is not None:
+                try:
+                    days = int(period_raw)
+                except (ValueError, TypeError):
+                    return Response(
+                        {"detail": "Le paramètre period doit être un entier parmi 7, 30 ou 90."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if days not in VALID_PERIODS:
+                    return Response(
+                        {"detail": "Le paramètre period doit être 7, 30 ou 90."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                days = KPI_PERIOD_DAYS
+            days_used = days
+            period_start = now - timedelta(days=days)
+            previous_start = now - timedelta(days=2 * days)
+            now_bound = now
 
         orders_period = seller_orders.filter(created_at__gte=period_start)
         orders_previous = seller_orders.filter(
@@ -202,7 +260,7 @@ class SellerDashboardView(APIView):
                     "orders_change": _percent_change(orders_count_period, orders_count_previous),
                     "avg_order_value": avg_order_value,
                     "conversion_rate": conversion_rate,
-                    "period_days": KPI_PERIOD_DAYS,
+                    "period_days": days_used,
                 },
                 "sales_chart": [
                     {"day": row["day"].strftime("%d/%m"), "total": row["total"]}

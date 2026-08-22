@@ -11,7 +11,8 @@ export const updateSellerProfile = (data) =>
 export const checkShopSlugAvailability = (slug) =>
   apiClient.get("/seller/shop/slug-availability/", { params: { slug } }).then((res) => res.data);
 
-export const getSellerDashboard = () => apiClient.get("/seller/dashboard/").then((res) => res.data);
+export const getSellerDashboard = (params = {}) =>
+  apiClient.get("/seller/dashboard/", { params }).then((res) => res.data);
 
 export const getSellerOrders = () => apiClient.get("/seller/orders/").then((res) => res.data);
 

@@ -803,3 +803,64 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertTrue(features["advanced_stats"])
         self.assertTrue(features["priority_support"])
         self.assertTrue(features["multi_store"])
+
+
+class SellerDashboardPeriodTests(APITestCase):
+    """Tests des query params period / date_from / date_to sur le dashboard vendeur."""
+
+    def setUp(self):
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+        self.user = UserFactory(username="vendeuse")
+        self.seller = SellerProfileFactory(user=self.user, display_name="Afi Boutique", phone="+2290190000000")
+        self.shop = ShopFactory(seller=self.seller, name="Afi Wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=self.user)
+
+    def test_period_7_returns_7_days(self):
+        response = self.client.get("/api/seller/dashboard/", {"period": "7"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["kpi"]["period_days"], 7)
+
+    def test_period_90_returns_90_days(self):
+        response = self.client.get("/api/seller/dashboard/", {"period": "90"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["kpi"]["period_days"], 90)
+
+    def test_date_range_returns_correct_duration(self):
+        response = self.client.get("/api/seller/dashboard/", {
+            "date_from": "2026-01-01",
+            "date_to": "2026-01-15",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["kpi"]["period_days"], 14)
+
+    def test_invalid_period_returns_400(self):
+        response = self.client.get("/api/seller/dashboard/", {"period": "15"})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("detail", response.data)
+
+    def test_date_from_without_date_to_returns_400(self):
+        response = self.client.get("/api/seller/dashboard/", {"date_from": "2026-01-01"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_date_to_without_date_from_returns_400(self):
+        response = self.client.get("/api/seller/dashboard/", {"date_to": "2026-01-15"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_date_from_after_date_to_returns_400(self):
+        response = self.client.get("/api/seller/dashboard/", {
+            "date_from": "2026-02-01",
+            "date_to": "2026-01-01",
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_date_format_returns_400(self):
+        response = self.client.get("/api/seller/dashboard/", {
+            "date_from": "not-a-date",
+            "date_to": "2026-01-15",
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_default_period_without_params(self):
+        response = self.client.get("/api/seller/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["kpi"]["period_days"], 30)

@@ -125,6 +125,9 @@ export default function SellerDashboard() {
   const { loading, isAuthenticated } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [copyLabel, setCopyLabel] = useState("Copier");
+  const [period, setPeriod] = useState(30);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     if (loading) return;
@@ -132,12 +135,19 @@ export default function SellerDashboard() {
       navigate("/login", { replace: true });
       return;
     }
-    getSellerDashboard()
+    const params = {};
+    if (dateFrom && dateTo) {
+      params.date_from = dateFrom;
+      params.date_to = dateTo;
+    } else {
+      params.period = period;
+    }
+    getSellerDashboard(params)
       .then(setDashboard)
       .catch((err) => {
         navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
       });
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, period, dateFrom, dateTo]);
 
   if (loading || !dashboard) {
     return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
@@ -248,9 +258,44 @@ export default function SellerDashboard() {
         </section>
       )}
 
+      <section className="mt-5 rounded-xl border border-black/10 bg-white p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-bold text-ink">Période :</span>
+          <div className="flex gap-1">
+            {[7, 30, 90].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  !dateFrom && !dateTo && period === p
+                    ? "bg-brand text-white"
+                    : "border border-black/10 text-muted hover:border-brand hover:text-brand-dark"
+                }`}
+              >
+                {p}j
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-muted">ou</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPeriod(0); }}
+            className="rounded-lg border border-black/10 px-2 py-1.5 text-xs text-ink"
+          />
+          <span className="text-xs text-muted">→</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPeriod(0); }}
+            className="rounded-lg border border-black/10 px-2 py-1.5 text-xs text-ink"
+          />
+        </div>
+      </section>
       <section className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard label="Revenu (30j)" value={kpi.revenue} format={formatXOF} Icon={DollarSignIcon} change={kpi.revenue_change} />
-        <KPICard label="Commandes (30j)" value={kpi.orders} Icon={LayoutDashboardIcon} change={kpi.orders_change} />
+        <KPICard label={`Revenu (${kpi.period_days}j)`} value={kpi.revenue} format={formatXOF} Icon={DollarSignIcon} change={kpi.revenue_change} />
+        <KPICard label={`Commandes (${kpi.period_days}j)`} value={kpi.orders} Icon={LayoutDashboardIcon} change={kpi.orders_change} />
         <KPICard label="Commandes aujourd'hui" value={metrics.orders_today} Icon={StoreIcon} />
         <KPICard label="En attente" value={metrics.pending_orders} Icon={BarChartIcon} />
         <KPICard label="Panier moyen" value={kpi.avg_order_value} format={formatXOF} Icon={DollarSignIcon} />
@@ -262,7 +307,7 @@ export default function SellerDashboard() {
         <div className="rounded-xl border border-black/10 bg-white p-5">
           <div className="flex items-center gap-2">
             <BarChartIcon size={16} className="text-brand-dark" />
-            <h3 className="text-sm font-bold text-ink">Ventes des 30 derniers jours</h3>
+            <h3 className="text-sm font-bold text-ink">Ventes des {kpi.period_days} derniers jours</h3>
           </div>
           <div className="mt-4">
             <SalesChart data={sales_chart} />
