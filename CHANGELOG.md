@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.5.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.4.0...v2.5.0) (2026-08-20)
+
+
+### Features
+
+* feat:  ([e6393a8](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/e6393a8c93f5b3304d6e9068e1973ca48950890d))
+* feat:  ([440a885](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/440a885394c91894aac2ed59b0a860b7c93d5118))
+* add image gallery to SellerProductDetail page ([e583865](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/e5838659f2fe72a290a19bdc0e6ca21a43ecab2d))
+* **frontend:** support selle.localhost as seller subdomain in local dev ([f625da7](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/f625da7862cd741110e9d7276d53e8adb9da458b))
+
+
+### Bug Fixes
+
+* **seller:** add /shop/:slug redirect to /:slug on seller subdomain ([9bf5c5a](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/9bf5c5ad8774cc110ab97cb0b95894530f1bb545))
+* **seo:** enhance SEO title for product pages based on category ([ea28f28](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/ea28f281e64b07ea0ad2c503871588dfc1911f1d))
+
 ## [2.4.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.3.0...v2.4.0) (2026-08-15)
 
 
