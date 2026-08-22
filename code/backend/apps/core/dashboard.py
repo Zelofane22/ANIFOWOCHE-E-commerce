@@ -2,7 +2,7 @@ import json
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.urls import reverse
@@ -51,6 +51,31 @@ def _plan_breakdown(queryset, plan_field):
         }
         for row in rows
     ]
+
+ACTIVATION_MIN_PRODUCTS = 5
+ACTIVATION_MIN_ORDERS = 3
+
+
+def _activation_stats(vendor_sellers):
+    """Vendeurs « activés » : >= 5 produits publiés et >= 3 commande non annulée."""
+    activation_qs = vendor_sellers.annotate(
+        published_products_count=Count(
+            "products", filter=Q(products__is_active=True), distinct=True
+        ),
+        orders_count=Count(
+            "products__order_items__order",
+            filter=~Q(products__order_items__order__status=Order.Status.CANCELLED),
+            distinct=True,
+        ),
+    )
+    total = activation_qs.count()
+    activated = activation_qs.filter(
+        published_products_count__gte=ACTIVATION_MIN_PRODUCTS,
+        orders_count__gte=ACTIVATION_MIN_ORDERS,
+    ).count()
+    rate = round(activated / total * 100, 1) if total else None
+    return total, activated, rate
+
 
 def dashboard_callback(request, context):
     """Callback de l'admin Django : injecte les KPIs du tableau de bord dans le contexte.
@@ -166,6 +191,12 @@ def dashboard_callback(request, context):
     platform_orders_total = vendor_orders.count()
     platform_orders_by_plan = _plan_breakdown(vendor_orders, "items__product__shop__seller__plan")
 
+    # Taux d'activation : vendeurs hors boutique officielle.
+    vendor_sellers = SellerProfile.objects.exclude(shop__is_official=True)
+    activation_vendors_total, activation_vendors_activated, activation_rate = _activation_stats(
+        vendor_sellers
+    )
+
     # Liens « liste filtrée » pour rendre chaque carte et ligne actionnables.
     action_links = {
         "orders": reverse("admin:orders_order_changelist"),
@@ -227,6 +258,11 @@ def dashboard_callback(request, context):
             "platform_products_by_plan": platform_products_by_plan,
             "platform_orders_total": platform_orders_total,
             "platform_orders_by_plan": platform_orders_by_plan,
+            "activation_vendors_total": activation_vendors_total,
+            "activation_vendors_activated": activation_vendors_activated,
+            "activation_rate": activation_rate,
+            "activation_min_products": ACTIVATION_MIN_PRODUCTS,
+            "activation_min_orders": ACTIVATION_MIN_ORDERS,
             "action_links": action_links,
             "period_days": PERIOD_DAYS,
         }

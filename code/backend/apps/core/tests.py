@@ -476,6 +476,34 @@ class DashboardStoreScopeTests(TestCase):
         plan_counts = {row["plan"]: row["count"] for row in context["platform_shops_by_plan"]}
         self.assertEqual(sum(plan_counts.values()), 1)
 
+    def test_dashboard_activation_rate_requires_five_products_and_three_orders(self):
+        activated_seller = self.other_shop.seller
+        products = []
+        for i in range(5):
+            p = ProductFactory(
+                category=self.category, shop=self.other_shop, seller=activated_seller,
+                is_active=True, price_xof=1000,
+            )
+            products.append(p)
+        # 5 produits actifs + 3 commandes non annulées sur des produits du vendeur.
+        for i in range(3):
+            order = OrderFactory(customer=UserFactory(), total_xof=1000)
+            OrderItemFactory(order=order, product=products[i], quantity=1, unit_price_xof=1000)
+
+        inactive_seller_shop = ShopFactory(name="Boutique inactive", slug="boutique-inactive")
+        ProductFactory(
+            category=self.category, shop=inactive_seller_shop,
+            seller=inactive_seller_shop.seller, is_active=True, price_xof=1000,
+        )
+        # 1 seul produit, aucune commande : vendeur non activé.
+
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["activation_vendors_total"], 2)
+        self.assertEqual(context["activation_vendors_activated"], 1)
+        self.assertEqual(context["activation_rate"], 50.0)
+
+
     def test_dashboard_low_stock_scoped_to_main_shop(self):
         ProductFactory(
             category=self.category, shop=self.other_shop, is_active=True, price_xof=1000, stock=3

@@ -129,6 +129,16 @@
                 {% endfor %}
             </ul>
         </a>
+        <a class="anw-card anw-card-link" href="{% url 'admin:sellers_sellerprofile_changelist' %}">
+            <div class="anw-kpi-label">Taux d'activation</div>
+            <div class="anw-kpi-value">
+                {% if activation_rate is not None %}{{ activation_rate }} %{% else %}—{% endif %}
+            </div>
+            <div class="anw-kpi-change flat">
+                {{ activation_vendors_activated|intcomma }} / {{ activation_vendors_total|intcomma }} vendeurs
+                (≥ {{ activation_min_products }} produits, ≥ {{ activation_min_orders }} commande)
+            </div>
+        </a>
     </div>
 
     <div class="anw-grid anw-main-grid">

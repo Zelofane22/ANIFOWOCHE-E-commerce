@@ -112,7 +112,7 @@ Quand le produit devient stable, lancer les offres Starter et Pro avec une page 
 
 - Nombre de boutiques créées ;
 - Nombre de vendeurs actifs chaque semaine ;
-- Taux d'activation (vendeur ayant ≥ 5 produits publiés et ≥ 1 commande) ;
+- Taux d'activation (vendeur ayant ≥ 5 produits publiés et ≥ 3 commandes) ;
 - Délai jusqu'à la première commande ;
 - ARPU ;
 - Mix Free/Starter/Pro ;
