@@ -1,65 +1,63 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import {
-  LayoutDashboardIcon,
+  HomeIcon,
   LogOutIcon,
   PackageIcon,
-  PlusIcon,
   SettingsIcon,
+  ShoppingBagIcon,
   StoreIcon,
-  TruckIcon,
   UserIcon,
+  MoreHorizontalIcon,
 } from "../icons.jsx";
 import { useAuth } from "../../context/useAuth.js";
 import BottomSheet from "../BottomSheet.jsx";
 
 const navItems = [
-  { to: "/dashboard", label: "Acceuil", Icon: LayoutDashboardIcon },
-  { to: "/orders", label: "Commandes", Icon: TruckIcon },
+  { to: "/dashboard", label: "Accueil", Icon: HomeIcon },
   { to: "/products", label: "Produits", Icon: PackageIcon },
-  { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
+  { to: "/orders", label: "Commandes", Icon: ShoppingBagIcon },
+  { to: "/boutique", label: "Boutique", Icon: StoreIcon },
+  { to: "/settings", label: "Plus", Icon: MoreHorizontalIcon },
 ];
 
-const mobileNavItems = [
-  navItems[0],
-  navItems[1],
-  { to: "/products/new", label: "Ajouter", Icon: PlusIcon, centered: true },
-  navItems[2],
-  navItems[3],
-];
-
-function SellerMobileTabBar() {
+function BottomNav({ pendingCount = 0 }) {
   return (
     <nav
       aria-label="Navigation vendeur"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-black/10 bg-white lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] bg-white lg:hidden"
       style={{ paddingBottom: "var(--tabbar-safe)" }}
     >
       <div className="mx-auto flex h-[var(--tabbar-h)] max-w-lg items-stretch">
-        {mobileNavItems.map(({ to, label, Icon, centered }) =>
-          centered ? (
-            <Link
-              key={`${to}-${label}`}
-              to={to}
-              aria-label="Ajouter un produit"
-              className="relative flex min-w-0 flex-1 items-center justify-center"
-            >
-              <span className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-lg transition hover:bg-brand-medium active:scale-95">
-                <PlusIcon size={24} />
-              </span>
-            </Link>
-          ) : (
-            <NavLink
-              key={to}
-              to={to}
-              className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-semibold text-muted transition active:scale-95"
-              style={({ isActive }) => (isActive ? { color: "var(--color-brand)" } : undefined)}
-            >
-              <Icon size={22} />
-              <span>{label}</span>
-            </NavLink>
-          )
-        )}
+        {navItems.map(({ to, label, Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === "/dashboard"}
+            className={({ isActive }) =>
+              `relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${
+                isActive ? "text-brand" : "text-[#9CA3AF]"
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span className="relative">
+                  <Icon size={22} />
+                  {label === "Commandes" && pendingCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {pendingCount}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[10px] font-semibold leading-none">{label}</span>
+                {isActive && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-brand rounded-full" />
+                )}
+              </>
+            )}
+          </NavLink>
+        ))}
       </div>
     </nav>
   );
@@ -73,7 +71,7 @@ const getInitials = (name) =>
     .map((part) => part[0].toUpperCase())
     .join("") || "";
 
-export default function SellerShell({ children, title, seller }) {
+export default function SellerShell({ children, seller, pendingCount }) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -86,7 +84,8 @@ export default function SellerShell({ children, title, seller }) {
   const initials = getInitials(seller?.display_name);
 
   return (
-    <div className="min-h-screen bg-surface-muted text-ink">
+    <div className="min-h-screen bg-[#F4F4F8] text-ink">
+      {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-black/10 bg-white px-4 py-5 lg:block">
         <Link to="/dashboard" className="flex items-center gap-2 text-base font-bold text-ink">
           <StoreIcon size={21} className="text-brand-dark" />
@@ -97,6 +96,7 @@ export default function SellerShell({ children, title, seller }) {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.to === "/dashboard"}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
                   isActive ? "bg-brand-light text-brand-dark" : "text-muted hover:bg-gray-100 hover:text-ink"
@@ -119,26 +119,10 @@ export default function SellerShell({ children, title, seller }) {
       </aside>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 border-b border-black/10 bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold text-muted">{seller?.shop?.name ?? "Boutique vendeur"}</p>
-              <h1 className="text-xl font-bold text-ink">{title}</h1>
-            </div>
-            <button
-              type="button"
-              onClick={() => setProfileOpen(true)}
-              aria-label="Ouvrir mon profil"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-sm font-bold text-brand-dark transition hover:bg-brand/20"
-            >
-              {initials || <UserIcon size={18} />}
-            </button>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] lg:pb-6 sm:px-6">{children}</main>
+        <main className="mx-auto max-w-6xl pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] lg:pb-6">{children}</main>
       </div>
 
-      <SellerMobileTabBar />
+      <BottomNav pendingCount={pendingCount} />
 
       <BottomSheet open={profileOpen} onClose={() => setProfileOpen(false)} title="Mon profil">
         <div className="grid gap-2">

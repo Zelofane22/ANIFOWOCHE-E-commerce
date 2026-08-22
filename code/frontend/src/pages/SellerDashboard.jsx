@@ -1,427 +1,442 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { getSellerDashboard } from "../api/seller.js";
 import {
-  ArrowUpIcon,
-  BarChartIcon,
-  CopyIcon,
+  BellIcon,
   DollarSignIcon,
-  ExternalLinkIcon,
-  LayoutDashboardIcon,
   PackageIcon,
-  SettingsIcon,
-  StoreIcon,
-  TrendingDownIcon,
+  PlusIcon,
+  Share2Icon,
   TrendingUpIcon,
+  TrendingDownIcon,
+  AlertCircleIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
-import InstallAppButton from "../components/seller/InstallAppButton.jsx";
 import { useAuth } from "../context/useAuth.js";
+import {
+  AreaChart,
+  Area,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+} from "recharts";
 
-const STATUS_LABELS = {
-  received: "Reçue",
-  prepared: "Préparée",
-  delivered: "Livrée",
-  cancelled: "Annulée",
-};
-
-const STATUS_COLORS = {
-  received: "bg-amber-400",
-  prepared: "bg-blue-400",
-  delivered: "bg-green-400",
-  cancelled: "bg-gray-300",
+const STATUS_CONFIG = {
+  received: { label: "Recue", color: "bg-blue-500" },
+  prepared: { label: "Preparee", color: "bg-amber-500" },
+  delivered: { label: "Livree", color: "bg-emerald-500" },
+  cancelled: { label: "Annulee", color: "bg-red-500" },
 };
 
 const PLAN_META = {
-  FREE: { label: "Gratuit", badge: "bg-brand-light text-brand-dark" },
-  STARTER: { label: "Starter", badge: "bg-amber-100 text-amber-700" },
-  PRO: { label: "Pro", badge: "bg-blue-100 text-blue-700" },
-  BUSINESS: { label: "Entreprise", badge: "bg-purple-100 text-purple-700" },
+  FREE: { name: "Free", color: "text-gray-500", bg: "bg-gray-100" },
+  STARTER: { name: "Starter", color: "text-blue-600", bg: "bg-blue-50" },
+  PRO: { name: "Pro", color: "text-brand", bg: "bg-brand/10" },
+  BUSINESS: { name: "Business", color: "text-purple-600", bg: "bg-purple-50" },
 };
 
 function formatXOF(amount) {
-  return new Intl.NumberFormat("fr-FR").format(amount) + " FCFA";
+  if (amount == null) return "0 F";
+  return Number(amount).toLocaleString("fr-FR") + " F";
 }
 
-function KPICard({ label, value, Icon, change, format }) {
-  const displayValue = format ? format(value) : value;
-  const isPositive = change != null && change >= 0;
-  const isNegative = change != null && change < 0;
+function MiniBar({ value, max }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="rounded-xl border border-black/10 bg-white p-5">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm font-medium text-muted">{label}</p>
-        <Icon size={18} className="text-brand-dark shrink-0" />
-      </div>
-      <p className="mt-3 text-3xl font-bold text-ink">{displayValue}</p>
-      {change != null && (
-        <p className={`mt-1 flex items-center gap-1 text-xs font-semibold ${isPositive ? "text-green-600" : isNegative ? "text-red-500" : "text-muted"}`}>
-          {isPositive ? <TrendingUpIcon size={14} /> : isNegative ? <TrendingDownIcon size={14} /> : <ArrowUpIcon size={14} className="opacity-30" />}
-          {isPositive ? "+" : ""}{change}%
-        </p>
-      )}
+    <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+      <div
+        className="h-full rounded-full bg-brand transition-all duration-500"
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
 
-function MiniBar({ value, max, color }) {
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-      <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${Math.min((value / max) * 100, 100)}%` }} />
-    </div>
-  );
-}
-
-function SalesChart({ data }) {
-  if (!data || data.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">Aucune vente sur cette période</p>;
-  }
-  const maxVal = Math.max(...data.map((d) => d.total), 1);
-  return (
-    <div className="flex items-end gap-[2px] sm:gap-[3px]" style={{ height: 160 }}>
-      {data.map((point, i) => (
-        <div key={i} className="flex flex-1 flex-col items-center justify-end gap-1">
-          <div
-            className="w-full rounded-t-sm bg-brand transition-all hover:bg-brand-medium"
-            style={{ height: `${(point.total / maxVal) * 140}px`, minHeight: point.total > 0 ? 4 : 0 }}
-            title={`${point.day}: ${formatXOF(point.total)}`}
-          />
-          {data.length <= 14 && (
-            <span className="text-[10px] text-muted" style={{ writingMode: "vertical-lr", textOrientation: "mixed" }}>
-              {point.day}
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  return (
-    <span className={`inline-block h-2.5 w-2.5 rounded-full ${STATUS_COLORS[status] || "bg-gray-300"}`} />
-  );
-}
-
-function PlanUsage({ label, used, max }) {
-  const reached = used >= max;
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs font-medium text-muted">
-        <span>{label}</span>
-        <span className={reached ? "font-bold text-red-600" : ""}>
-          {used} / {max}
-        </span>
-      </div>
-      <div className="mt-1.5">
-        <MiniBar value={used} max={max} color={reached ? "bg-red-400" : "bg-brand"} />
-      </div>
+    <div className="rounded-xl bg-[#1a1a2e] px-3 py-2 text-xs text-white shadow-lg">
+      <p className="font-medium">{label}</p>
+      <p className="text-brand font-semibold">{formatXOF(payload[0].value)}</p>
     </div>
   );
 }
 
 export default function SellerDashboard() {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { loading, isAuthenticated } = useAuth();
-  const [dashboard, setDashboard] = useState(null);
+  const [data, setData] = useState(null);
   const [copyLabel, setCopyLabel] = useState("Copier");
-  const [period, setPeriod] = useState(30);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [period, setPeriod] = useState("30j");
+  const [hideBalance, setHideBalance] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (loading) return;
-    if (!isAuthenticated) {
-      navigate("/login", { replace: true });
-      return;
+    if (!authLoading && !user) {
+      navigate("/login");
     }
-    const params = {};
-    if (dateFrom && dateTo) {
-      params.date_from = dateFrom;
-      params.date_to = dateTo;
-    } else {
-      params.period = period;
-    }
-    getSellerDashboard(params)
-      .then(setDashboard)
-      .catch((err) => {
-        navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
-      });
-  }, [isAuthenticated, loading, navigate, period, dateFrom, dateTo]);
+  }, [user, authLoading, navigate]);
 
-  if (loading || !dashboard) {
-    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    async function fetchDashboard() {
+      try {
+        setLoading(true);
+        const res = await getSellerDashboard({ period });
+        if (!cancelled) setData(res.data);
+      } catch (err) {
+        console.error("Failed to load dashboard", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchDashboard();
+    return () => { cancelled = true; };
+  }, [user, period]);
+
+  if (authLoading || loading || !data) {
+    return (
+      <SellerShell>
+        <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-64 rounded-2xl bg-gray-200" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-20 rounded-2xl bg-gray-200" />
+              <div className="h-20 rounded-2xl bg-gray-200" />
+            </div>
+            <div className="h-16 rounded-2xl bg-gray-200" />
+          </div>
+        </div>
+      </SellerShell>
+    );
   }
 
-  const { seller, metrics, kpi, sales_chart, top_products, recent_orders, low_stock, status_distribution } = dashboard;
-  const limits = seller.limits ?? null;
-  const publicUrl = seller.shop.public_url;
+  const {
+    shop_name,
+    revenue = 0,
+    revenue_today = 0,
+    revenue_change_pct = 0,
+    revenue_chart = [],
+    orders_count = 0,
+    customers_count = 0,
+    recent_orders = [],
+    low_stock = [],
+    limits,
+    pending_count = 0,
+    plan,
+  } = data;
 
-  const copyPublicUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(publicUrl);
-      setCopyLabel("Copié");
-      window.setTimeout(() => setCopyLabel("Copier"), 1500);
-    } catch {
-      setCopyLabel("Copie indisponible");
-    }
+  const planMeta = PLAN_META[plan] || PLAN_META.FREE;
+  const chartData = revenue_chart.map((d) => ({
+    label: d.label,
+    value: d.value,
+  }));
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/boutique`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopyLabel("Copie !");
+      setTimeout(() => setCopyLabel("Copier"), 2000);
+    });
   };
 
   return (
-    <SellerShell title="Tableau de bord" seller={seller}>
-      <InstallAppButton />
-      <section className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-          <p className="text-sm font-semibold text-brand-dark">ANIF Seller</p>
-          <h2 className="mt-2 text-2xl font-bold text-ink">Bienvenue, {seller.display_name}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Votre boutique est prête à recevoir des produits. Ajoutez vos articles, gardez le stock à jour
-            et partagez le lien public quand le catalogue est publié.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link
-              to="/products"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium sm:inline-flex sm:w-auto w-full"
-            >
-              <PackageIcon size={15} />
-              Gérer les produits
-            </Link>
-            <Link
-              to="/settings"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark sm:inline-flex sm:w-auto w-full"
-            >
-              <SettingsIcon size={15} />
-              Paramètres boutique
-            </Link>
-            <a
-              href={publicUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark sm:inline-flex sm:w-auto w-full"
-            >
-              <ExternalLinkIcon size={15} />
-              Voir la boutique
-            </a>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-black/10 bg-white p-5">
-          <p className="text-sm font-bold text-ink">Lien public</p>
-          <p className="mt-2 break-all rounded-lg bg-gray-50 px-3 py-2 text-sm text-muted">{publicUrl}</p>
-          <button
-            type="button"
-            onClick={copyPublicUrl}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/15 px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
-          >
-            <CopyIcon size={15} />
-            {copyLabel}
-          </button>
-        </div>
-      </section>
-
-      {limits?.orders_quota_reached && (
-        <p className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          Quota mensuel atteint ({limits.max_orders_per_month} commandes) : votre boutique est masquée
-          jusqu'au mois prochain. Les commandes repartiront automatiquement le 1er du mois.
-        </p>
-      )}
-
-      {limits?.max_products != null && (
-        <section className="mt-5 rounded-xl border border-black/10 bg-white p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <h3 className="text-sm font-bold text-ink">Votre plan</h3>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${PLAN_META[seller.plan]?.badge || "bg-brand-light text-brand-dark"}`}>
-                {PLAN_META[seller.plan]?.label || seller.plan}
-              </span>
+    <SellerShell pendingCount={pending_count}>
+      <div className="mx-auto max-w-2xl space-y-4">
+        <div className="-mx-4 rounded-2xl bg-[#111827] px-5 pt-8 pb-6 sm:mx-0 sm:rounded-2xl">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                Bonjour
+              </p>
+              <h1 className="mt-1 text-xl font-bold text-white">{shop_name}</h1>
             </div>
             <Link
-              to="/plan"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white transition hover:bg-brand-medium"
+              to="/notifications"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
             >
-              <SettingsIcon size={13} />
-              {seller.plan === "FREE" ? "Passer au plan payant" : "Gérer mon abonnement"}
+              <BellIcon className="h-5 w-5" />
+              {pending_count > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {pending_count}
+                </span>
+              )}
             </Link>
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <PlanUsage label="Produits actifs" used={limits.products_used} max={limits.max_products} />
-            <PlanUsage
-              label="Commandes ce mois-ci"
-              used={limits.orders_this_month}
-              max={limits.max_orders_per_month}
-            />
-          </div>
-          <p className="mt-3 text-xs leading-5 text-muted">
-            Un plan payant supprime ces limites et ajoute la visibilité sur le catalogue
-            anifowoche.com. Gérez votre abonnement sur la page Plan.
-          </p>
-        </section>
-      )}
 
-      <section className="mt-5 rounded-xl border border-black/10 bg-white p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-bold text-ink">Période :</span>
-          <div className="flex gap-1">
-            {[7, 30, 90].map((p) => (
+          <div className="rounded-[20px] bg-white/10 p-5 backdrop-blur-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-300">CA ce mois</p>
               <button
-                key={p}
-                type="button"
-                onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                  !dateFrom && !dateTo && period === p
-                    ? "bg-brand text-white"
-                    : "border border-black/10 text-muted hover:border-brand hover:text-brand-dark"
-                }`}
+                onClick={() => setHideBalance(!hideBalance)}
+                className="text-xs text-gray-400 transition hover:text-white"
               >
-                {p}j
+                {hideBalance ? "Afficher" : "Masquer"}
               </button>
-            ))}
-          </div>
-          <span className="text-xs text-muted">ou</span>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPeriod(0); }}
-            className="rounded-lg border border-black/10 px-2 py-1.5 text-xs text-ink"
-          />
-          <span className="text-xs text-muted">→</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPeriod(0); }}
-            className="rounded-lg border border-black/10 px-2 py-1.5 text-xs text-ink"
-          />
-        </div>
-      </section>
-      <section className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard label={`Revenu (${kpi.period_days}j)`} value={kpi.revenue} format={formatXOF} Icon={DollarSignIcon} change={kpi.revenue_change} />
-        <KPICard label={`Commandes (${kpi.period_days}j)`} value={kpi.orders} Icon={LayoutDashboardIcon} change={kpi.orders_change} />
-        <KPICard label="Commandes aujourd'hui" value={metrics.orders_today} Icon={StoreIcon} />
-        <KPICard label="En attente" value={metrics.pending_orders} Icon={BarChartIcon} />
-        <KPICard label="Panier moyen" value={kpi.avg_order_value} format={formatXOF} Icon={DollarSignIcon} />
-        <KPICard label="Conversion" value={`${kpi.conversion_rate}%`} Icon={TrendingUpIcon} />
-        <KPICard label="Produits" value={metrics.products} Icon={PackageIcon} />
-      </section>
+            </div>
 
-      <section className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-xl border border-black/10 bg-white p-5">
-          <div className="flex items-center gap-2">
-            <BarChartIcon size={16} className="text-brand-dark" />
-            <h3 className="text-sm font-bold text-ink">Ventes des {kpi.period_days} derniers jours</h3>
-          </div>
-          <div className="mt-4">
-            <SalesChart data={sales_chart} />
+            <p className="text-3xl font-bold text-white">
+              {hideBalance ? "\u2022\u2022\u2022\u2022\u2022\u2022" : formatXOF(revenue)}
+            </p>
+            <p className="mt-1 text-sm text-gray-400">
+              Aujourd&apos;hui : {hideBalance ? "\u2022\u2022\u2022\u2022" : formatXOF(revenue_today)}
+            </p>
+
+            <div className="mt-3 flex items-center gap-1.5">
+              {revenue_change_pct >= 0 ? (
+                <TrendingUpIcon className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <TrendingDownIcon className="h-4 w-4 text-red-400" />
+              )}
+              <span
+                className={
+                  revenue_change_pct >= 0
+                    ? "text-sm font-medium text-emerald-400"
+                    : "text-sm font-medium text-red-400"
+                }
+              >
+                {revenue_change_pct >= 0 ? "+" : ""}
+                {revenue_change_pct}%
+              </span>
+              <span className="text-xs text-gray-500">vs mois prec.</span>
+            </div>
+
+            <div className="mt-5 flex gap-1 rounded-full bg-white/5 p-1">
+              {["7j", "30j", "3m"].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={
+                    period === p
+                      ? "flex-1 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white transition"
+                      : "flex-1 rounded-full px-3 py-1.5 text-xs font-medium text-gray-400 transition hover:text-white"
+                  }
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {chartData.length > 0 && (
+              <div className="mt-5 h-32">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient
+                        id="goldGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#C99F08"
+                          stopOpacity={0.4}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#C99F08"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "#6b7280", fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#C99F08"
+                      strokeWidth={2}
+                      fill="url(#goldGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="rounded-xl border border-black/10 bg-white p-5">
-          <h3 className="text-sm font-bold text-ink">Statut des commandes</h3>
-          <div className="mt-4 grid gap-3">
-            {Object.entries(STATUS_LABELS).map(([key, label]) => {
-              const count = status_distribution?.[key] || 0;
-              const total = metrics.total_orders || 1;
-              return (
-                <div key={key} className="flex items-center gap-3">
-                  <StatusBadge status={key} />
-                  <span className="flex-1 text-sm text-muted">{label}</span>
-                  <span className="text-sm font-bold text-ink">{count}</span>
-                  <span className="w-8 text-right text-xs text-muted">{Math.round((count / total) * 100)}%</span>
+        <div className="grid grid-cols-2 gap-3 px-4 sm:px-0">
+          <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
+                <PackageIcon className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Ventes</p>
+                <p className="text-lg font-bold text-gray-900">{orders_count}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-50">
+                <DollarSignIcon className="h-5 w-5 text-violet-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Clients</p>
+                <p className="text-lg font-bold text-gray-900">{customers_count}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 px-4 sm:px-0">
+          <Link
+            to="/products/new"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10">
+              <PlusIcon className="h-5 w-5 text-brand" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">Nouveau produit</span>
+          </Link>
+          <button
+            onClick={handleCopyLink}
+            className="flex flex-col items-center gap-2 rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+              <Share2Icon className="h-5 w-5 text-emerald-500" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">{copyLabel}</span>
+          </button>
+          <Link
+            to="/orders"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50">
+              <PackageIcon className="h-5 w-5 text-amber-500" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">Commandes</span>
+          </Link>
+        </div>
+
+        {low_stock.length > 0 && (
+          <div className="mx-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 sm:mx-0">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                <AlertCircleIcon className="h-4 w-4 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-orange-800">
+                  Stock faible
+                </p>
+                <p className="mt-0.5 text-xs text-orange-600">
+                  {low_stock.length} produit{low_stock.length > 1 ? "s" : ""} en
+                  rupture ou bientot en rupture de stock.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {low_stock.map((item) => (
+                    <span
+                      key={item.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700"
+                    >
+                      {item.name}
+                      <span className="text-orange-400">({item.stock})</span>
+                    </span>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      <section className="mt-5 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-black/10 bg-white p-5">
-          <h3 className="text-sm font-bold text-ink">Meilleurs produits</h3>
-          {top_products.length === 0 ? (
-            <p className="mt-4 text-sm text-muted">Aucune vente pour le moment</p>
-          ) : (
-            <div className="mt-4 grid gap-3">
-              {top_products.map((p, i) => {
-                const maxRev = top_products[0]?.revenue || 1;
-                return (
-                  <div key={p.id} className="flex items-center gap-3">
-                    <span className="w-5 text-sm font-bold text-muted">{i + 1}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-ink truncate">{p.name}</p>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-muted">
-                        <span>{formatXOF(p.revenue)}</span>
-                        <span>{p.quantity} vendu{p.quantity > 1 ? "s" : ""}</span>
-                      </div>
-                      <MiniBar value={p.revenue} max={maxRev} color="bg-brand" />
-                    </div>
+        {limits && (
+          <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm mx-4 sm:mx-0">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-900">Plan {planMeta.name}</p>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${planMeta.color} ${planMeta.bg}`}>
+                {planMeta.name}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {limits.products && (
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="text-gray-500">Produits</span>
+                    <span className="font-medium text-gray-700">
+                      {limits.products.used}/{limits.products.limit}
+                    </span>
                   </div>
+                  <MiniBar value={limits.products.used} max={limits.products.limit} />
+                </div>
+              )}
+              {limits.orders && (
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="text-gray-500">Commandes / mois</span>
+                    <span className="font-medium text-gray-700">
+                      {limits.orders.used}/{limits.orders.limit}
+                    </span>
+                  </div>
+                  <MiniBar value={limits.orders.used} max={limits.orders.limit} />
+                </div>
+              )}
+              {limits.gallery && (
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="text-gray-500">Galerie</span>
+                    <span className="font-medium text-gray-700">
+                      {limits.gallery.used}/{limits.gallery.limit}
+                    </span>
+                  </div>
+                  <MiniBar value={limits.gallery.used} max={limits.gallery.limit} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm mx-4 sm:mx-0">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-900">Commandes recentes</p>
+            <Link
+              to="/orders"
+              className="text-xs font-medium text-brand transition hover:text-brand/80"
+            >
+              Tout voir
+            </Link>
+          </div>
+          {recent_orders.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              Aucune commande pour le moment.
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {recent_orders.map((order) => {
+                const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
+                return (
+                  <Link
+                    key={order.id}
+                    to={`/orders/${order.id}`}
+                    className="flex items-center justify-between py-3 transition first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${status.color}`} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {order.customer_name || `Commande #${order.id}`}
+                        </p>
+                        <p className="text-xs text-gray-400">{status.label}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {formatXOF(order.total)}
+                    </p>
+                  </Link>
                 );
               })}
             </div>
           )}
         </div>
-
-        <div className="rounded-xl border border-black/10 bg-white p-5">
-          <h3 className="text-sm font-bold text-ink">Stock faible</h3>
-          {low_stock.length === 0 ? (
-            <p className="mt-4 text-sm text-muted">Tous les produits ont un stock suffisant</p>
-          ) : (
-            <div className="mt-4 grid gap-3">
-              {low_stock.map((p) => (
-                <div key={p.id} className="flex items-center gap-3">
-                  <PackageIcon size={15} className="text-red-400 shrink-0" />
-                  <p className="flex-1 text-sm text-ink truncate">{p.name}</p>
-                  <span className={`text-sm font-bold ${p.stock === 0 ? "text-red-500" : "text-amber-500"}`}>
-                    {p.stock}
-                  </span>
-                </div>
-              ))}
-              <Link
-                to="/products"
-                className="mt-2 inline-block text-xs font-semibold text-brand-dark hover:underline"
-              >
-                Voir tous les produits →
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-5 rounded-xl border border-black/10 bg-white p-5">
-        <h3 className="text-sm font-bold text-ink">Dernières commandes</h3>
-        {recent_orders.length === 0 ? (
-          <p className="mt-4 py-4 text-center text-sm text-muted">Aucune commande reçue</p>
-        ) : (
-          <div className="mt-4 grid gap-2">
-            {recent_orders.map((order) => (
-              <Link
-                key={order.id}
-                to={`/orders/${order.id}`}
-                className="flex flex-col gap-2 rounded-lg border border-black/5 px-4 py-3 transition hover:bg-gray-50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={order.status} />
-                  <div>
-                    <p className="text-sm font-medium text-ink">{order.full_name}</p>
-                    <p className="text-xs text-muted">
-                      CMD-{String(order.id).padStart(6, "0")} · {new Date(order.created_at).toLocaleDateString("fr-FR")}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-ink">{formatXOF(order.total_xof)}</p>
-                  <p className="text-xs text-muted">{STATUS_LABELS[order.status] || order.status}</p>
-                </div>
-              </Link>
-            ))}
-            <Link
-              to="/orders"
-              className="mt-1 inline-block text-center text-xs font-semibold text-brand-dark hover:underline"
-            >
-              Voir toutes les commandes →
-            </Link>
-          </div>
-        )}
-      </section>
+      </div>
     </SellerShell>
   );
 }

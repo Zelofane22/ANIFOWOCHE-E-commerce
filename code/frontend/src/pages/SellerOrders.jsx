@@ -1,17 +1,88 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
-import { OrderStatusBadge } from "../components/account/common.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
-import { formatDate, ORDER_STATUS } from "../components/account/orderHelpers.js";
 import { formatXof } from "../utils/format.js";
-import { AlertCircleIcon, MessageSquareIcon, PackageIcon, SearchIcon } from "../components/icons.jsx";
+import {
+  AlertCircleIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  PackageIcon,
+  SearchIcon,
+} from "../components/icons.jsx";
 
-function whatsappUrl(phone, message) {
-  const clean = phone.replace(/[^0-9]/g, "");
-  return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+const STATUS_CONFIG = {
+  received: { label: "Recue", color: "#7C3AED", bg: "#F5F3FF", Icon: ClockIcon },
+  prepared: { label: "En preparation", color: "#2563EB", bg: "#EFF6FF", Icon: PackageIcon },
+  delivered: { label: "Livree", color: "#059669", bg: "#ECFDF5", Icon: CheckIcon },
+  cancelled: { label: "Annulee", color: "#DC2626", bg: "#FEF2F2", Icon: AlertCircleIcon },
+};
+
+const FILTERS = [
+  { key: "all", label: "Toutes" },
+  { key: "pending", label: "A traiter" },
+  { key: "active", label: "En cours" },
+  { key: "done", label: "Terminees" },
+  { key: "cancelled", label: "Annulees" },
+];
+
+const FILTER_MAP = {
+  pending: ["received"],
+  active: ["prepared"],
+  done: ["delivered"],
+  cancelled: ["cancelled"],
+};
+
+function StatusBadge({ status }) {
+  const cfg = STATUS_CONFIG[status] ?? { label: status, color: "#6B7280", bg: "#F3F4F6", Icon: ClockIcon };
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full"
+      style={{ color: cfg.color, backgroundColor: cfg.bg }}
+    >
+      <cfg.Icon size={11} />
+      {cfg.label}
+    </span>
+  );
 }
+
+function FilterChip({ label, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+        active ? "bg-[#C99F08] text-white" : "bg-white text-[#6B7280] border border-black/10 hover:border-[#C99F08]/50"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function formatRelativeDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH = Math.floor(diffMin / 60);
+  const diffD = Math.floor(diffH / 24);
+  if (diffMin < 1) return "A l'instant";
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  if (diffH < 24) return `Il y a ${diffH}h`;
+  if (diffD === 1) return "Hier";
+  if (diffD < 7) return `Il y a ${diffD}j`;
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+function formatTime(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 
 export default function SellerOrders() {
   const navigate = useNavigate();
@@ -19,7 +90,7 @@ export default function SellerOrders() {
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("all");
   const [statusSelection, setStatusSelection] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState([]);
   const [statusErrors, setStatusErrors] = useState({});
@@ -31,16 +102,13 @@ export default function SellerOrders() {
       navigate("/login", { replace: true });
       return;
     }
-
     Promise.all([getSellerProfile(), getSellerOrders()])
       .then(([sellerData, ordersData]) => {
         setSeller(sellerData);
         setOrders(ordersData.results ?? ordersData);
       })
       .catch((err) => {
-        navigate(err?.response?.status === 404 ? "/register" : "/login", {
-          replace: true,
-        });
+        navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
       });
   }, [isAuthenticated, loading, navigate]);
 
@@ -48,16 +116,17 @@ export default function SellerOrders() {
     if (!orders) return [];
     const query = search.trim().toLowerCase();
     return orders.filter((order) => {
-      if (statusFilter && order.status !== statusFilter) return false;
+      const allowed = FILTER_MAP[activeFilter];
+      if (allowed && !allowed.includes(order.status)) return false;
       if (!query) return true;
       return (
-        order.full_name.toLowerCase().includes(query) ||
-        order.phone.toLowerCase().includes(query) ||
+        order.full_name?.toLowerCase().includes(query) ||
+        order.phone?.toLowerCase().includes(query) ||
         String(order.id).includes(query) ||
         order.items?.some((item) => item.product_name?.toLowerCase().includes(query))
       );
     });
-  }, [orders, search, statusFilter]);
+  }, [orders, search, activeFilter]);
 
   const statusCounts = useMemo(() => {
     if (!orders) return {};
@@ -67,26 +136,20 @@ export default function SellerOrders() {
     }, {});
   }, [orders]);
 
-  const handleStatusChange = (orderId, status) => {
-    setStatusSelection((prev) => ({ ...prev, [orderId]: status }));
-    setStatusErrors((prev) => ({ ...prev, [orderId]: "" }));
-  };
+  const pendingCount = (statusCounts.received ?? 0) + (statusCounts.prepared ?? 0);
+
 
   const handleUpdateStatus = async (order, reason = "") => {
     const nextStatus = statusSelection[order.id] ?? order.status;
     if (nextStatus === order.status) return;
-
     setSavingOrderIds((prev) => [...prev, order.id]);
     setStatusErrors((prev) => ({ ...prev, [order.id]: "" }));
-
     try {
       const payload = { status: nextStatus };
       if (nextStatus === "cancelled" && reason) payload.cancellation_reason = reason;
       const updatedOrder = await updateSellerOrderStatus(order.id, payload);
-      setOrders((prevOrders) =>
-        prevOrders.map((existingOrder) =>
-          existingOrder.id === order.id ? { ...existingOrder, ...updatedOrder } : existingOrder
-        )
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, ...updatedOrder } : o))
       );
       setStatusSelection((prev) => ({ ...prev, [order.id]: updatedOrder.status }));
     } catch (error) {
@@ -95,16 +158,13 @@ export default function SellerOrders() {
         [order.id]:
           error?.response?.data?.status?.[0] ||
           error?.response?.data?.detail ||
-          "Impossible de mettre à jour le statut.",
+          "Impossible de mettre a jour le statut.",
       }));
     } finally {
       setSavingOrderIds((prev) => prev.filter((id) => id !== order.id));
     }
   };
 
-  const handleCancelClick = (order) => {
-    setCancelModal({ order, reason: "" });
-  };
 
   const handleCancelConfirm = async () => {
     if (!cancelModal) return;
@@ -113,222 +173,134 @@ export default function SellerOrders() {
   };
 
   if (loading || !seller) {
-    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
+    return (
+      <SellerShell>
+        <div className="min-h-screen bg-[#F4F4F8] px-4 py-10 text-center text-[#9CA3AF]">
+          Chargement...
+        </div>
+      </SellerShell>
+    );
   }
 
   return (
-    <SellerShell title="Commandes" seller={seller}>
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-        <section className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-ink">Commandes reçues</h2>
-              <p className="mt-1 text-sm text-muted">
-                Suivez les commandes passées via votre boutique publique.
-              </p>
-            </div>
-            <div className="relative rounded-lg border border-black/15 bg-white p-2">
-              <SearchIcon size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Rechercher par client, produit ou n° commande"
-                className="w-full rounded-lg border border-black/10 bg-white px-10 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
+    <SellerShell pendingCount={pendingCount} seller={seller}>
+      <div className="mx-auto max-w-2xl">
+        <div className="bg-[#111827] px-5 pt-8 pb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-white">Commandes</h1>
+            <span className="text-xs font-medium text-gray-400">
+              {orders ? `${orders.length} au total` : ""}
+            </span>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-1.5 rounded-lg border border-black/15 bg-white p-1">
-            <button
-              type="button"
-              onClick={() => setStatusFilter(null)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                statusFilter === null ? "bg-brand text-white" : "text-muted hover:text-ink"
-              }`}
-            >
-              Toutes{orders ? ` (${orders.length})` : ""}
-            </button>
-            {[
-              { key: "received", label: "Reçues" },
-              { key: "prepared", label: "En préparation" },
-              { key: "delivered", label: "Livrées" },
-              { key: "cancelled", label: "Annulées" },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setStatusFilter(key)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  statusFilter === key ? "bg-brand text-white" : "text-muted hover:text-ink"
-                }`}
-              >
-                {label}{statusCounts[key] != null ? ` (${statusCounts[key]})` : ""}
-              </button>
-            ))}
+          <div className="relative mb-4">
+            <SearchIcon
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Client, numero de commande..."
+              className="w-full rounded-xl bg-white/10 pl-10 pr-4 py-3 text-sm text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-[#C99F08]/40"
+            />
           </div>
 
+          <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
+            {FILTERS.map((f) => {
+              const count =
+                f.key === "all"
+                  ? orders?.length ?? 0
+                  : statusCounts[FILTER_MAP[f.key]?.[0] ?? ""] ?? 0;
+              return (
+                <FilterChip
+                  key={f.key}
+                  label={`${f.label} (${count})`}
+                  active={activeFilter === f.key}
+                  onClick={() => setActiveFilter(f.key)}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="px-4 pt-4 space-y-3 pb-8">
           {orders === null ? (
-            <div className="flex flex-col gap-4">
-              {[0, 1].map((index) => (
-                <div key={index} className="h-40 animate-pulse rounded-xl border border-black/10 bg-brand-pale" />
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-200" />
               ))}
             </div>
           ) : filteredOrders.length === 0 ? (
-            <div className="rounded-xl border border-black/10 bg-white px-4 py-16 text-center text-muted">
-              <PackageIcon size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-semibold text-ink">
-                {orders.length === 0 ? "Aucune commande reçue pour l'instant" : "Aucune commande trouvée"}
+            <div className="rounded-2xl border border-black/[0.05] bg-white p-10 text-center shadow-sm">
+              <PackageIcon size={32} className="mx-auto mb-3 text-[#9CA3AF]" />
+              <p className="font-semibold text-[#111827]">
+                {orders.length === 0 ? "Aucune commande recue" : "Aucune commande trouvee"}
+              </p>
+              <p className="mt-1 text-sm text-[#9CA3AF]">
+                {orders.length === 0
+                  ? "Les nouvelles commandes apparaitront ici."
+                  : "Essayez de modifier vos filtres."}
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredOrders.map((order) => (
-                <article key={order.id} className="rounded-2xl border border-black/10 bg-surface-raised p-4 shadow-sm">
-                  <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Commande</p>
-                      <p className="mt-1 font-mono text-sm text-ink">ANW-{order.id}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Date</p>
-                      <p className="mt-1 text-sm text-ink">{formatDate(order.created_at)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Total</p>
-                      <p className="mt-1 text-sm font-bold text-ink">{formatXof(order.total_xof)}</p>
-                    </div>
+            filteredOrders.map((order) => (
+              <Link
+                key={order.id}
+                to={`/orders/${order.id}`}
+                className="block rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm transition active:scale-[0.98]"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="font-bold text-[#111827]">#{order.id}</p>
+                    <p className="text-sm text-[#6B7280] mt-0.5">{order.full_name}</p>
+                    <p className="text-xs text-[#9CA3AF] mt-0.5">
+                      {formatRelativeDate(order.created_at)} a {formatTime(order.created_at)} - {(order.items?.length ?? 0)} art.
+                    </p>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-black/10 pt-4">
-                    <div className="flex flex-wrap gap-2 text-sm text-muted">
-                      <span>{order.full_name}</span>
-                      <span>·</span>
-                      <span>{order.phone}</span>
-                      <span>·</span>
-                      <span>{order.city}</span>
-                    </div>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                  <div className="mt-4 flex flex-col gap-3 border-t border-black/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                      <label htmlFor={`order-status-${order.id}`} className="text-sm font-semibold text-muted">
-                        Changer le statut
-                      </label>
-                      <select
-                        id={`order-status-${order.id}`}
-                        value={statusSelection[order.id] ?? order.status}
-                        onChange={(event) => handleStatusChange(order.id, event.target.value)}
-                        className="min-h-11 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 sm:w-auto"
-                      >
-                        {Object.entries(ORDER_STATUS).map(([status, cfg]) => (
-                          <option key={status} value={status}>
-                            {cfg.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                      <a
-                        href={whatsappUrl(
-                          order.phone,
-                          `Bonjour ${order.full_name}, je vous confirme la bonne réception de votre commande. Je reviens vers vous rapidement.`
-                        )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-green-700 transition hover:border-green-400 hover:bg-green-50"
-                      >
-                        <MessageSquareIcon size={16} />
-                        <span className="sm:hidden">WhatsApp</span>
-                      </a>
-                      <Link
-                        to={`/orders/${order.id}`}
-                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
-                      >
-                        Voir le détail
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextStatus = statusSelection[order.id] ?? order.status;
-                          if (nextStatus === "cancelled" && nextStatus !== order.status) {
-                            handleCancelClick(order);
-                          } else {
-                            handleUpdateStatus(order);
-                          }
-                        }}
-                        disabled={
-                          savingOrderIds.includes(order.id) ||
-                          (statusSelection[order.id] ?? order.status) === order.status
-                        }
-                        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {savingOrderIds.includes(order.id) ? "Enregistrement..." : "Mettre à jour"}
-                      </button>
-                    </div>
-                  </div>
-                  {statusErrors[order.id] ? (
-                    <p role="alert" className="mt-2 text-sm text-red-600">{statusErrors[order.id]}</p>
-                  ) : null}
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {order.items?.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-black/10 bg-white p-3">
-                        <p className="text-sm font-semibold text-ink">{item.product_name}</p>
-                        <p className="mt-1 text-xs text-muted">
-                          Qté {item.quantity} · {formatXof(item.unit_price_xof)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+                  <StatusBadge status={order.status} />
+                </div>
 
-        <aside className="space-y-4">
-          <section className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Résumé</h2>
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between rounded-xl bg-brand-pale px-4 py-3 text-sm font-semibold text-brand-dark">
-                <span>Total</span>
-                <span>{orders?.length ?? 0}</span>
-              </div>
-              <div className="rounded-xl bg-white p-4 text-sm text-ink shadow-sm">
-                <p className="font-semibold">Statuts</p>
-                <ul className="mt-3 space-y-2 text-sm text-muted">
-                  <li>Reçues : {statusCounts.received ?? 0}</li>
-                  <li>En préparation : {statusCounts.prepared ?? 0}</li>
-                  <li>Livrées : {statusCounts.delivered ?? 0}</li>
-                  <li>Annulées : {statusCounts.cancelled ?? 0}</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-        </aside>
+                <div className="flex items-center justify-between pt-3 border-t border-black/[0.04]">
+                  <p className={`font-bold text-xl ${order.status === "cancelled" ? "text-[#9CA3AF] line-through" : "text-[#111827]"}`}>
+                    {formatXof(order.total_xof)}
+                  </p>
+                  <ChevronRightIcon size={18} className="text-[#9CA3AF]" />
+                </div>
+
+                {statusErrors[order.id] ? (
+                  <p role="alert" className="mt-2 text-xs text-red-600">{statusErrors[order.id]}</p>
+                ) : null}
+              </Link>
+            ))
+          )}
+        </div>
       </div>
+
       {cancelModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-xl">
             <div className="flex items-start gap-3">
               <AlertCircleIcon size={22} className="mt-0.5 shrink-0 text-red-600" />
               <div>
-                <h3 className="text-lg font-bold text-ink">Annuler la commande</h3>
-                <p className="mt-2 text-sm text-muted">
-                  Êtes-vous sûr de vouloir annuler la commande <strong>ANW-{cancelModal.order.id}</strong> de {cancelModal.order.full_name}&nbsp;?
+                <h3 className="text-lg font-bold text-[#111827]">Annuler la commande</h3>
+                <p className="mt-2 text-sm text-[#6B7280]">
+                  Etes-vous sur de vouloir annuler la commande <strong>#{cancelModal.order.id}</strong> de {cancelModal.order.full_name} ?
                 </p>
-                <p className="mt-1 text-xs text-muted">Cette action remettra les produits en stock et ne peut pas être annulée.</p>
+                <p className="mt-1 text-xs text-[#9CA3AF]">Cette action remettra les produits en stock et ne peut pas etre annulee.</p>
               </div>
             </div>
             <div className="mt-4">
-              <label htmlFor="cancel-reason" className="block text-sm font-semibold text-ink">
-                Motif de l'annulation <span className="font-normal text-muted">(optionnel)</span>
+              <label htmlFor="cancel-reason" className="block text-sm font-semibold text-[#111827]">
+                Motif de l'annulation <span className="font-normal text-[#9CA3AF]">(optionnel)</span>
               </label>
               <textarea
                 id="cancel-reason"
                 value={cancelModal.reason}
                 onChange={(e) => setCancelModal((prev) => ({ ...prev, reason: e.target.value }))}
                 placeholder="Exemple : Rupture de stock, client annule, etc."
-                className="mt-2 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                className="mt-2 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#111827] outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 rows={3}
               />
             </div>
@@ -336,7 +308,7 @@ export default function SellerOrders() {
               <button
                 type="button"
                 onClick={() => setCancelModal(null)}
-                className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50"
+                className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:bg-gray-50"
               >
                 Retour
               </button>
