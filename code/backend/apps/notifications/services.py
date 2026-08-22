@@ -545,3 +545,45 @@ def notify_setting_change_requested(change_request):
         if notification:
             sent.append(notification)
     return sent
+
+
+def notify_sensitive_action(*, action, obj, actor=None):
+    """Alerte tous les superadmins actifs d'une action sensible effectuée
+    dans le backoffice (suppression d'objet critique, changement de
+    permissions staff/superuser/groupes, changement de prix produit).
+
+    Crée une alerte backoffice (kind=SENSITIVE_ACTION, severity=WARNING)
+    puis envoie un email à chaque superadmin actif."""
+    User = get_user_model()
+    obj_label = f"{obj._meta.verbose_name} #{obj.pk}"
+    # Description lisible de l'objet concerné selon son type.
+    detail = str(obj)
+    actor_label = actor.username if actor is not None else "inconnu"
+    message = (
+        f"Action sensible détectée.\n\n"
+        f"Action : {action}\n"
+        f"Objet : {obj_label} ({detail})\n"
+        f"Auteur : {actor_label}\n\n"
+        f"Consultez l'admin pour plus de détails."
+    )
+    title = f"Action sensible : {action}"
+    create_backoffice_notification(
+        kind=BackofficeNotification.Kind.SENSITIVE_ACTION,
+        severity=BackofficeNotification.Severity.WARNING,
+        title=title,
+        message=message,
+        source="core.signals",
+    )
+    # Envoi d'un email à chaque superadmin actif, puis collecte des envois réussis.
+    sent = []
+    for superuser in User.objects.filter(is_superuser=True, is_active=True).exclude(email=""):
+        notification = _send_email(
+            event=Notification.Event.SENSITIVE_ACTION,
+            recipient_email=superuser.email,
+            subject=f"[ANIFOWOCHE] {title} — {detail}",
+            message=message,
+            title=title,
+        )
+        if notification:
+            sent.append(notification)
+    return sent

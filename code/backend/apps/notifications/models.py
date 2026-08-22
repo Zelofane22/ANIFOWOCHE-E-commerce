@@ -58,6 +58,7 @@ class Notification(models.Model):
         SETTING_CHANGE_REQUESTED = "setting_change_requested", "Demande de changement de réglage"
         PAYMENT_RETRY = "payment_retry", "Relance de paiement"
         SUBSCRIPTION_EXPIRING = "subscription_expiring", "Abonnement bientôt expiré"
+        SENSITIVE_ACTION = "sensitive_action", "Action sensible"
 
     class Status(models.TextChoices):
         PENDING = "pending", "En attente"
@@ -96,6 +97,7 @@ class BackofficeNotification(models.Model):
         CONFIGURATION = "configuration", "Problème de configuration"
         SYSTEM_ERROR = "system_error", "Erreur système"
         PAYMENT_FAILED = "payment_failed", "Paiement échoué"
+        SENSITIVE_ACTION = "sensitive_action", "Action sensible"
 
     class Severity(models.TextChoices):
         INFO = "info", "Info"

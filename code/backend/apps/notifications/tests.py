@@ -368,3 +368,196 @@ class BackofficeNotificationAdminTests(TestCase):
             context = backoffice_notifications(request)
 
         self.assertEqual(context["backoffice_notifications_count"], 0)
+
+
+class SensitiveActionNotificationTests(TestCase):
+    """Tests des signaux qui déclenchent des notifications d'actions sensibles
+    (suppression produit/commande/staff, changement permissions, changement prix)."""
+
+    def setUp(self):
+        self.superuser = UserFactory(
+            username="alertadmin", email="alert@example.com",
+            is_staff=True, is_superuser=True,
+        )
+        self.category = None
+
+    def _patch_email_succeed(self):
+        response = mock.Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"id": "resend-sensitive-1"}
+        return mock.patch("apps.notifications.services.requests.post", return_value=response)
+
+    def _patch_email_fail(self):
+        return mock.patch(
+            "apps.notifications.services.requests.post",
+            side_effect=requests.exceptions.ConnectionError,
+        )
+
+    # ── Suppression produit ────────────────────────────────────────────────
+
+    def test_product_deletion_creates_backoffice_notification(self):
+        from apps.core.factories import ProductFactory
+        product = ProductFactory(name="Produit test")
+
+        with self._patch_email_succeed():
+            product.delete()
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertEqual(alert.severity, BackofficeNotification.Severity.WARNING)
+        self.assertIn("Suppression de produit", alert.title)
+        self.assertIn("Produit test", alert.message)
+
+    def test_product_deletion_sends_email_to_superadmins(self):
+        from apps.core.factories import ProductFactory
+        product = ProductFactory(name="Produit mail")
+
+        with self._patch_email_succeed() as mock_post:
+            product.delete()
+
+        self.assertTrue(
+            Notification.objects.filter(
+                event=Notification.Event.SENSITIVE_ACTION,
+                recipient_email="alert@example.com",
+            ).exists()
+        )
+        called_payload = mock_post.call_args[1].get("json") or mock_post.call_args[0][1] if len(mock_post.call_args[0]) > 1 else None
+        # Le endpoint Resend est bien appelé.
+        mock_post.assert_called()
+
+    # ── Suppression commande ───────────────────────────────────────────────
+
+    def test_order_deletion_creates_backoffice_notification(self):
+        from apps.core.factories import OrderFactory
+        order = OrderFactory(full_name="Client Test", total_xof=2500)
+
+        with self._patch_email_succeed():
+            order.delete()
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertIn("Suppression de commande", alert.title)
+
+    # ── Suppression compte staff ───────────────────────────────────────────
+
+    def test_staff_user_deletion_creates_backoffice_notification(self):
+        from apps.core.factories import StaffUserFactory
+        staff = StaffUserFactory(username="deletedstaff", email="staff@example.com")
+
+        with self._patch_email_succeed():
+            staff.delete()
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertIn("Suppression d'un compte staff", alert.title)
+
+    def test_non_staff_user_deletion_does_not_trigger_notification(self):
+        from apps.core.factories import UserFactory
+        user = UserFactory(username="plainuser", email="plain@example.com")
+
+        with self._patch_email_succeed():
+            user.delete()
+
+        self.assertFalse(
+            BackofficeNotification.objects.filter(
+                kind=BackofficeNotification.Kind.SENSITIVE_ACTION,
+            ).exists()
+        )
+
+    # ── Changement de permissions ──────────────────────────────────────────
+
+    def test_is_staff_change_creates_backoffice_notification(self):
+        from apps.core.factories import StaffUserFactory
+        staff = StaffUserFactory(username="permstaff")
+
+        staff.is_staff = False
+        with self._patch_email_succeed():
+            staff.save()
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertIn("is_staff", alert.title)
+        self.assertIn("désactivé", alert.title)
+
+    def test_is_superuser_change_creates_backoffice_notification(self):
+        from apps.core.factories import SuperUserFactory
+        su = SuperUserFactory(username="permadmin")
+
+        su.is_superuser = False
+        with self._patch_email_succeed():
+            su.save()
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertIn("is_superuser", alert.title)
+
+    def test_groups_change_creates_backoffice_notification(self):
+        from django.contrib.auth.models import Group
+        from apps.core.factories import StaffUserFactory
+        group = Group.objects.create(name="Test Group")
+        staff = StaffUserFactory(username="groupstaff")
+
+        with self._patch_email_succeed():
+            staff.groups.add(group)
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertIn("groupes modifiés", alert.title)
+
+    def test_no_change_on_save_does_not_trigger_notification(self):
+        from apps.core.factories import StaffUserFactory
+        staff = StaffUserFactory(username="noopstaff")
+
+        with self._patch_email_succeed():
+            staff.save()
+
+        self.assertFalse(
+            BackofficeNotification.objects.filter(
+                kind=BackofficeNotification.Kind.SENSITIVE_ACTION,
+            ).exists()
+        )
+
+    # ── Changement de prix produit ─────────────────────────────────────────
+
+    def test_product_price_change_creates_backoffice_notification(self):
+        from apps.core.factories import ProductFactory
+        product = ProductFactory(name="Produit prix", price_xof=5000)
+
+        product.price_xof = 7500
+        with self._patch_email_succeed():
+            product.save()
+
+        alert = BackofficeNotification.objects.latest("created_at")
+        self.assertEqual(alert.kind, BackofficeNotification.Kind.SENSITIVE_ACTION)
+        self.assertIn("Changement de prix", alert.title)
+        self.assertIn("5000", alert.message)
+        self.assertIn("7500", alert.message)
+
+    def test_product_price_change_sends_email_to_superadmins(self):
+        from apps.core.factories import ProductFactory
+        product = ProductFactory(name="Produit mail", price_xof=1000)
+
+        product.price_xof = 2000
+        with self._patch_email_succeed():
+            product.save()
+
+        self.assertTrue(
+            Notification.objects.filter(
+                event=Notification.Event.SENSITIVE_ACTION,
+                recipient_email="alert@example.com",
+            ).exists()
+        )
+
+    def test_product_non_price_field_change_does_not_trigger_notification(self):
+        from apps.core.factories import ProductFactory
+        product = ProductFactory(name="Produit no price", price_xof=5000)
+
+        product.name = "Produit no price renamed"
+        with self._patch_email_succeed():
+            product.save()
+
+        self.assertFalse(
+            BackofficeNotification.objects.filter(
+                kind=BackofficeNotification.Kind.SENSITIVE_ACTION,
+            ).exists()
+        )
