@@ -57,6 +57,7 @@ class Notification(models.Model):
         ACCOUNT_CREATED = "account_created", "Création de compte"
         SETTING_CHANGE_REQUESTED = "setting_change_requested", "Demande de changement de réglage"
         PAYMENT_RETRY = "payment_retry", "Relance de paiement"
+        SUBSCRIPTION_EXPIRING = "subscription_expiring", "Abonnement bientôt expiré"
 
     class Status(models.TextChoices):
         PENDING = "pending", "En attente"

@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 # Durée d'un abonnement payant (mensuel).
 SUBSCRIPTION_DURATION_DAYS = 30
 
+REMINDER_WINDOW_DAYS = 7
+REMINDER_MIN_INTERVAL_DAYS = 2
+
 # Plans souscriptibles en ligne (FREE et BUSINESS sont exclus du checkout).
 SUBSCRIPTABLE_PLANS = (SellerProfile.Plan.STARTER, SellerProfile.Plan.PRO)
 
@@ -177,3 +180,34 @@ def expire_subscriptions():
             downgraded += 1
             logger.info("Vendeur #%s rétrogradé au plan FREE (abonnement #%s expiré).", seller.pk, subscription.pk)
     return downgraded
+
+
+def remind_expiring_subscriptions():
+    """Envoie un rappel email aux vendeurs dont l'abonnement approuvé expire
+    dans les REMINDER_WINDOW_DAYS jours, au maximum une fois tous les
+    REMINDER_MIN_INTERVAL_DAYS jours (1 jour sur 2)."""
+    from apps.notifications.services import notify_subscription_expiring
+
+    now = timezone.now()
+    window_end = now + timedelta(days=REMINDER_WINDOW_DAYS)
+    min_interval = timedelta(days=REMINDER_MIN_INTERVAL_DAYS)
+
+    candidates = SellerSubscription.objects.filter(
+        status=SellerSubscription.Status.APPROVED,
+        ends_at__gt=now,
+        ends_at__lte=window_end,
+    ).select_related("seller__user")
+
+    sent = 0
+    for subscription in candidates:
+        if (
+            subscription.last_expiry_reminder_at is not None
+            and now - subscription.last_expiry_reminder_at < min_interval
+        ):
+            continue
+        days_left = max((subscription.ends_at - now).days, 0)
+        notify_subscription_expiring(subscription, days_left)
+        subscription.last_expiry_reminder_at = now
+        subscription.save(update_fields=["last_expiry_reminder_at"])
+        sent += 1
+    return sent

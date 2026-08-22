@@ -398,6 +398,30 @@ def notify_payment_retry(payment):
     )
 
 
+def notify_subscription_expiring(subscription, days_left):
+    """Prévient le vendeur que son abonnement expire bientôt (rappel 1j/2
+    durant la semaine précédant `ends_at`), avec un lien pour payer en avance."""
+    seller = subscription.seller
+    seller_user = seller.user
+    if not seller_user.email:
+        return None
+    plan_label = subscription.get_plan_display()
+    message = (
+        f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} "
+        f"expire dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
+        f"Renouvelez dès maintenant pour éviter toute coupure de votre boutique."
+    )
+    return _send_email(
+        event=Notification.Event.SUBSCRIPTION_EXPIRING,
+        recipient_email=seller_user.email,
+        subject=f"Votre abonnement {plan_label} expire dans {days_left} jour(s)",
+        message=message,
+        title="Votre abonnement expire bientôt",
+        cta_label="Renouveler mon abonnement",
+        cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
+    )
+
+
 def notify_invoice(payment):
     """Envoie la facture du paiement au client, avec le détail des articles."""
     order = payment.order

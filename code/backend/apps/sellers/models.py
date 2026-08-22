@@ -108,6 +108,7 @@ class SellerSubscription(models.Model):
     last_webhook_payload = models.JSONField(blank=True, null=True)
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
+    last_expiry_reminder_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

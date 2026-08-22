@@ -280,6 +280,39 @@ class SellerSubscriptionFlowTests(APITestCase):
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SellerSubscription.Status.APPROVED)
 
+    @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
+    @mock.patch("apps.notifications.services.ResendClient")
+    def test_remind_expiring_subscriptions_sends_and_respects_interval(self, mock_resend_cls, _mock_html):
+        mock_client = mock.Mock()
+        mock_client.send_email.return_value = "msg_123"
+        mock_resend_cls.return_value = mock_client
+
+        self.user.email = "vendeuse@test.com"
+        self.user.save(update_fields=["email"])
+
+        subscription = SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=10000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=timezone.now() - timedelta(days=27),
+            ends_at=timezone.now() + timedelta(days=3),
+        )
+
+        from apps.notifications.models import Notification
+        from .services import remind_expiring_subscriptions
+
+        sent = remind_expiring_subscriptions()
+
+        self.assertEqual(sent, 1)
+        self.assertEqual(Notification.objects.filter(event=Notification.Event.SUBSCRIPTION_EXPIRING).count(), 1)
+        subscription.refresh_from_db()
+        self.assertIsNotNone(subscription.last_expiry_reminder_at)
+
+        sent2 = remind_expiring_subscriptions()
+        self.assertEqual(sent2, 0)
+        self.assertEqual(Notification.objects.filter(event=Notification.Event.SUBSCRIPTION_EXPIRING).count(), 1)
+
 
 class SellerPlansAndDashboardTests(APITestCase):
     def setUp(self):
