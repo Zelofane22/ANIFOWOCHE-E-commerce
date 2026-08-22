@@ -108,11 +108,9 @@ Quand le produit devient stable, lancer les offres Starter et Pro avec une page 
 | WhatsApp suffit déjà | Positionner l'app comme un complément à WhatsApp |
 | Paiements locaux complexes | Démarrer sans paiement automatique, puis intégrer FedaPay/KkiaPay |
 
-## Indicateurs à suivre (KPI)
+## Indicateurs à suivre (KPI) dashboard admin
 
 - Nombre de boutiques créées ;
-- Nombre de produits publiés ;
-- Nombre de commandes reçues ;
 - Nombre de vendeurs actifs chaque semaine ;
 - Taux d'activation (vendeur ayant ≥ 5 produits publiés et ≥ 1 commande) ;
 - Délai jusqu'à la première commande ;
@@ -122,8 +120,6 @@ Quand le produit devient stable, lancer les offres Starter et Pro avec une page 
 - Churn ;
 - Taux de renouvellement ;
 - Revenu mensuel récurrent ;
-- Revenu des services ;
-- Revenu des options premium ;
 - Motifs d'abandon.
 
 ## Principes de pilotage
