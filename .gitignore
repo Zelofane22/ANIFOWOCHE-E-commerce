@@ -27,7 +27,6 @@ dist/
 .claude/
 .codex
 
-*Mockup*
 docs/amelioration_continue
 
 *.dump
