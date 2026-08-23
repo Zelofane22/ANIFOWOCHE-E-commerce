@@ -56,7 +56,6 @@ export default function SellerDashboard() {
   const [hideBalance, setHideBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [seller] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
