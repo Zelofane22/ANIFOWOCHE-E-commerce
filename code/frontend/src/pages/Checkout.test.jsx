@@ -1,5 +1,7 @@
+// @ts-expect-error The test runner provides this package at runtime.
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
+// @ts-expect-error The test runner provides this package at runtime.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
@@ -123,17 +125,17 @@ async function submitOrder() {
 describe("Checkout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchDeliveryZones.mockResolvedValue({ results: [{ id: 1, name: "Cotonou", fee_xof: 1000 }] });
-    fetchDeliverySlots.mockResolvedValue({ results: [{ id: 1, label: "Matin", start_time: "08:00:00", end_time: "12:00:00" }] });
-    fetchStoreStatus.mockResolvedValue({
+    vi.mocked(fetchDeliveryZones).mockResolvedValue({ results: [{ id: 1, name: "Cotonou", fee_xof: 1000 }] });
+    vi.mocked(fetchDeliverySlots).mockResolvedValue({ results: [{ id: 1, label: "Matin", start_time: "08:00:00", end_time: "12:00:00" }] });
+    vi.mocked(fetchStoreStatus).mockResolvedValue({
       online_payment_enabled: true,
       payment_methods: { mtn: true, moov: true, card: true, cash_on_delivery: true },
     });
-    getAddresses.mockResolvedValue({ results: [] });
-    createOrder.mockResolvedValue({ id: 42, total_xof: 15000 });
-    createDelivery.mockResolvedValue({ id: 7 });
-    initiatePayment.mockResolvedValue({ id: 99, status: "cash_on_delivery", payment_url: null });
-    openFedapayCheckout.mockResolvedValue("approved");
+    vi.mocked(getAddresses).mockResolvedValue({ results: [] });
+    vi.mocked(createOrder).mockResolvedValue({ id: 42, total_xof: 15000 });
+    vi.mocked(createDelivery).mockResolvedValue({ id: 7 });
+    vi.mocked(initiatePayment).mockResolvedValue({ id: 99, status: "cash_on_delivery", payment_url: null });
+    vi.mocked(openFedapayCheckout).mockResolvedValue("approved");
   });
 
   it("affiche le formulaire de livraison et les items du panier au rendu initial", async () => {
@@ -176,7 +178,7 @@ describe("Checkout", () => {
     await fillDeliveryForm();
 
     fireEvent.click(screen.getByRole("button", { name: "Vous avez un code promo ?" }));
-    validateCoupon.mockResolvedValue({ code: "PROMO10", discount_percent: 10 });
+    vi.mocked(validateCoupon).mockResolvedValue({ code: "PROMO10", discount_percent: 10 });
     fireEvent.change(screen.getByPlaceholderText("Code coupon"), { target: { value: "PROMO10" } });
     fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
 
@@ -192,7 +194,7 @@ describe("Checkout", () => {
   });
 
   it("affiche une erreur quand la soumission de la commande échoue", async () => {
-    createOrder.mockRejectedValue({ response: { data: { detail: "Stock insuffisant pour la robe" } } });
+    vi.mocked(createOrder).mockRejectedValue({ response: { data: { detail: "Stock insuffisant pour la robe" } } });
 
     renderCheckout();
     await goToPaymentStep();

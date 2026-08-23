@@ -13,16 +13,13 @@ Monétiser ANIF Seller avec un abonnement mensuel accessible, adapté aux petits
 | Gratuit | 0 FCFA/mois | Découvrir | Test et acquisition |
 | Starter | 5 000 FCFA/mois | Vendre | Petit vendeur actif |
 | Pro | 10 000 FCFA/mois | Mieux vendre et piloter | Boutique structurée |
-| Business | Sur devis | Structurer | Commerce avec équipe |
+| Business | 15 000 FCFA/mois | Structurer | Commerce avec équipe |
 
 ## Tarification par offre
 Le revenu principal vient d'un paiement mensuel. Le prix doit rester assez bas pour être acceptable, mais assez clair pour prouver la valeur.
 ### Gratuit — Découvrir
-Volume :
 - 5 produits ;
 - 5 commandes/mois.
-
-Fonctionnalités incluses :
 - vitrine publique (avec identité ANIF affichée) ;
 - bouton WhatsApp ;
 - gestion basique des commandes.

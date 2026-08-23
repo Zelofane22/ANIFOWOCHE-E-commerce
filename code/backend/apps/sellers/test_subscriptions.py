@@ -331,6 +331,7 @@ class SellerPlansAndDashboardTests(APITestCase):
         self.assertEqual(prices["FREE"], 0)
         self.assertEqual(prices["STARTER"], 5000)
         self.assertEqual(prices["PRO"], 10000)
+        self.assertEqual(prices["BUSINESS"], 15000)
         self.assertIn("features", response.data["plans"][0])
 
     def test_dashboard_includes_advanced_stats(self):

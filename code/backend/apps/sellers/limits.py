@@ -30,7 +30,7 @@ PLAN_LIMITS = {
         "promo_duration_months": 3,
     },
     "PRO": {"max_products": None, "max_orders_per_month": None, "price_xof": 10000},
-    "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": None},
+    "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": 15000},
 }
 
 # Fonctionnalités incluses par offre (cf. modèle économique « Tarification par offre »).
@@ -42,7 +42,7 @@ PLAN_LIMITS = {
 # - PRO : mieux vendre et piloter → personnalisation avancée, statistiques
 #   avancées, exports, équipe, outils promotionnels, relances clients, domaine
 #   personnalisé, paiement en ligne.
-# - BUSINESS : structurer → tout le PRO + multi-boutiques + support prioritaire.
+# - BUSINESS : structurer → tout le PRO + marketplace, livraison et support prioritaire.
 PRO_FEATURES = frozenset(
     {
         "basic_customization",
@@ -63,7 +63,16 @@ PLAN_FEATURES = {
         {"basic_customization", "essential_stats", "online_payment"}
     ),
     "PRO": PRO_FEATURES,
-    "BUSINESS": PRO_FEATURES | frozenset({"multi_store", "priority_support"}),
+    "BUSINESS": PRO_FEATURES
+    | frozenset(
+        {
+            "multi_store",
+            "priority_support",
+            "seo_listing",
+            "delivery_service",
+            "marketplace_orders",
+        }
+    ),
 }
 
 

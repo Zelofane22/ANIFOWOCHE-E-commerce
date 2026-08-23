@@ -21,10 +21,58 @@ const PLAN_META = {
   FREE: { label: "Gratuit", note: "Pour démarrer et tester", color: "#6B7280" },
   STARTER: { label: "Starter", note: "Pour les vendeurs actifs", color: "#2563EB" },
   PRO: { label: "Pro", note: "Mieux vendre et piloter", color: "#C99F08" },
-  BUSINESS: { label: "Entreprise", note: "Sur devis", color: "#7C3AED" },
+  BUSINESS: { label: "Business", note: "Développer son activité", color: "#7C3AED" },
 };
 
 const PLAN_ORDER = ["FREE", "STARTER", "PRO", "BUSINESS"];
+
+const FEATURE_LABELS = {
+  essential_stats: "Statistiques essentielles",
+  advanced_stats: "Statistiques avancées",
+  exports: "Exports des statistiques",
+  team: "Multi-utilisateurs",
+  promotions: "Outils promotionnels",
+  client_relaunch: "Relances clients",
+  custom_domain: "Domaine personnalisé",
+  online_payment: "Paiement Mobile Money et carte bancaire",
+  multi_store: "Produits visibles sur la vitrine principale",
+  priority_support: "Support prioritaire",
+  seo_listing: "Référencement SEO des produits",
+  delivery_service: "Livraison prise en charge",
+  marketplace_orders: "Commandes centralisées via la marketplace",
+};
+
+const FALLBACK_FEATURES = {
+  FREE: [
+    "5 produits",
+    "5 commandes par mois",
+    "Vitrine publique avec identité ANIF",
+    "Bouton WhatsApp",
+    "Gestion basique des commandes",
+    "Statistiques de base",
+  ],
+  STARTER: [
+    "100 produits et commandes par mois",
+    "Commandes illimitées",
+    "Statistiques essentielles",
+  ],
+  PRO: [
+    "Produits et commandes illimités",
+    "Statistiques avancées",
+    "Exports des statistiques",
+    "Multi-utilisateurs",
+    "Outils promotionnels",
+    "Relances clients",
+  ],
+  BUSINESS: [
+    "Produits et commandes illimités",
+    "Produits visibles sur la vitrine principale",
+    "Référencement SEO",
+    "Paiement Mobile Money et carte bancaire",
+    "Livraison prise en charge",
+    "Commandes centralisées via la marketplace",
+  ],
+};
 
 function formatPrice(price) {
   if (price == null) return "Sur devis";
@@ -118,9 +166,10 @@ export default function SellerPlan() {
   const isCurrentPlan = (code) => data.current_plan === code;
 
   const isPayable = (code) => ["STARTER", "PRO"].includes(code);
+  const getFeatureLabel = (feature) => FEATURE_LABELS[feature] || feature;
 
   return (
-    <SellerShell title="Abonnement" seller={{ display_name: "Plan" }}>
+    <SellerShell seller={{ display_name: "Plan" }} pendingCount={0}>
       <div className="bg-[#111827] px-5 pt-12 pb-6">
         <h1 className="text-xl font-bold text-white mb-1">Mon abonnement</h1>
         <p className="text-white/50 text-sm">Gérez votre plan et vos fonctionnalités</p>
@@ -239,6 +288,11 @@ export default function SellerPlan() {
                     Populaire
                   </span>
                 )}
+                {code === "BUSINESS" && (
+                  <span className="absolute -top-2.5 right-4 rounded-full bg-[#7C3AED] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                    Bientôt disponible
+                  </span>
+                )}
 
                 <div className="flex items-center justify-between gap-3 mb-1">
                   <div className="flex items-center gap-2">
@@ -288,7 +342,7 @@ export default function SellerPlan() {
                 )}
 
                 <ul className="space-y-2">
-                  {(plan?.features || []).map((f) => (
+                  {(FALLBACK_FEATURES[code] || plan?.features || []).map((f) => (
                     <li
                       key={f}
                       className="flex items-start gap-2 text-sm text-[#374151]"
@@ -297,14 +351,9 @@ export default function SellerPlan() {
                         size={14}
                         className="mt-0.5 shrink-0 text-[#C99F08]"
                       />
-                      {f}
+                      {getFeatureLabel(f)}
                     </li>
                   ))}
-                  {(!plan?.features || plan.features.length === 0) && (
-                    <li className="flex items-start gap-2 text-sm text-[#9CA3AF] italic">
-                      Fonctionnalités de base incluses
-                    </li>
-                  )}
                 </ul>
               </button>
             );
@@ -362,7 +411,9 @@ export default function SellerPlan() {
               disabled
               className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed"
             >
-              {isCurrentPlan(selected)
+              {selected === "BUSINESS"
+                ? "Bientôt disponible après vérification"
+                : isCurrentPlan(selected)
                 ? "Vous êtes déjà sur ce plan"
                 : "Sélectionnez un plan payant"}
             </button>
