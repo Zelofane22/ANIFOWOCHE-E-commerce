@@ -13,13 +13,6 @@ import {
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
-import {
-  AreaChart,
-  Area,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-} from "recharts";
 
 const STATUS_CONFIG = {
   received: { label: "Recue", color: "bg-blue-500" },
@@ -50,16 +43,6 @@ function MiniBar({ value, max }) {
         className="h-full rounded-full bg-brand transition-all duration-500"
         style={{ width: `${pct}%` }}
       />
-    </div>
-  );
-}
-
-function ChartTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl bg-[#1a1a2e] px-3 py-2 text-xs text-white shadow-lg">
-      <p className="font-medium">{label}</p>
-      <p className="text-brand font-semibold">{formatXOF(payload[0].value)}</p>
     </div>
   );
 }
@@ -232,46 +215,28 @@ export default function SellerDashboard() {
 
             {chartData.length > 0 && (
               <div className="mt-5 h-32">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient
-                        id="goldGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#C99F08"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="#C99F08"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "#6b7280", fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      content={<ChartTooltip active={false} payload={[]} label="" />}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#C99F08"
-                      strokeWidth={2}
-                      fill="url(#goldGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <svg viewBox="0 0 600 130" className="h-full w-full" preserveAspectRatio="none" role="img" aria-label="Evolution du chiffre d'affaires">
+                  <defs>
+                    <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#C99F08" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#C99F08" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {(() => {
+                    const max = Math.max(...chartData.map((point) => Number(point.value) || 0), 1);
+                    const points = chartData.map((point, index) => {
+                      const x = chartData.length === 1 ? 300 : (index / (chartData.length - 1)) * 600;
+                      const y = 10 + 90 - ((Number(point.value) || 0) / max) * 90;
+                      return `${x},${y}`;
+                    }).join(" ");
+                    return (
+                      <>
+                        <polyline points={`0,100 ${points} 600,100`} fill="url(#goldGradient)" stroke="none" />
+                        <polyline points={points} fill="none" stroke="#C99F08" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+                      </>
+                    );
+                  })()}
+                </svg>
               </div>
             )}
           </div>
