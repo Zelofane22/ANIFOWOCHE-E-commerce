@@ -87,7 +87,7 @@ export default function SellerDashboard() {
       try {
         setLoading(true);
         const res = await getSellerDashboard({ period: PERIOD_MAP[period] || 30 });
-        if (!cancelled) setData(res.data);
+        if (!cancelled) setData(res);
       } catch (err) {
         console.error("Failed to load dashboard", err);
         if (!cancelled) setError(err?.response?.data?.detail || err.message || "Erreur de chargement");
@@ -101,7 +101,7 @@ export default function SellerDashboard() {
 
   if (error) {
     return (
-      <SellerShell>
+      <SellerShell seller={data?.seller} pendingCount={0}>
         <div className="mx-auto max-w-2xl px-4 pt-8 text-center text-sm text-red-500">
           {error}
         </div>
@@ -111,7 +111,7 @@ export default function SellerDashboard() {
 
   if (authLoading || loading || !data) {
     return (
-      <SellerShell>
+      <SellerShell seller={data?.seller} pendingCount={0}>
         <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
           <div className="animate-pulse space-y-4">
             <div className="h-64 rounded-2xl bg-gray-200" />
@@ -154,7 +154,7 @@ export default function SellerDashboard() {
   };
 
   return (
-    <SellerShell pendingCount={pending_count}>
+    <SellerShell seller={data.seller} pendingCount={pending_count}>
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="-mx-4 rounded-2xl bg-[#111827] px-5 pt-8 pb-6 sm:mx-0 sm:rounded-2xl">
           <div className="mb-6 flex items-center justify-between">
@@ -260,7 +260,9 @@ export default function SellerDashboard() {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip content={<ChartTooltip />} />
+                    <Tooltip
+                      content={<ChartTooltip active={false} payload={[]} label="" />}
+                    />
                     <Area
                       type="monotone"
                       dataKey="value"

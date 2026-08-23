@@ -28,7 +28,7 @@ const getInitials = (name) =>
     .map((part) => part[0].toUpperCase())
     .join("") || "";
 
-function SettingsRow({ icon: Icon, label, desc, onClick, gold, badge }) {
+function SettingsRow({ icon: Icon, label, desc, onClick, gold = false, badge = null }) {
   return (
     <button
       type="button"
