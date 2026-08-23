@@ -16,6 +16,7 @@ import {
 } from "../api/seller.js";
 import { openFedapaySubscriptionCheckout } from "../utils/fedapay.js";
 import { extractErrorMessage } from "../utils/apiError.js";
+import SubscriptionSuccessModal from "../components/SubscriptionSuccessModal.jsx";
 
 const PLAN_META = {
   FREE: { label: "Gratuit", note: "Pour démarrer et tester", color: "#6B7280" },
@@ -108,6 +109,7 @@ export default function SellerPlan() {
   const [selected, setSelected] = useState("PRO");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const loadPlans = () =>
     getSellerPlans()
@@ -155,6 +157,7 @@ export default function SellerPlan() {
       const outcome = await openFedapaySubscriptionCheckout(sub);
       if (outcome === "completed") {
         await loadSubscription();
+        setShowSuccess(true);
       }
     } catch (err) {
       setError(extractErrorMessage(err) || "Impossible de lancer le paiement.");
@@ -426,6 +429,11 @@ export default function SellerPlan() {
           </p>
         </div>
       </div>
+      <SubscriptionSuccessModal
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        planName={PLAN_META[selected]?.label || selected}
+      />
     </SellerShell>
   );
 }
