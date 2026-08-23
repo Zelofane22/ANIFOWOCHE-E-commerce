@@ -31,7 +31,7 @@ La limite porte sur les fonctionnalités : l'offre Gratuit prouve la valeur (cr�
 
 - 100 produits ;
 - 100 commandes ;
-- statistiques essentielles sur dashboard (Revenu / mois, Nombre de commandes livré / mois) ;
+- statistiques essentielles sur dashboard (Revenu du mois, Evolutions des revenus sur 7j, 30j et 3mois) ;
 
 La valeur repose sur la simplicité de gestion et le gain de temps.
 
