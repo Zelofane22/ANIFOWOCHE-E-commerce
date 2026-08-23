@@ -80,6 +80,25 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
+function ProGate({ locked, children }) {
+  if (!locked) return children;
+  return (
+    <div className="relative">
+      <div className="pointer-events-none select-none blur-[3px] opacity-60">
+        {children}
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/40">
+        <Link
+          to="/plan"
+          className="inline-flex items-center gap-2 rounded-full bg-[#C99F08] px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-[#A67C06]"
+        >
+          Débloquer les statistiques avancées avec Pro
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function SellerStats() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -171,6 +190,9 @@ export default function SellerStats() {
     : 0;
   const maxProductRevenue = Math.max(...productData.map((product) => Number(product.revenue) || 0), 1);
 
+  const plan = data?.seller?.plan ?? "FREE";
+  const hasAdvancedStats = plan === "PRO" || plan === "BUSINESS";
+
   if (authLoading || loading || !data) {
     return (
       <SellerShell pendingCount={0}>
@@ -233,14 +255,16 @@ export default function SellerStats() {
         </header>
 
         <div className="space-y-4 px-4 sm:px-0">
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={CheckIcon} iconClass="text-emerald-500" label="Taux de validation" value={`${validationRate}%`} detail={`${validOrders} validees · ${cancelledOrders} annulee${cancelledOrders > 1 ? "s" : ""}`}>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${validationRate}%` }} /></div>
-            </StatCard>
-            <StatCard icon={TrendingUpIcon} iconClass="text-[#C99F08]" label="Taux de conversion" value={`${conversionRate}%`} detail={`${orders} commandes sur la periode`}>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-[#C99F08]" style={{ width: `${Math.min(Number(conversionRate) * 10, 100)}%` }} /></div>
-            </StatCard>
-          </div>
+          <ProGate locked={!hasAdvancedStats}>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard icon={CheckIcon} iconClass="text-emerald-500" label="Taux de validation" value={`${validationRate}%`} detail={`${validOrders} validees · ${cancelledOrders} annulee${cancelledOrders > 1 ? "s" : ""}`}>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${validationRate}%` }} /></div>
+              </StatCard>
+              <StatCard icon={TrendingUpIcon} iconClass="text-[#C99F08]" label="Taux de conversion" value={`${conversionRate}%`} detail={`${orders} commandes sur la periode`}>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-[#C99F08]" style={{ width: `${Math.min(Number(conversionRate) * 10, 100)}%` }} /></div>
+              </StatCard>
+            </div>
+          </ProGate>
 
           {view === "bar" ? (
             <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm sm:p-5">
@@ -258,21 +282,32 @@ export default function SellerStats() {
               </div>
             </section>
           ) : (
-            <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm sm:p-5">
-              <h2 className="mb-4 text-sm font-bold text-gray-900">Repartition des commandes</h2>
-              {statusData.length ? <div className="flex items-center gap-4"><div className="h-40 w-40 shrink-0"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={statusData} dataKey="value" innerRadius={42} outerRadius={65} paddingAngle={2}>{statusData.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div><div className="min-w-0 flex-1 space-y-2">{statusData.map((item) => <div key={item.name} className="flex items-center gap-2 text-xs"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} /><span className="flex-1 truncate text-gray-600">{item.name}</span><span className="font-bold text-gray-900">{totalStatusOrders ? Math.round((item.value / totalStatusOrders) * 100) : 0}%</span></div>)}</div></div> : <p className="py-12 text-center text-sm text-gray-400">Aucune commande sur cette periode.</p>}
-            </section>
+            <ProGate locked={!hasAdvancedStats}>
+              <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm sm:p-5">
+                <h2 className="mb-4 text-sm font-bold text-gray-900">Repartition des commandes</h2>
+                {statusData.length ? <div className="flex items-center gap-4"><div className="h-40 w-40 shrink-0"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={statusData} dataKey="value" innerRadius={42} outerRadius={65} paddingAngle={2}>{statusData.map((item) => <Cell key={item.name} fill={item.color} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div><div className="min-w-0 flex-1 space-y-2">{statusData.map((item) => <div key={item.name} className="flex items-center gap-2 text-xs"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} /><span className="flex-1 truncate text-gray-600">{item.name}</span><span className="font-bold text-gray-900">{totalStatusOrders ? Math.round((item.value / totalStatusOrders) * 100) : 0}%</span></div>)}</div></div> : <p className="py-12 text-center text-sm text-gray-400">Aucune commande sur cette periode.</p>}
+              </section>
+            </ProGate>
           )}
 
-          <section className="rounded-2xl border border-black/[0.05] bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-black/[0.04] px-4 py-3"><h2 className="text-sm font-bold text-gray-900">Par produit</h2><span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Top {productData.length}</span></div>
-            {productData.length ? productData.map((product, index) => {
-              const revenue = Number(product.revenue) || 0;
-              return <div key={product.id || product.name} className="border-b border-black/[0.04] px-4 py-3.5 last:border-0"><div className="mb-2 flex items-center gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FEF9E7] text-[10px] font-bold text-[#8B6604]">{index + 1}</span><p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{product.name}</p><p className="text-sm font-bold text-gray-900">{formatXOF(revenue)}</p></div><div className="flex items-center gap-3"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-[#C99F08]" style={{ width: `${(revenue / maxProductRevenue) * 100}%` }} /></div><span className="w-16 text-right text-[10px] text-gray-400">{product.quantity} vente{product.quantity > 1 ? "s" : ""}</span></div></div>;
-            }) : <p className="py-8 text-center text-sm text-gray-400">Aucun produit vendu sur cette periode.</p>}
-          </section>
+          <ProGate locked={!hasAdvancedStats}>
+            <section className="rounded-2xl border border-black/[0.05] bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-black/[0.04] px-4 py-3"><h2 className="text-sm font-bold text-gray-900">Par produit</h2><span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Top {productData.length}</span></div>
+              {productData.length ? productData.map((product, index) => {
+                const revenue = Number(product.revenue) || 0;
+                return <div key={product.id || product.name} className="border-b border-black/[0.04] px-4 py-3.5 last:border-0"><div className="mb-2 flex items-center gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FEF9E7] text-[10px] font-bold text-[#8B6604]">{index + 1}</span><p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{product.name}</p><p className="text-sm font-bold text-gray-900">{formatXOF(revenue)}</p></div><div className="flex items-center gap-3"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-[#C99F08]" style={{ width: `${(revenue / maxProductRevenue) * 100}%` }} /></div><span className="w-16 text-right text-[10px] text-gray-400">{product.quantity} vente{product.quantity > 1 ? "s" : ""}</span></div></div>;
+              }) : <p className="py-8 text-center text-sm text-gray-400">Aucun produit vendu sur cette periode.</p>}
+            </section>
+          </ProGate>
 
-          {categoryData.length > 0 && <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm"><div className="mb-3 flex items-center gap-2"><AlertCircleIcon className="h-4 w-4 text-[#C99F08]" /><h2 className="text-sm font-bold text-gray-900">Ventes par categorie</h2></div><div className="grid gap-2 sm:grid-cols-2">{categoryData.map((category) => <div key={category.name} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs"><span className="font-medium text-gray-600">{category.name}</span><span className="font-bold text-gray-900">{formatXOF(category.total)}</span></div>)}</div></section>}
+          {categoryData.length > 0 && (
+            <ProGate locked={!hasAdvancedStats}>
+              <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2"><AlertCircleIcon className="h-4 w-4 text-[#C99F08]" /><h2 className="text-sm font-bold text-gray-900">Ventes par categorie</h2></div>
+                <div className="grid gap-2 sm:grid-cols-2">{categoryData.map((category) => <div key={category.name} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs"><span className="font-medium text-gray-600">{category.name}</span><span className="font-bold text-gray-900">{formatXOF(category.total)}</span></div>)}</div>
+              </section>
+            </ProGate>
+          )}
         </div>
       </div>
     </SellerShell>
