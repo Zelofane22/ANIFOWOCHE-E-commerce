@@ -286,7 +286,7 @@ export default function SellerDashboard() {
             </div>
             <span className="text-xs font-medium text-gray-700">Commandes</span>
           </Link>
-          <Link to="/dashboard" className="group flex flex-col items-center gap-2">
+          <Link to="/stats" className="group flex flex-col items-center gap-2">
             <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-violet-50 shadow-sm transition group-active:scale-95">
               <BarChartIcon className="h-5 w-5 text-violet-600" />
             </div>

@@ -4,9 +4,7 @@ import {
   AlertCircleIcon,
   BarChartIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
   CheckIcon,
-  CheckCircleIcon,
   CircleIcon,
   TrendingUpIcon,
 } from "../components/icons.jsx";
@@ -88,11 +86,12 @@ export default function SellerStats() {
   useEffect(() => {
     if (!user) return undefined;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     getSellerDashboard({ period: PERIODS.find((item) => item.key === period)?.days || 30 })
       .then((response) => {
-        if (!cancelled) setData(response);
+        if (!cancelled) {
+          setData(response);
+          setError(null);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err?.response?.data?.detail || err.message || "Erreur de chargement");
@@ -183,7 +182,7 @@ export default function SellerStats() {
 
         <div className="space-y-4 px-4 sm:px-0">
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={CheckCircleIcon} iconClass="text-emerald-500" label="Taux de validation" value={`${validationRate}%`} detail={`${validOrders} validees · ${cancelledOrders} annulee${cancelledOrders > 1 ? "s" : ""}`}>
+            <StatCard icon={CheckIcon} iconClass="text-emerald-500" label="Taux de validation" value={`${validationRate}%`} detail={`${validOrders} validees · ${cancelledOrders} annulee${cancelledOrders > 1 ? "s" : ""}`}>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${validationRate}%` }} /></div>
             </StatCard>
             <StatCard icon={TrendingUpIcon} iconClass="text-[#C99F08]" label="Taux de conversion" value={`${conversionRate}%`} detail={`${orders} commandes sur la periode`}>
@@ -221,7 +220,7 @@ export default function SellerStats() {
             }) : <p className="py-8 text-center text-sm text-gray-400">Aucun produit vendu sur cette periode.</p>}
           </section>
 
-          {categoryData.length > 0 && <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm"><div className="mb-3 flex items-center gap-2"><AlertCircleIcon className="h-4 w-4 text-[#C99F08]" /><h2 className="text-sm font-bold text-gray-900">Ventes par categorie</h2></div><div className="grid gap-2 sm:grid-cols-2">{categoryData.map((category, index) => <div key={category.name} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs"><span className="font-medium text-gray-600">{category.name}</span><span className="font-bold text-gray-900">{formatXOF(category.total)}</span></div>)}</div></section>}
+          {categoryData.length > 0 && <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm"><div className="mb-3 flex items-center gap-2"><AlertCircleIcon className="h-4 w-4 text-[#C99F08]" /><h2 className="text-sm font-bold text-gray-900">Ventes par categorie</h2></div><div className="grid gap-2 sm:grid-cols-2">{categoryData.map((category) => <div key={category.name} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs"><span className="font-medium text-gray-600">{category.name}</span><span className="font-bold text-gray-900">{formatXOF(category.total)}</span></div>)}</div></section>}
         </div>
       </div>
     </SellerShell>
