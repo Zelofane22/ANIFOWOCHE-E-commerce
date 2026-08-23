@@ -1,19 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { fetchDeliveryZones } from "../api/delivery.js";
-import { checkShopSlugAvailability, getSellerProfile, updateSellerProfile } from "../api/seller.js";
+import { checkShopSlugAvailability, updateSellerProfile } from "../api/seller.js";
 import {
   BarChartIcon,
   CheckIcon,
   ChevronRightIcon,
-  ExternalLinkIcon,
-  GlobeIcon,
   InfoIcon,
   LogOutIcon,
   MessageCircleIcon,
   SettingsIcon,
-  StoreIcon,
-  TagIcon,
   UserIcon,
   ZapIcon,
 } from "../components/icons.jsx";
@@ -24,14 +19,6 @@ import { extractErrorMessage } from "../utils/apiError.js";
 const inputClass =
   "w-full rounded-[12px] border border-black/[0.12] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#C99F08] focus:ring-2 focus:ring-[#C99F08]/15";
 
-const toSlug = (value) =>
-  value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 150);
 
 const getInitials = (name) =>
   (name || "")
@@ -103,22 +90,19 @@ export default function SellerSettings() {
   const navigate = useNavigate();
   const { logout, loading, isAuthenticated, user } = useAuth();
   const [seller, setSeller] = useState(null);
-  const [deliveryZones, setDeliveryZones] = useState([]);
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [slugError, setSlugError] = useState(null);
-  const [slugChecking, setSlugChecking] = useState(false);
+  const [setSlugError] = useState(null);
+  const [setSlugChecking] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [editingShop, setEditingShop] = useState(false);
   const [notifications, setNotifications] = useState({
     new_orders: true,
     payments: true,
     low_stock: true,
     promotions: false,
   });
-  const slugEditedRef = useRef(false);
   const slugRequestIdRef = useRef(0);
 
   useEffect(() => {
@@ -127,28 +111,6 @@ export default function SellerSettings() {
       navigate("/login", { replace: true });
       return;
     }
-    Promise.all([getSellerProfile(), fetchDeliveryZones()])
-      .then(([data, zonesData]) => {
-        setDeliveryZones(zonesData.results ?? zonesData);
-        setSeller(data);
-        setForm({
-          display_name: data.display_name,
-          phone: data.phone,
-          city: data.city || "",
-          shop: {
-            name: data.shop.name,
-            slug: data.shop.slug,
-            whatsapp_phone: data.shop.whatsapp_phone,
-            city: data.shop.city || "",
-            description: data.shop.description || "",
-            delivery_zone_ids: (data.shop.delivery_zones || []).map((zone) => zone.id),
-            is_published: data.shop.is_published,
-          },
-        });
-      })
-      .catch((err) => {
-        navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
-      });
   }, [isAuthenticated, loading, navigate]);
 
   const shopSlug = form?.shop?.slug ?? "";
@@ -172,15 +134,7 @@ export default function SellerSettings() {
         });
     }, 400);
     return () => clearTimeout(timer);
-  }, [shopSlug, savedSlug]);
-
-  const updateShop = (patch) => setForm((current) => ({ ...current, shop: { ...current.shop, ...patch } }));
-
-  const toggleDeliveryZone = (zoneId) => {
-    const selected = form.shop.delivery_zone_ids || [];
-    const next = selected.includes(zoneId) ? selected.filter((id) => id !== zoneId) : [...selected, zoneId];
-    updateShop({ delivery_zone_ids: next });
-  };
+  });
 
   const handleProfileSave = async () => {
     setError(null);
@@ -202,30 +156,7 @@ export default function SellerSettings() {
     }
   };
 
-  const handleFullSave = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setSubmitting(true);
-    try {
-      const data = await updateSellerProfile(form);
-      setSeller(data);
-      setSlugError(null);
-      setSlugChecking(false);
-      setSuccess("Paramètres sauvegardés.");
-      setEditingProfile(false);
-      setEditingShop(false);
-    } catch (err) {
-      const slugMessages = err?.response?.data?.shop?.slug;
-      if (Array.isArray(slugMessages) && slugMessages.length > 0) {
-        setSlugError(slugMessages[0]);
-      } else {
-        setError(extractErrorMessage(err));
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+
 
   const handleLogout = () => {
     logout();
@@ -333,153 +264,6 @@ export default function SellerSettings() {
           </div>
         )}
 
-        {/* ── Ma Boutique ── */}
-        <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
-          <div className="px-4 pt-3 pb-2">
-            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Ma boutique</p>
-          </div>
-          <SettingsRow
-            icon={StoreIcon}
-            label="Paramètres boutique"
-            desc={`${seller.shop?.name} · ${seller.shop?.slug}`}
-            onClick={() => setEditingShop(!editingShop)}
-          />
-          <div className="px-4 py-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-9 h-9 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
-                <GlobeIcon size={17} className="text-[#374151]" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-sm text-[#111827]">Boutique publique</p>
-                <p className="text-xs text-[#9CA3AF] mt-0.5">{form.shop.is_published ? "Visible" : "Masquée"}</p>
-              </div>
-            </div>
-            <ToggleSwitch
-              enabled={form.shop.is_published}
-              onChange={(val) => updateShop({ is_published: val })}
-            />
-          </div>
-          <SettingsRow
-            icon={ExternalLinkIcon}
-            label="Voir ma boutique"
-            desc={seller.shop?.public_url}
-            onClick={() => window.open(seller.shop?.public_url, "_blank")}
-          />
-        </div>
-
-        {/* ── Inline Shop Edit ── */}
-        {editingShop && (
-          <form onSubmit={handleFullSave} className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4 space-y-3">
-            <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">Paramètres boutique</p>
-            <div>
-              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Nom de boutique</label>
-              <input
-                className={inputClass}
-                required
-                value={form.shop.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  if (!slugEditedRef.current) {
-                    setSlugError(null);
-                    setSlugChecking(false);
-                    updateShop({ name, slug: toSlug(name) || "boutique" });
-                  } else {
-                    updateShop({ name });
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Lien boutique (slug)</label>
-              <input
-                className={`${inputClass} ${slugError ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
-                required
-                value={form.shop.slug}
-                onChange={(e) => {
-                  slugEditedRef.current = true;
-                  setSlugError(null);
-                  setSlugChecking(false);
-                  updateShop({ slug: toSlug(e.target.value) });
-                }}
-              />
-              {slugError ? (
-                <p role="alert" className="mt-1.5 text-xs font-medium text-red-600">{slugError}</p>
-              ) : (
-                <p className="mt-1.5 text-xs text-[#9CA3AF]">
-                  {slugChecking
-                    ? "Vérification de la disponibilité..."
-                    : `/shop/${form.shop.slug || "..."}`}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#111827] mb-1.5">WhatsApp boutique</label>
-              <input
-                className={inputClass}
-                required
-                value={form.shop.whatsapp_phone}
-                onChange={(e) => updateShop({ whatsapp_phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Ville boutique</label>
-              <input
-                className={inputClass}
-                value={form.shop.city}
-                onChange={(e) => updateShop({ city: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Description</label>
-              <textarea
-                className={`${inputClass} min-h-24 resize-y`}
-                value={form.shop.description}
-                onChange={(e) => updateShop({ description: e.target.value })}
-              />
-            </div>
-            {deliveryZones.length > 0 && (
-              <div className="rounded-[12px] border border-black/[0.06] bg-[#F9FAFB] p-3">
-                <p className="text-xs font-bold text-[#111827] mb-2">Zones de livraison</p>
-                <div className="grid gap-1.5">
-                  {deliveryZones.map((zone) => (
-                    <label key={zone.id} className="flex items-center gap-2 text-sm text-[#374151] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={(form.shop.delivery_zone_ids || []).includes(zone.id)}
-                        onChange={() => toggleDeliveryZone(zone.id)}
-                        className="h-4 w-4 accent-[#C99F08] rounded"
-                      />
-                      <span>{zone.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            {success && (
-              <p className="flex items-center gap-2 rounded-[12px] bg-green-50 px-3 py-2 text-xs text-green-700">
-                <CheckIcon size={14} /> {success}
-              </p>
-            )}
-            {error && <p className="rounded-[12px] bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => { setEditingShop(false); setError(null); setSuccess(null); }}
-                className="flex-1 rounded-[10px] border border-black/[0.12] bg-white px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={submitting || Boolean(slugError)}
-                className="flex-1 rounded-[10px] bg-[#C99F08] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06] disabled:opacity-60"
-              >
-                {submitting ? "Enregistrement..." : "Enregistrer"}
-              </button>
-            </div>
-          </form>
-        )}
-
         {/* ── Mon Abonnement ── */}
         <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
           <div className="px-4 pt-3 pb-2">
@@ -574,7 +358,7 @@ export default function SellerSettings() {
             onClick={() => {}}
           />
           <SettingsRow
-            icon={TagIcon}
+            icon={ZapIcon}
             label="Promotions"
             desc="Codes promo et réductions"
             onClick={() => {}}
