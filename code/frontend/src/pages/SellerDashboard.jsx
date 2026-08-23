@@ -35,6 +35,8 @@ const PLAN_META = {
   BUSINESS: { name: "Business", color: "text-purple-600", bg: "bg-purple-50" },
 };
 
+const PERIOD_MAP = { "7j": 7, "30j": 30, "3m": 90 };
+
 function formatXOF(amount) {
   if (amount == null) return "0 F";
   return Number(amount).toLocaleString("fr-FR") + " F";
@@ -83,7 +85,7 @@ export default function SellerDashboard() {
     async function fetchDashboard() {
       try {
         setLoading(true);
-        const res = await getSellerDashboard({ period });
+        const res = await getSellerDashboard({ period: PERIOD_MAP[period] || 30 });
         if (!cancelled) setData(res.data);
       } catch (err) {
         console.error("Failed to load dashboard", err);
@@ -112,25 +114,23 @@ export default function SellerDashboard() {
     );
   }
 
-  const {
-    shop_name,
-    revenue = 0,
-    revenue_today = 0,
-    revenue_change_pct = 0,
-    revenue_chart = [],
-    orders_count = 0,
-    customers_count = 0,
-    recent_orders = [],
-    low_stock = [],
-    limits,
-    pending_count = 0,
-    plan,
-  } = data;
+  const shop_name = data.seller?.shop?.name ?? data.seller?.display_name ?? "";
+  const plan = data.seller?.plan ?? "FREE";
+  const limits = data.seller?.limits ?? null;
+  const revenue = data.kpi?.revenue ?? 0;
+  const revenue_change_pct = data.kpi?.revenue_change ?? 0;
+  const orders_count = data.kpi?.orders ?? 0;
+  const revenue_chart = data.sales_chart ?? [];
+  const recent_orders = data.recent_orders ?? [];
+  const low_stock = data.low_stock ?? [];
+  const pending_count = data.metrics?.pending_orders ?? 0;
+  const customers_count = 0;
+  const revenue_today = 0;
 
   const planMeta = PLAN_META[plan] || PLAN_META.FREE;
   const chartData = revenue_chart.map((d) => ({
-    label: d.label,
-    value: d.value,
+    label: d.day,
+    value: d.total,
   }));
 
   const handleCopyLink = () => {
