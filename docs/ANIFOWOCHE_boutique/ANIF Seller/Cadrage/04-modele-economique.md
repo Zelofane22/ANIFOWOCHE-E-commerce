@@ -23,7 +23,7 @@ Le revenu principal vient d'un paiement mensuel. Le prix doit rester assez bas p
 - vitrine publique (avec identité ANIF affichée) ;
 - bouton WhatsApp ;
 - gestion basique des commandes.
-- statistiques de base sur dashboard ( chiffre d'affaire,nombre de commandes)
+- Métriques de base sur dashboard ( chiffre d'affaire,nombre de commandes)
 
 La limite porte sur les fonctionnalités : l'offre Gratuit prouve la valeur (créer une boutique, vendre via WhatsApp) sans donner les moyens de la faire croître. Positionnée comme outil de découverte, pas une solution complète.
 
@@ -31,7 +31,7 @@ La limite porte sur les fonctionnalités : l'offre Gratuit prouve la valeur (cr�
 
 - 100 produits ;
 - 100 commandes ;
-- statistiques essentielles sur dashboard (Revenu du mois/mois, Evolutions des revenus sur 7j, 30j et 3mois) ;
+- statistiques essentielles sur dashboard (Revenu/mois, Evolutions des revenus sur 7j, 30j et 3mois) ;
 
 La valeur repose sur la simplicité de gestion et le gain de temps.
 

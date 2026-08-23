@@ -45,8 +45,6 @@ PLAN_LIMITS = {
 # - BUSINESS : structurer → tout le PRO + marketplace, livraison et support prioritaire.
 PRO_FEATURES = frozenset(
     {
-        "basic_customization",
-        "advanced_customization",
         "essential_stats",
         "advanced_stats",
         "exports",
@@ -60,7 +58,7 @@ PRO_FEATURES = frozenset(
 PLAN_FEATURES = {
     "FREE": frozenset(),
     "STARTER": frozenset(
-        {"basic_customization", "essential_stats", "online_payment"}
+        {"essential_stats", "online_payment"}
     ),
     "PRO": PRO_FEATURES,
     "BUSINESS": PRO_FEATURES

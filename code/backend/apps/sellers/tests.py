@@ -724,8 +724,6 @@ class SellerPlanLimitsTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         features = response.data["seller"]["limits"]["features"]
-        self.assertFalse(features["basic_customization"])
-        self.assertFalse(features["advanced_customization"])
         self.assertFalse(features["essential_stats"])
         self.assertFalse(features["advanced_stats"])
         self.assertFalse(features["exports"])
@@ -745,7 +743,6 @@ class SellerPlanLimitsTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         features = response.data["seller"]["limits"]["features"]
-        self.assertTrue(features["basic_customization"])
         self.assertTrue(features["essential_stats"])
         self.assertTrue(features["online_payment"])
         self.assertFalse(features["advanced_stats"])
@@ -764,8 +761,6 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         features = response.data["seller"]["limits"]["features"]
         for feature in (
-            "basic_customization",
-            "advanced_customization",
             "essential_stats",
             "advanced_stats",
             "exports",

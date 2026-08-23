@@ -56,6 +56,7 @@ export default function SellerDashboard() {
   const [hideBalance, setHideBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [seller] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -131,10 +132,9 @@ export default function SellerDashboard() {
     label: d.day,
     value: d.total,
   }));
-
+  const shopUrl = data.seller?.shop?.public_url || "";
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/boutique`;
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(shopUrl).then(() => {
       setCopyLabel("Copie !");
       setTimeout(() => setCopyLabel("Copier"), 2000);
     });
