@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useSiteConfig } from "../context/useSiteConfig.js";
 
 function Icon({ children }) {
   return (
@@ -9,6 +10,7 @@ function Icon({ children }) {
 }
 
 export default function Footer() {
+  const { footer_blocks = [] } = useSiteConfig();
   const features = [
     {
       title: "Livraison rapide",
@@ -81,26 +83,51 @@ export default function Footer() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-10 text-sm">
-          <div>
-            <p className="mb-2 font-semibold text-white">Boutique</p>
-            {[
-              ["Catalogue", "/catalogue"],
-              ["Panier", "/panier"],
-              ["Compte", "/compte"],
-            ].map(([label, to]) => (
-              <Link key={to} to={to} className="block py-1 text-white/60 transition hover:text-brand">
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div>
-            <p className="mb-2 font-semibold text-white">Services</p>
-            {["Livraison Cotonou", "Paiement mobile", "Support client"].map((label) => (
-              <span key={label} className="block py-1 text-white/60">
-                {label}
-              </span>
-            ))}
-          </div>
+          {footer_blocks.length > 0
+            ? footer_blocks.map((block) => (
+                <div key={block.title}>
+                  <p className="mb-2 font-semibold text-white">{block.title}</p>
+                  {(block.items || []).map((item) =>
+                    item.url ? (
+                      <Link
+                        key={item.label}
+                        to={item.url}
+                        className="block py-1 text-white/60 transition hover:text-brand"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span key={item.label} className="block py-1 text-white/60">
+                        {item.label}
+                      </span>
+                    )
+                  )}
+                </div>
+              ))
+            : (
+                <>
+                  <div>
+                    <p className="mb-2 font-semibold text-white">Boutique</p>
+                    {[
+                      ["Catalogue", "/catalogue"],
+                      ["Panier", "/panier"],
+                      ["Compte", "/compte"],
+                    ].map(([label, to]) => (
+                      <Link key={to} to={to} className="block py-1 text-white/60 transition hover:text-brand">
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="mb-2 font-semibold text-white">Services</p>
+                    {["Livraison Cotonou", "Paiement mobile", "Support client"].map((label) => (
+                      <span key={label} className="block py-1 text-white/60">
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
         </div>
       </div>
     </footer>

@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.sellers.models import SellerSubscription
+
 from .models import Payment, PaymentSettings
 from .serializers import InitiatePaymentSerializer, PaymentSerializer
 from .services import (
@@ -18,6 +20,7 @@ from .services import (
     start_fedapay_transaction,
     verify_webhook_signature,
 )
+from apps.sellers.services import apply_subscription_status
 
 logger = logging.getLogger(__name__)
 
@@ -132,15 +135,24 @@ class FedaPayWebhookView(APIView):
         transaction_id = str(entity.get("id", ""))
         event_name = event.get("name", "")
 
-        # Recherche du paiement local correspondant à la transaction FedaPay.
+        # Recherche de la cible locale de la transaction FedaPay : un paiement
+        # de commande (pipeline classique) ou un abonnement vendeur (#279).
         try:
             payment = Payment.objects.get(fedapay_transaction_id=transaction_id)
+            subscription = None
         except Payment.DoesNotExist:
-            return Response({"detail": "Paiement introuvable."}, status=status.HTTP_404_NOT_FOUND)
+            payment = None
+            try:
+                subscription = SellerSubscription.objects.get(fedapay_transaction_id=transaction_id)
+            except SellerSubscription.DoesNotExist:
+                return Response({"detail": "Transaction introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Contrôle du montant : un écart entre le montant reçu et celui de la
-        # commande signale une transaction douteuse — on refuse de mettre à jour
-        # le statut tant que l'incohérence n'est pas résolue.
+        target = payment if payment is not None else subscription
+        expected_amount = target.amount_xof
+
+        # Contrôle du montant : un écart entre le montant reçu et celui attendu
+        # (commande ou abonnement) signale une transaction douteuse — on refuse
+        # de mettre à jour le statut tant que l'incohérence n'est pas résolue.
         amount_xof = entity.get("amount")
         if amount_xof is not None:
             try:
@@ -150,11 +162,11 @@ class FedaPayWebhookView(APIView):
                     "Webhook FedaPay: montant invalide %r pour la transaction %s.", amount_xof, transaction_id
                 )
                 return Response({"detail": "Montant invalide."}, status=status.HTTP_400_BAD_REQUEST)
-            if amount_xof != payment.amount_xof:
+            if amount_xof != expected_amount:
                 logger.error(
                     "Webhook FedaPay: montant incohérent pour la transaction %s (%s) : "
                     "reçu %s, attendu %s — statut non mis à jour.",
-                    transaction_id, event_name, amount_xof, payment.amount_xof,
+                    transaction_id, event_name, amount_xof, expected_amount,
                 )
                 return Response({"detail": "Montant incohérent."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -166,12 +178,16 @@ class FedaPayWebhookView(APIView):
         }
         new_status = status_map.get(event_name)
         if new_status:
-            # Application du statut + effets de bord (commande, facture, relance).
-            apply_payment_status(payment, new_status, webhook_payload=event)
+            if payment is not None:
+                # Application du statut + effets de bord (commande, facture, relance).
+                apply_payment_status(payment, new_status, webhook_payload=event)
+            else:
+                # Abonnement : statut idempotent + activation/bascule de plan si approuvé.
+                apply_subscription_status(subscription, new_status, webhook_payload=event)
         else:
             # Événement non mappé : conservation du payload pour l'audit, sans toucher au statut.
-            payment.last_webhook_payload = event
-            payment.save(update_fields=["last_webhook_payload", "updated_at"])
+            target.last_webhook_payload = event
+            target.save(update_fields=["last_webhook_payload", "updated_at"])
 
         return Response({"detail": "ok"})
 

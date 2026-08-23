@@ -398,6 +398,30 @@ def notify_payment_retry(payment):
     )
 
 
+def notify_subscription_expiring(subscription, days_left):
+    """Prévient le vendeur que son abonnement expire bientôt (rappel 1j/2
+    durant la semaine précédant `ends_at`), avec un lien pour payer en avance."""
+    seller = subscription.seller
+    seller_user = seller.user
+    if not seller_user.email:
+        return None
+    plan_label = subscription.get_plan_display()
+    message = (
+        f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} "
+        f"expire dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
+        f"Renouvelez dès maintenant pour éviter toute coupure de votre boutique."
+    )
+    return _send_email(
+        event=Notification.Event.SUBSCRIPTION_EXPIRING,
+        recipient_email=seller_user.email,
+        subject=f"Votre abonnement {plan_label} expire dans {days_left} jour(s)",
+        message=message,
+        title="Votre abonnement expire bientôt",
+        cta_label="Renouveler mon abonnement",
+        cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
+    )
+
+
 def notify_invoice(payment):
     """Envoie la facture du paiement au client, avec le détail des articles."""
     order = payment.order
@@ -517,6 +541,48 @@ def notify_setting_change_requested(change_request):
             subject=f"[ANIFOWOCHE] Validation requise — {change_request.get_setting_key_display()}",
             message=message,
             title="Validation de réglage requise",
+        )
+        if notification:
+            sent.append(notification)
+    return sent
+
+
+def notify_sensitive_action(*, action, obj, actor=None):
+    """Alerte tous les superadmins actifs d'une action sensible effectuée
+    dans le backoffice (suppression d'objet critique, changement de
+    permissions staff/superuser/groupes, changement de prix produit).
+
+    Crée une alerte backoffice (kind=SENSITIVE_ACTION, severity=WARNING)
+    puis envoie un email à chaque superadmin actif."""
+    User = get_user_model()
+    obj_label = f"{obj._meta.verbose_name} #{obj.pk}"
+    # Description lisible de l'objet concerné selon son type.
+    detail = str(obj)
+    actor_label = actor.username if actor is not None else "inconnu"
+    message = (
+        f"Action sensible détectée.\n\n"
+        f"Action : {action}\n"
+        f"Objet : {obj_label} ({detail})\n"
+        f"Auteur : {actor_label}\n\n"
+        f"Consultez l'admin pour plus de détails."
+    )
+    title = f"Action sensible : {action}"
+    create_backoffice_notification(
+        kind=BackofficeNotification.Kind.SENSITIVE_ACTION,
+        severity=BackofficeNotification.Severity.WARNING,
+        title=title,
+        message=message,
+        source="core.signals",
+    )
+    # Envoi d'un email à chaque superadmin actif, puis collecte des envois réussis.
+    sent = []
+    for superuser in User.objects.filter(is_superuser=True, is_active=True).exclude(email=""):
+        notification = _send_email(
+            event=Notification.Event.SENSITIVE_ACTION,
+            recipient_email=superuser.email,
+            subject=f"[ANIFOWOCHE] {title} — {detail}",
+            message=message,
+            title=title,
         )
         if notification:
             sent.append(notification)

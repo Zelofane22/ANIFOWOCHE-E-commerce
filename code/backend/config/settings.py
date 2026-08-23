@@ -58,9 +58,7 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
 DEFAULT_SUPERUSER_USERNAME = config("DEFAULT_SUPERUSER_USERNAME", default="anifowoche")
 DEFAULT_SUPERUSER_PASSWORD = config("DEFAULT_SUPERUSER_PASSWORD", default="Anifowoche123!")
 
-# Boutique principale de l’entreprise : seules ses statistiques sont affichées
-# sur le dashboard admin et les rapports (voir apps.core.dashboard et apps.core.views).
-MAIN_STORE_SLUG = config("MAIN_STORE_SLUG", default="ets-anifowoche")
+# La boutique principale est identifiée par le flag is_official sur le modèle Shop.
 
 INSTALLED_APPS = [
     "unfold",
@@ -106,6 +104,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.CurrentUserMiddleware",
     "apps.core.middleware.ForceDefaultPasswordChangeMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -142,6 +141,12 @@ if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+# Durcissement des en-têtes de réponse : refuse le sniffing MIME
+# (X-Content-Type-Options: nosniff) et borne les infos envoyées au
+# navigateur via le Referer (Referrer-Policy: strict-origin-when-cross-origin).
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+X_FRAME_OPTIONS = "DENY"
 
 # Render injecte DATABASE_URL (PostgreSQL) : on l'utilise si présente,
 # sinon on retombe sur les variables DB_* discrètes (docker compose local).
@@ -239,6 +244,9 @@ SIMPLE_JWT = {
 FEDAPAY_BASE_URL = config("FEDAPAY_BASE_URL", default="https://sandbox-api.fedapay.com")
 FEDAPAY_SECRET_KEY = config("FEDAPAY_SECRET_KEY", default="sk_sandbox_placeholder")
 FEDAPAY_WEBHOOK_SECRET = config("FEDAPAY_WEBHOOK_SECRET", default="whsec_placeholder")
+# Tolerance (secondes) sur l'horodatage des webhooks FedaPay : au-dela,
+# l'evenement est rejete (protection contre le rejeu d'evenements interceptes).
+FEDAPAY_WEBHOOK_TOLERANCE_SECONDS = config("FEDAPAY_WEBHOOK_TOLERANCE_SECONDS", default=300, cast=int)
 FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
 SELLER_FRONTEND_BASE_URL = config("SELLER_FRONTEND_BASE_URL", default=FRONTEND_BASE_URL)
 

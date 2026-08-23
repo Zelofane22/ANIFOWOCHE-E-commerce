@@ -44,3 +44,31 @@ export function openFedapayCheckout(payment) {
     }).open();
   });
 }
+
+// Ouvre le checkout FedaPay pour un abonnement vendeur (pipeline E9).
+// Le statut de l'abonnement est confirmé côté backend par le webhook, on ne fait
+// donc aucune interprétation locale : on attend simplement la clôture du widget.
+// Retourne "completed" | "closed" | "failed".
+export function openFedapaySubscriptionCheckout(subscription) {
+  return new Promise((resolve) => {
+    window.FedaPay.init({
+      public_key: import.meta.env.VITE_FEDAPAY_PUBLIC_KEY,
+      transaction: { id: subscription.fedapay_transaction_id },
+      onComplete(resp) {
+        const reason = resp?.reason;
+        if (reason === window.FedaPay.CHECKOUT_COMPLETED) {
+          resolve("completed");
+        } else if (reason === window.FedaPay.DIALOG_DISMISSED) {
+          resolve("closed");
+        } else if (
+          resp?.transaction?.status === "declined" ||
+          resp?.transaction?.status === "canceled"
+        ) {
+          resolve(resp.transaction.status);
+        } else {
+          resolve("failed");
+        }
+      },
+    }).open();
+  });
+}

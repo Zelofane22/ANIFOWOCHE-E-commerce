@@ -74,8 +74,8 @@ describe("CategoryCascadeSelect", () => {
   it("affiche les 3 niveaux de sélection", () => {
     render(<StatefulSelect />);
     expect(screen.getByLabelText("Catégorie")).toBeInTheDocument();
-    expect(screen.getByLabelText("Sous-catégorie")).toBeInTheDocument();
-    expect(screen.getByLabelText("Type")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Sous-catégorie/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Type/)).toBeInTheDocument();
   });
 
   it("peuple la sous-catégorie et le type au fur et à mesure", () => {
@@ -84,20 +84,20 @@ describe("CategoryCascadeSelect", () => {
     fireEvent.change(screen.getByLabelText("Catégorie"), {
       target: { value: "1" },
     });
-    expect(screen.getByLabelText("Sous-catégorie")).toHaveValue("");
+    expect(screen.getByLabelText(/Sous-catégorie/)).toHaveValue("");
     expect(screen.getByText("Vêtements")).toBeInTheDocument();
     expect(screen.getByText("Chaussures")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Sous-catégorie"), {
+    fireEvent.change(screen.getByLabelText(/Sous-catégorie/), {
       target: { value: "11" },
     });
     expect(screen.getByText("Robes")).toBeInTheDocument();
     expect(screen.getByText("Hauts")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Type"), {
+    fireEvent.change(screen.getByLabelText(/Type/), {
       target: { value: "112" },
     });
-    expect(screen.getByLabelText("Type")).toHaveValue("112");
+    expect(screen.getByLabelText(/Type/)).toHaveValue("112");
   });
 
   it("réinitialise les niveaux enfants quand le parent change", () => {
@@ -106,10 +106,10 @@ describe("CategoryCascadeSelect", () => {
     fireEvent.change(screen.getByLabelText("Catégorie"), {
       target: { value: "1" },
     });
-    fireEvent.change(screen.getByLabelText("Sous-catégorie"), {
+    fireEvent.change(screen.getByLabelText(/Sous-catégorie/), {
       target: { value: "11" },
     });
-    fireEvent.change(screen.getByLabelText("Type"), {
+    fireEvent.change(screen.getByLabelText(/Type/), {
       target: { value: "112" },
     });
 
@@ -117,8 +117,8 @@ describe("CategoryCascadeSelect", () => {
       target: { value: "2" },
     });
 
-    expect(screen.getByLabelText("Sous-catégorie")).toHaveValue("");
-    expect(screen.getByLabelText("Type")).toHaveValue("");
+    expect(screen.getByLabelText(/Sous-catégorie/)).toHaveValue("");
+    expect(screen.getByLabelText(/Type/)).toHaveValue("");
     expect(screen.queryByText("Robes")).not.toBeInTheDocument();
     expect(screen.getByText("Vêtements")).toBeInTheDocument();
   });

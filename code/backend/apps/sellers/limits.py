@@ -17,13 +17,20 @@ Règles métier (cf. docs/.../04-modele-economique.md) :
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.core.store_scope import get_main_store_slug
 
 PLAN_LIMITS = {
     "FREE": {"max_products": 5, "max_orders_per_month": 5, "price_xof": 0},
-    "STARTER": {"max_products": 100, "max_orders_per_month": None, "price_xof": 5000},
+    # STARTER : tarif de lancement à 2 000 F/mois pendant les 3 premiers mois,
+    # puis prix de référence à 5 000 F/mois (cf. docs/.../04-modele-economique.md).
+    "STARTER": {
+        "max_products": 100,
+        "max_orders_per_month": 100,
+        "price_xof": 5000,
+        "promo_price_xof": 2000,
+        "promo_duration_months": 3,
+    },
     "PRO": {"max_products": None, "max_orders_per_month": None, "price_xof": 10000},
-    "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": None},
+    "BUSINESS": {"max_products": None, "max_orders_per_month": None, "price_xof": 15000},
 }
 
 # Fonctionnalités incluses par offre (cf. modèle économique « Tarification par offre »).
@@ -35,11 +42,9 @@ PLAN_LIMITS = {
 # - PRO : mieux vendre et piloter → personnalisation avancée, statistiques
 #   avancées, exports, équipe, outils promotionnels, relances clients, domaine
 #   personnalisé, paiement en ligne.
-# - BUSINESS : structurer → tout le PRO + multi-boutiques + support prioritaire.
+# - BUSINESS : structurer → tout le PRO + marketplace, livraison et support prioritaire.
 PRO_FEATURES = frozenset(
     {
-        "basic_customization",
-        "advanced_customization",
         "essential_stats",
         "advanced_stats",
         "exports",
@@ -53,10 +58,19 @@ PRO_FEATURES = frozenset(
 PLAN_FEATURES = {
     "FREE": frozenset(),
     "STARTER": frozenset(
-        {"basic_customization", "essential_stats", "online_payment"}
+        {"essential_stats", "online_payment"}
     ),
     "PRO": PRO_FEATURES,
-    "BUSINESS": PRO_FEATURES | frozenset({"multi_store", "priority_support"}),
+    "BUSINESS": PRO_FEATURES
+    | frozenset(
+        {
+            "multi_store",
+            "priority_support",
+            "seo_listing",
+            "delivery_service",
+            "marketplace_orders",
+        }
+    ),
 }
 
 
@@ -73,7 +87,7 @@ def plan_features(seller):
 def _is_main_store(seller):
     """True si la boutique du vendeur est la boutique entreprise (exempte)."""
     shop = getattr(seller, "shop", None)
-    return shop is not None and shop.slug == get_main_store_slug()
+    return shop is not None and shop.is_official
 
 
 def is_free(seller):
@@ -179,8 +193,8 @@ def main_store_catalog_q(prefix=""):
 
     # Boutique entreprise : via la boutique du produit ou celle de son vendeur
     # (miroir de l'exemption de is_free).
-    company = Q(**{f"{prefix}shop__slug": get_main_store_slug()}) | Q(
-        **{f"{prefix}seller__shop__slug": get_main_store_slug()}
+    company = Q(**{f"{prefix}shop__is_official": True}) | Q(
+        **{f"{prefix}seller__shop__is_official": True}
     )
     third_party = (
         (

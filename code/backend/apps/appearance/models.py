@@ -111,3 +111,40 @@ class HomeSection(models.Model):
                 section_type=section_type,
                 defaults={"order": index, "is_enabled": True},
             )
+
+
+class MenuItem(models.Model):
+    """Élément de menu de navigation éditable depuis l'admin (US-E14)."""
+
+    label = models.CharField(max_length=100)
+    url = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Élément de menu"
+        verbose_name_plural = "Éléments de menu"
+
+    def __str__(self):
+        return self.label
+
+
+class FooterBlock(models.Model):
+    """Bloc de colonne dans le footer, éditable depuis l'admin (US-E14)."""
+
+    title = models.CharField(max_length=100)
+    items = models.JSONField(
+        default=list,
+        help_text='Liste d\'objets {"label", "url"}',
+    )
+    order = models.PositiveIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Bloc footer"
+        verbose_name_plural = "Blocs footer"
+
+    def __str__(self):
+        return self.title

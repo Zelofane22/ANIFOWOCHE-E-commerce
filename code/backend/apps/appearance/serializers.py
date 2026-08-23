@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import HomeSection, SiteTheme
+from .models import HomeSection, MenuItem, FooterBlock, SiteTheme
 
 
 class SiteThemeSerializer(serializers.ModelSerializer):
@@ -45,3 +45,15 @@ class HomeSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeSection
         fields = ["type", "enabled", "order"]
+
+
+class MenuItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MenuItem
+        fields = ["label", "url", "order"]
+
+
+class FooterBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FooterBlock
+        fields = ["title", "items", "order"]

@@ -3,7 +3,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from unfold.admin import ModelAdmin
 
-from .models import Notification, NotificationSettings
+from .models import Notification, NotificationSettings, SellerNotification
 from .services import NotificationDeliveryError, resend_notification
 
 
@@ -52,3 +52,12 @@ class NotificationSettingsAdmin(ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         obj = NotificationSettings.get_solo()
         return redirect(reverse("admin:notifications_notificationsettings_change", args=[obj.pk]))
+
+
+@admin.register(SellerNotification)
+class SellerNotificationAdmin(ModelAdmin):
+    list_display = ["id", "seller", "notification_type", "title", "is_read", "created_at"]
+    list_filter = ["notification_type", "is_read"]
+    search_fields = ["title", "message", "seller__display_name"]
+    readonly_fields = ["read_at"]
+    ordering = ["-created_at"]

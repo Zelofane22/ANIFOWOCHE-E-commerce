@@ -29,9 +29,9 @@ class ShopAdmin(ModelAdmin):
     """Lecture seule : ces données appartiennent au vendeur (gérées via /seller/*),
     l'admin boutique ne doit pas pouvoir les modifier."""
 
-    list_display = ["name", "seller", "whatsapp_phone", "city", "is_published", "visible_on_main_store", "created_at"]
+    list_display = ["name", "seller", "whatsapp_phone", "city", "is_published", "is_official", "visible_on_main_store", "created_at"]
     list_select_related = ["seller"]
-    list_filter = ["is_published", "visible_on_main_store", "city"]
+    list_filter = ["is_published", "is_official", "visible_on_main_store", "city"]
     search_fields = ["name", "slug", "whatsapp_phone"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ["delivery_zones"]
@@ -44,6 +44,17 @@ class ShopAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def has_action_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    @admin.action(description="Marquer comme boutique officielle")
+    def set_as_official(self, request, queryset):
+        from apps.sellers.models import Shop
+        for shop in queryset:
+            Shop.objects.filter(pk=shop.pk).update(is_official=True)
+            Shop.objects.filter(is_official=True).exclude(pk=shop.pk).update(is_official=False)
+        self.message_user(request, f"{queryset.count()} boutique(s) marquée(s) comme officielle(s).")
 
 
 @admin.register(SellerSubscription)

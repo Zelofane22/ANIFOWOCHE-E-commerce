@@ -16,6 +16,7 @@ from apps.delivery.models import DeliverySlot, DeliveryZone
 from apps.products.models import Category, Product
 
 from apps.orders.models import Order
+from apps.sellers.models import SellerSubscription, SellerProfile
 
 from apps.core.factories import (
     CategoryFactory,
@@ -433,7 +434,7 @@ class DashboardStoreScopeTests(TestCase):
     def setUp(self):
         self.superuser = SuperUserFactory(username="dashboard-admin")
         self.client.force_login(self.superuser)
-        self.main_shop = ShopFactory(name="Ets ANIFOWOCHE", slug="ets-anifowoche")
+        self.main_shop = ShopFactory(name="Ets ANIFOWOCHE", slug="ets-anifowoche", is_official=True)
         self.other_shop = ShopFactory(name="Les Douceurs de Tinouke", slug="les-douceurs-de-tinouke")
         self.category = CategoryFactory(name="Mode")
 
@@ -464,6 +465,77 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(context["top_products"][0]["product__name"], self.main_product.name)
         self.assertEqual(context["category_breakdown"][0]["name"], self.category.name)
         self.assertEqual(context["category_breakdown"][0]["total"], 5000)
+
+    def test_dashboard_platform_kpis_exclude_official_shop_and_group_by_plan(self):
+        context = dashboard_callback(mock.Mock(), {})
+
+        # La boutique officielle (self.main_shop) est exclue des métriques plateforme.
+        self.assertEqual(context["platform_shops_total"], 1)
+        self.assertEqual(context["platform_products_total"], 1)
+        self.assertEqual(context["platform_orders_total"], 1)
+
+        plan_counts = {row["plan"]: row["count"] for row in context["platform_shops_by_plan"]}
+        self.assertEqual(sum(plan_counts.values()), 1)
+
+    def test_dashboard_activation_rate_requires_five_products_and_three_orders(self):
+        activated_seller = self.other_shop.seller
+        products = []
+        for i in range(5):
+            p = ProductFactory(
+                category=self.category, shop=self.other_shop, seller=activated_seller,
+                is_active=True, price_xof=1000,
+            )
+            products.append(p)
+        # 5 produits actifs + 3 commandes non annulées sur des produits du vendeur.
+        for i in range(3):
+            order = OrderFactory(customer=UserFactory(), total_xof=1000)
+            OrderItemFactory(order=order, product=products[i], quantity=1, unit_price_xof=1000)
+
+        inactive_seller_shop = ShopFactory(name="Boutique inactive", slug="boutique-inactive")
+        ProductFactory(
+            category=self.category, shop=inactive_seller_shop,
+            seller=inactive_seller_shop.seller, is_active=True, price_xof=1000,
+        )
+        # 1 seul produit, aucune commande : vendeur non activé.
+
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["activation_vendors_total"], 2)
+        self.assertEqual(context["activation_vendors_activated"], 1)
+        self.assertEqual(context["activation_rate"], 50.0)
+
+    def test_dashboard_mrr_arpu_and_churn(self):
+        now = timezone.now()
+
+        renewing_seller = self.other_shop.seller
+        # Abonnement actif aujourd'hui (couvre period_start et maintenant) : ARPU + MRR.
+        SellerSubscription.objects.create(
+            seller=renewing_seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=now - timedelta(days=5),
+            ends_at=now + timedelta(days=25),
+        )
+
+        churned_shop = ShopFactory(name="Boutique churn", slug="boutique-churn")
+        churned_seller = churned_shop.seller
+        # Abonnement expiré il y a 5 jours, non renouvelé : compte dans le churn.
+        SellerSubscription.objects.create(
+            seller=churned_seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=now - timedelta(days=35),
+            ends_at=now - timedelta(days=5),
+        )
+
+        context = dashboard_callback(mock.Mock(), {})
+
+        self.assertEqual(context["mrr"], 5000)
+        self.assertIsNotNone(context["churn_rate"])
+        self.assertEqual(context["churned_vendors_count"], 1)
+
 
     def test_dashboard_low_stock_scoped_to_main_shop(self):
         ProductFactory(
@@ -497,14 +569,20 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(response.context["kpi_clients"], 4)
         self.assertEqual(response.context["kpi_visits"], 1)
 
-    @override_settings(MAIN_STORE_SLUG="les-douceurs-de-tinouke")
     def test_main_shop_slug_is_configurable(self):
+        # Basculer l'officialité sur la deuxième boutique pour vérifier
+        # que le dashboard suit bien le flag is_official.
+        self.main_shop.is_official = False
+        self.main_shop.save()
+        self.other_shop.is_official = True
+        self.other_shop.save()
         context = dashboard_callback(mock.Mock(), {})
 
         self.assertEqual(context["kpi_orders"], 1)
         self.assertEqual(context["kpi_revenue"], 8000)
         self.assertEqual(context["kpi_products"], 1)
-        # Le slug configuré ne s'applique pas aux comptes clients.
+        # Les comptes clients sont plateforme (pas de boutique) : les 2
+        # vendeurs des boutiques et les 2 clients des commandes comptent.
         self.assertEqual(context["kpi_clients"], 4)
 
     def test_dashboard_kpi_clients_counts_clients_without_orders(self):

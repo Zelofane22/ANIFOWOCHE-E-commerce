@@ -13,7 +13,7 @@ export default function Navbar() {
   const [categories, setCategories] = useState([]);
   const { itemCount } = useCart();
   const { user } = useAuth();
-  const { theme } = useSiteConfig();
+  const { theme, menu_items = [] } = useSiteConfig();
   const navigate = useNavigate();
 
   // Logo et nom du site pilotables depuis la config, avec fallback en dur.
@@ -136,19 +136,33 @@ export default function Navbar() {
             Vendre
           </a>
           <div className="mx-1 h-5 w-px bg-white/20" />
-          <Link
-            to="/catalogue"
-            className="flex items-center gap-1.5 rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
-          >
-            <MenuIcon size={16} />
-            Toutes les catégories
-          </Link>
-          <Link
-            to="/commande/public"
-            className="rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
-          >
-            Commander
-          </Link>
+          {menu_items.length > 0
+            ? menu_items.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.url}
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
+                >
+                  {item.label}
+                </Link>
+              ))
+            : (
+                <>
+                  <Link
+                    to="/catalogue"
+                    className="flex items-center gap-1.5 rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
+                  >
+                    <MenuIcon size={16} />
+                    Toutes les catégories
+                  </Link>
+                  <Link
+                    to="/commande/public"
+                    className="rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
+                  >
+                    Commander
+                  </Link>
+                </>
+              )}
           {categories.length > 0 && <div className="mx-1 h-5 w-px bg-white/20" />}
           {categories.map((category) => (
             <Link

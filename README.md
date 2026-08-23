@@ -63,7 +63,7 @@ anifowoche/
 │   │   └── apps/
 │   │       ├── products/     # Modèles, serializers, vues API — Produits (+ galerie, options)
 │   │       ├── orders/       # Modèles, serializers, vues API — Commandes (+ coupons, guest checkout)
-│   │       ├── payments/     # Intégration FedaPay (sandbox) + webhook + relance des paiements échoués
+│   │       ├── payments/     # Intégration FedaPay + webhook + relance des paiements échoués
 │   │       ├── users/        # Authentification JWT + profil (téléphone, préférence notif.)
 │   │       ├── delivery/     # Zones/créneaux Cotonou, suivi de livraison
 │   │       ├── notifications/ # Emails (Resend) + notifications backoffice (lues/non lues)
@@ -92,7 +92,7 @@ Toutes les routes sont préfixées par `/api/`. Détails complets des variables 
 |---------|-----------|-------|
 | Produits | `GET /products/` (filtres prix/unité/stock/catégorie + tri + recherche), `GET /products/{slug}/` (note, remise, galerie), `GET /products/categories/` | Public |
 | Commandes | `POST /orders/` (`coupon_code` optionnel, guest checkout possible) · `GET /orders/`, `GET /orders/{id}/` (items avec nom, slug et image produit) · `PATCH/DELETE` | Création publique/authentifiée · le client consulte ses propres commandes · modification/suppression réservées au staff |
-| Paiement | `POST /payments/initiate/` (FedaPay sandbox) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé · le client consulte les paiements de ses commandes, staff voit tout |
+| Paiement | `POST /payments/initiate/` (FedaPay) · `POST /payments/webhook/` (signature HMAC) · `GET /payments/` | Initiation publique, webhook signé · le client consulte les paiements de ses commandes, staff voit tout |
 | Livraison | `GET /delivery/zones/`, `GET /delivery/slots/` · `POST /delivery/` (checkout) · `GET/PATCH /delivery/{id}/` | Lecture zones/créneaux publique, gestion réservée au staff |
 | Authentification | `POST /auth/register/` (téléphone + préférence de notification optionnels), `POST /auth/token/`, `POST /auth/token/refresh/`, `GET /auth/me/` | Public / utilisateur connecté |
 | Avis | `GET /reviews/?product__slug=...` (avis approuvés) · `POST /reviews/` (soumission, modération admin) | Public |

@@ -257,6 +257,15 @@ nav a[class~="bg-primary-600"][href^="/admin/"] svg {
 .anw-kpi-change.down { color: var(--anw-negative); }
 .anw-kpi-change.flat { color: var(--anw-text-muted); }
 
+.anw-plan-breakdown {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    color: var(--anw-text-muted);
+}
+.anw-plan-breakdown li { margin: 0.15rem 0; }
+
 .anw-action-title { font-size: 0.95rem; font-weight: 700; color: var(--anw-text-strong); }
 .anw-action-card-number { font-size: 1.9rem; font-weight: 800; line-height: 1; margin: 0.35rem 0 0.3rem; }
 .anw-action-card-hint { color: var(--anw-text-muted); font-size: 0.8rem; }

@@ -1,6 +1,6 @@
 import logging
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Q
@@ -34,6 +34,7 @@ from .serializers import (
 )
 
 KPI_PERIOD_DAYS = 30
+VALID_PERIODS = (7, 30, 90)
 LOW_STOCK_THRESHOLD = 10
 
 
@@ -115,8 +116,65 @@ class SellerDashboardView(APIView):
 
         # Bornes temporelles des deux périodes comparées (actuelle et précédente).
         now = timezone.now()
-        period_start = now - timedelta(days=KPI_PERIOD_DAYS)
-        previous_start = now - timedelta(days=2 * KPI_PERIOD_DAYS)
+        now_bound = now
+
+        # --- Query params : period / date_from / date_to ---
+        period_raw = request.query_params.get("period")
+        date_from_raw = request.query_params.get("date_from")
+        date_to_raw = request.query_params.get("date_to")
+
+        has_date_range = date_from_raw or date_to_raw
+
+        if has_date_range:
+            # Validation : les deux dates ou aucune ne doit manquer.
+            if not date_from_raw or not date_to_raw:
+                return Response(
+                    {"detail": "Les paramètres date_from et date_to doivent être fournis ensemble."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                period_start = date.fromisoformat(date_from_raw)
+            except (ValueError, TypeError):
+                return Response(
+                    {"detail": "Format de date_from invalide. Utilisez le format YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                now_bound = date.fromisoformat(date_to_raw)
+            except (ValueError, TypeError):
+                return Response(
+                    {"detail": "Format de date_to invalide. Utilisez le format YYYY-MM-DD."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if period_start > now_bound:
+                return Response(
+                    {"detail": "La date_from doit être antérieure ou égale à date_to."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            duration_days = (now_bound - period_start).days
+            previous_start = period_start - timedelta(days=duration_days)
+            days_used = duration_days
+        else:
+            # Paramètre period : 7, 30 ou 90 jours.
+            if period_raw is not None:
+                try:
+                    days = int(period_raw)
+                except (ValueError, TypeError):
+                    return Response(
+                        {"detail": "Le paramètre period doit être un entier parmi 7, 30 ou 90."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if days not in VALID_PERIODS:
+                    return Response(
+                        {"detail": "Le paramètre period doit être 7, 30 ou 90."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            else:
+                days = KPI_PERIOD_DAYS
+            days_used = days
+            period_start = now - timedelta(days=days)
+            previous_start = now - timedelta(days=2 * days)
+            now_bound = now
 
         orders_period = seller_orders.filter(created_at__gte=period_start)
         orders_previous = seller_orders.filter(
@@ -124,10 +182,18 @@ class SellerDashboardView(APIView):
         )
 
         # KPIs de revenus et de commandes sur les deux périodes (hors annulations).
-        revenue_period = orders_period.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
-        revenue_previous = orders_previous.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
+        non_cancelled_period = orders_period.exclude(status=Order.Status.CANCELLED)
+        non_cancelled_previous = orders_previous.exclude(status=Order.Status.CANCELLED)
+        revenue_period = non_cancelled_period.aggregate(total=Sum("total_xof"))["total"] or 0
+        revenue_previous = non_cancelled_previous.aggregate(total=Sum("total_xof"))["total"] or 0
         orders_count_period = orders_period.count()
         orders_count_previous = orders_previous.count()
+        non_cancelled_count_period = non_cancelled_period.count()
+
+        # Statistiques avancées (#250) : panier moyen (revenu / commandes non
+        # annulées) et taux de conversion (part des commandes non annulées).
+        avg_order_value = round(revenue_period / non_cancelled_count_period) if non_cancelled_count_period else 0
+        conversion_rate = round(non_cancelled_count_period / orders_count_period * 100, 1) if orders_count_period else 0
 
         # Série des ventes par jour pour le graphique d'évolution.
         sales_by_day = (
@@ -192,7 +258,9 @@ class SellerDashboardView(APIView):
                     "revenue_change": _percent_change(revenue_period, revenue_previous),
                     "orders": orders_count_period,
                     "orders_change": _percent_change(orders_count_period, orders_count_previous),
-                    "period_days": KPI_PERIOD_DAYS,
+                    "avg_order_value": avg_order_value,
+                    "conversion_rate": conversion_rate,
+                    "period_days": days_used,
                 },
                 "sales_chart": [
                     {"day": row["day"].strftime("%d/%m"), "total": row["total"]}
@@ -371,3 +439,80 @@ class PublicShopProductDetailView(generics.RetrieveAPIView):
                 {"error": str(e), "detail": "Erreur lors du chargement du produit"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class SellerPlansView(APIView):
+    """Catalogue public des offres vendeur (prix + limites + fonctionnalités).
+    Alimente la page d'atterrissage (#228) et la page plan du dashboard (#245).
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .limits import PLAN_LIMITS, PLAN_FEATURES
+        from .serializers import SellerPlanSerializer
+
+        plans = []
+        for code, limits in PLAN_LIMITS.items():
+            plans.append(
+                {
+                    "code": code,
+                    "name": SellerProfile.Plan(code).label,
+                    "price_xof": limits["price_xof"],
+                    "promo_price_xof": limits.get("promo_price_xof"),
+                    "promo_duration_months": limits.get("promo_duration_months"),
+                    "max_products": limits["max_products"],
+                    "max_orders_per_month": limits["max_orders_per_month"],
+                    "features": sorted(PLAN_FEATURES.get(code, frozenset())),
+                }
+            )
+        return Response({"plans": SellerPlanSerializer(plans, many=True).data})
+
+
+class SellerSubscriptionView(APIView):
+    """Abonnement payant du vendeur (pipeline E9).
+
+    - POST : souscrit à un plan (checkout FedaPay), retourne l'abonnement avec
+      son lien de paiement.
+    - GET  : retourne l'abonnement le plus récent + le plan actuel et ses limites.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def _get_seller(self):
+        try:
+            return self.request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+    def post(self, request):
+        from .services import SubscriptionError, create_subscription
+
+        seller = self._get_seller()
+        plan = request.data.get("plan", "").upper()
+        try:
+            subscription = create_subscription(seller, plan)
+        except SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        from .serializers import SellerSubscriptionSerializer
+        return Response(
+            SellerSubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED
+        )
+
+    def get(self, request):
+        from .limits import build_limits_payload
+        from .serializers import SellerSubscriptionSerializer
+
+        seller = self._get_seller()
+        latest = seller.subscriptions.order_by("-created_at").first()
+        return Response(
+            {
+                "subscription": (
+                    SellerSubscriptionSerializer(latest).data if latest else None
+                ),
+                "current_plan": seller.plan,
+                "limits": build_limits_payload(seller),
+            }
+        )
