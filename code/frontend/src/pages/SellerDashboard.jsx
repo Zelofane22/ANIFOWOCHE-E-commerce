@@ -72,6 +72,7 @@ export default function SellerDashboard() {
   const [period, setPeriod] = useState("30j");
   const [hideBalance, setHideBalance] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -89,6 +90,7 @@ export default function SellerDashboard() {
         if (!cancelled) setData(res.data);
       } catch (err) {
         console.error("Failed to load dashboard", err);
+        if (!cancelled) setError(err?.response?.data?.detail || err.message || "Erreur de chargement");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -96,6 +98,16 @@ export default function SellerDashboard() {
     fetchDashboard();
     return () => { cancelled = true; };
   }, [user, period]);
+
+  if (error) {
+    return (
+      <SellerShell>
+        <div className="mx-auto max-w-2xl px-4 pt-8 text-center text-sm text-red-500">
+          {error}
+        </div>
+      </SellerShell>
+    );
+  }
 
   if (authLoading || loading || !data) {
     return (
