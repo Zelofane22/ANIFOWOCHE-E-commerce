@@ -12,7 +12,7 @@ import Home from "./pages/Home.jsx";
 import ShopRedirect from "./pages/ShopRedirect.jsx";
 
 const hostname = window.location.hostname;
-const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname === "selle.localhost" || hostname.startsWith("seller.") || hostname.startsWith("selle.");
+const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname === "seller.localhost" || hostname.startsWith("seller.") || hostname.startsWith("seller.");
 
 const Account = lazy(() => import("./pages/Account.jsx"));
 const Addresses = lazy(() => import("./pages/Addresses.jsx"));
