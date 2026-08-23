@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   ExternalLinkIcon,
   RefreshCwIcon,
+  ZapIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
@@ -17,15 +18,38 @@ import { openFedapaySubscriptionCheckout } from "../utils/fedapay.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 
 const PLAN_META = {
-  FREE: { label: "Gratuit", note: "Pour démarrer et tester" },
-  STARTER: { label: "Starter", note: "Pour les vendeurs actifs" },
-  PRO: { label: "Pro", note: "Mieux vendre et piloter" },
-  BUSINESS: { label: "Entreprise", note: "Sur devis" },
+  FREE: { label: "Gratuit", note: "Pour démarrer et tester", color: "#6B7280" },
+  STARTER: { label: "Starter", note: "Pour les vendeurs actifs", color: "#2563EB" },
+  PRO: { label: "Pro", note: "Mieux vendre et piloter", color: "#C99F08" },
+  BUSINESS: { label: "Entreprise", note: "Sur devis", color: "#7C3AED" },
 };
+
+const PLAN_ORDER = ["FREE", "STARTER", "PRO", "BUSINESS"];
 
 function formatPrice(price) {
   if (price == null) return "Sur devis";
   return new Intl.NumberFormat("fr-FR").format(price) + " F";
+}
+
+function QuotaBar({ label, used, max }) {
+  if (max == null) return null;
+  const pct = used / max;
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1.5">
+        <span className="text-white/60 font-medium">{label}</span>
+        <span className="font-bold text-white">
+          {used} / {max}
+        </span>
+      </div>
+      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${pct > 0.8 ? "bg-amber-400" : "bg-[#C99F08]"}`}
+          style={{ width: `${Math.min(pct * 100, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function SellerPlan() {
@@ -58,13 +82,22 @@ export default function SellerPlan() {
   }, [isAuthenticated, loading, navigate]);
 
   if (loading || !data) {
-    return <div className="min-h-screen bg-surface-muted px-4 py-10 text-center text-muted">Chargement...</div>;
+    return (
+      <div className="min-h-screen bg-[#F4F4F8] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[#C99F08] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-[#9CA3AF]">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
   const subscription = data.subscription;
+  const limits = data.limits;
   const isPending = subscription?.status === "pending";
   const isApproved = subscription?.status === "approved";
   const isFree = data.current_plan === "FREE";
+  const currentPlanMeta = PLAN_META[data.current_plan];
 
   const handleSubscribe = async () => {
     setError("");
@@ -82,145 +115,263 @@ export default function SellerPlan() {
     }
   };
 
+  const isCurrentPlan = (code) => data.current_plan === code;
+
+  const isPayable = (code) => ["STARTER", "PRO"].includes(code);
+
   return (
     <SellerShell title="Abonnement" seller={{ display_name: "Plan" }}>
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-xl border border-black/10 bg-white p-5 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-[#111827] px-5 pt-12 pb-6">
+        <h1 className="text-xl font-bold text-white mb-1">Mon abonnement</h1>
+        <p className="text-white/50 text-sm">Gérez votre plan et vos fonctionnalités</p>
+
+        <div className="mt-5 bg-white/10 backdrop-blur-sm rounded-[20px] p-5 border border-white/10">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm font-semibold text-brand-dark">ANIF Seller</p>
-              <h2 className="mt-1 text-xl font-bold text-ink">
-                Plan actuel :{" "}
-                <span className="text-brand-dark">
-                  {PLAN_META[data.current_plan]?.label || data.current_plan}
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">
+                Plan actuel
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
+                  style={{
+                    color: currentPlanMeta?.color,
+                    backgroundColor: `${currentPlanMeta?.color}20`,
+                  }}
+                >
+                  <ZapIcon size={12} />
+                  {currentPlanMeta?.label || data.current_plan}
                 </span>
-              </h2>
+              </div>
             </div>
             {isApproved && subscription && (
-              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                Actif · expire le{" "}
-                {subscription.ends_at ? new Date(subscription.ends_at).toLocaleDateString("fr-FR") : "—"}
+              <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400">
+                Actif
               </span>
             )}
             {isPending && (
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
-                Paiement en attente de confirmation
+              <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400">
+                En attente
+              </span>
+            )}
+            {isFree && (
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/60">
+                GRATUIT
               </span>
             )}
           </div>
 
-          {isPending && subscription?.payment_url && (
-            <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Votre paiement est en cours de validation par FedaPay. Vous pouvez le poursuivre :
-              <a
-                href={subscription.payment_url}
-                target="_blank"
-                rel="noreferrer"
-                className="ml-1 inline-flex items-center gap-1 font-bold text-amber-900 underline"
-              >
-                rouvrir la page de paiement <ExternalLinkIcon size={13} />
-              </a>
+          {isApproved && subscription?.ends_at && (
+            <p className="text-white/40 text-xs">
+              Expire le{" "}
+              {new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
             </p>
           )}
 
-          {error && (
-            <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>
+          {isFree && limits && (
+            <div className="mt-4 space-y-3">
+              <QuotaBar
+                label="Produits"
+                used={limits.products_used || 0}
+                max={limits.max_products}
+              />
+              {limits.max_orders_per_month != null && (
+                <QuotaBar
+                  label="Commandes / mois"
+                  used={limits.orders_this_month || 0}
+                  max={limits.max_orders_per_month}
+                />
+              )}
+            </div>
+          )}
+
+          {isPending && subscription?.payment_url && (
+            <a
+              href={subscription.payment_url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 flex items-center gap-2 rounded-xl bg-amber-500/15 border border-amber-400/20 px-4 py-3 text-sm text-amber-300 transition hover:bg-amber-500/25"
+            >
+              <ExternalLinkIcon size={14} className="flex-shrink-0" />
+              <span className="font-semibold">Rouvrir la page de paiement</span>
+            </a>
           )}
         </div>
+      </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {plans
-            .filter((p) => ["STARTER", "PRO"].includes(p.code))
-            .map((plan) => {
-              const isSelected = selected === plan.code;
-              const price = plan.price_xof;
-              return (
-                <button
-                  key={plan.code}
-                  type="button"
-                  onClick={() => setSelected(plan.code)}
-                  className={`relative rounded-xl border-2 bg-white p-5 text-left transition ${
-                    isSelected ? "border-brand shadow-md" : "border-black/10 hover:border-brand/50"
-                  }`}
-                >
-                  {plan.code === "PRO" && (
-                    <span className="absolute -top-2.5 left-4 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-bold text-white">
-                      Populaire
-                    </span>
-                  )}
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-base font-bold text-ink">{plan.name}</h3>
-                    <span
+      <div className="px-4 pt-5 pb-8 max-w-lg mx-auto">
+        <p className="text-sm font-bold text-[#374151] mb-3 px-1">Comparer les offres</p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PLAN_ORDER.map((code) => {
+            const plan = plans.find((p) => p.code === code);
+            const meta = PLAN_META[code];
+            const isSelected = selected === code;
+            const current = isCurrentPlan(code);
+            const payable = isPayable(code);
+            const price = plan?.price_xof;
+            const hasPromo =
+              plan?.promo_price_xof != null && plan.promo_price_xof > 0;
+
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => payable && setSelected(code)}
+                disabled={!payable}
+                className={`relative bg-white rounded-[16px] shadow-sm border p-5 text-left transition-all ${
+                  isSelected
+                    ? "border-[#C99F08] shadow-md ring-1 ring-[#C99F08]/20"
+                    : "border-black/[0.05] hover:border-black/10"
+                } ${!payable ? "opacity-80" : ""}`}
+              >
+                {current && (
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-green-500 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                    Actuel
+                  </span>
+                )}
+                {code === "PRO" && !current && (
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-[#C99F08] px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                    Populaire
+                  </span>
+                )}
+
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <div className="flex items-center gap-2">
+                    <div
                       className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                        isSelected ? "border-brand bg-brand" : "border-black/20"
+                        isSelected
+                          ? "border-[#C99F08] bg-[#C99F08]"
+                          : "border-black/20"
                       }`}
                     >
-                      {isSelected && <CheckIcon size={11} className="text-white" />}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-muted">{PLAN_META[plan.code]?.note}</p>
-                  {plan.promo_price_xof != null && plan.promo_price_xof > 0 ? (
-                    <div className="mt-3">
-                      <p>
-                        <span className="text-2xl font-bold text-brand-dark">
-                          {formatPrice(plan.promo_price_xof)}
-                        </span>
-                        <span className="text-sm text-muted">/mois</span>
-                        <span className="ml-2 text-sm text-muted line-through">
-                          {formatPrice(plan.price_xof)}
-                        </span>
-                      </p>
-                      <p className="mt-1 text-xs text-muted">
-                        Tarif de lancement pendant les {plan.promo_duration_months} premiers
-                        mois, puis {formatPrice(plan.price_xof)}/mois.
-                      </p>
+                      {isSelected && (
+                        <CheckIcon size={11} className="text-white" />
+                      )}
                     </div>
-                  ) : (
-                    <p className="mt-3">
-                      <span className="text-2xl font-bold text-ink">{formatPrice(price)}</span>
-                      {price != null && price > 0 && <span className="text-sm text-muted">/mois</span>}
+                    <h3 className="text-base font-bold text-[#111827]">
+                      {meta.label}
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-xs text-[#9CA3AF] mt-1 mb-3">{meta.note}</p>
+
+                {payable && hasPromo ? (
+                  <div className="mb-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#C99F08]">
+                        {formatPrice(plan.promo_price_xof)}
+                      </span>
+                      <span className="text-xs text-[#9CA3AF]">/mois</span>
+                    </div>
+                    <p className="text-[11px] text-[#9CA3AF] mt-1">
+                      {formatPrice(plan.price_xof)}/mois après{" "}
+                      {plan.promo_duration_months} premiers mois
                     </p>
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#111827]">
+                        {formatPrice(price)}
+                      </span>
+                      {price != null && price > 0 && (
+                        <span className="text-xs text-[#9CA3AF]">/mois</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <ul className="space-y-2">
+                  {(plan?.features || []).map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-start gap-2 text-sm text-[#374151]"
+                    >
+                      <CheckIcon
+                        size={14}
+                        className="mt-0.5 shrink-0 text-[#C99F08]"
+                      />
+                      {f}
+                    </li>
+                  ))}
+                  {(!plan?.features || plan.features.length === 0) && (
+                    <li className="flex items-start gap-2 text-sm text-[#9CA3AF] italic">
+                      Fonctionnalités de base incluses
+                    </li>
                   )}
-                  <ul className="mt-4 space-y-2">
-                    {(plan.features || []).map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm text-ink">
-                        <CheckIcon size={15} className="mt-0.5 shrink-0 text-brand-dark" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </button>
-              );
-            })}
+                </ul>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="mt-5 rounded-xl border border-black/10 bg-white p-5">
-          <button
-            type="button"
-            onClick={handleSubscribe}
-            disabled={submitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-50"
-          >
-            {submitting ? (
-              <>
-                <RefreshCwIcon size={15} className="animate-spin" />
-                Lancement du paiement…
-              </>
-            ) : isFree ? (
-              <>
-                Souscrire à ce plan
-                <ChevronRightIcon size={16} />
-              </>
-            ) : (
-              <>
-                Changer pour ce plan
-                <ChevronRightIcon size={16} />
-              </>
-            )}
-          </button>
-          <p className="mt-3 text-xs leading-5 text-muted">
-            Paiement sécurisé par FedaPay (mobile money ou carte). L'abonnement prend effet dès la
-            confirmation du paiement et se renouvelle mensuellement.
+        {error && (
+          <p className="mt-4 rounded-[12px] bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {error}
+          </p>
+        )}
+
+        <div className="mt-5 bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-5">
+          {isFree ? (
+            <button
+              type="button"
+              onClick={handleSubscribe}
+              disabled={submitting || isCurrentPlan(selected) || !isPayable(selected)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <>
+                  <RefreshCwIcon size={15} className="animate-spin" />
+                  Lancement du paiement…
+                </>
+              ) : (
+                <>
+                  Souscrire au plan {PLAN_META[selected]?.label}
+                  <ChevronRightIcon size={16} />
+                </>
+              )}
+            </button>
+          ) : isPayable(selected) && !isCurrentPlan(selected) ? (
+            <button
+              type="button"
+              onClick={handleSubscribe}
+              disabled={submitting}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50"
+            >
+              {submitting ? (
+                <>
+                  <RefreshCwIcon size={15} className="animate-spin" />
+                  Lancement du paiement…
+                </>
+              ) : (
+                <>
+                  Changer pour le plan {PLAN_META[selected]?.label}
+                  <ChevronRightIcon size={16} />
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed"
+            >
+              {isCurrentPlan(selected)
+                ? "Vous êtes déjà sur ce plan"
+                : "Sélectionnez un plan payant"}
+            </button>
+          )}
+
+          <p className="mt-3 text-xs leading-5 text-[#9CA3AF] text-center">
+            Paiement sécurisé par FedaPay (mobile money ou carte). L'abonnement
+            prend effet dès la confirmation du paiement et se renouvelle
+            mensuellement.
           </p>
         </div>
       </div>
