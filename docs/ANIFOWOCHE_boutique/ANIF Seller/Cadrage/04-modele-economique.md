@@ -31,7 +31,7 @@ La limite porte sur les fonctionnalités : l'offre Gratuit prouve la valeur (cr�
 
 - 100 produits ;
 - 100 commandes ;
-- statistiques essentielles sur dashboard (Revenu du mois, Evolutions des revenus sur 7j, 30j et 3mois) ;
+- statistiques essentielles sur dashboard (Revenu du mois/mois, Evolutions des revenus sur 7j, 30j et 3mois) ;
 
 La valeur repose sur la simplicité de gestion et le gain de temps.
 
@@ -41,8 +41,8 @@ La valeur repose sur la simplicité de gestion et le gain de temps.
 - Page statistique avancé:
     Taux de commandes validées = commandes non annulées / commandes totales, 
     Taux de conversion = commandes / visiteurs uniques,
-    Graphique d'évolution des paiement ;
-    Camenbère de répartition des ventes par produits;
+    Graphique d'évolution des paiement par mois (l'utilisateur swipe à gauche ou à droite pour ce déplacer d'un moi à l'autre) ;
+    Choix d'affichage Camenbère de répartition des ventes par produits;
 - exports des statistiques avancés;
 - multi-utilisateurs ( équipe );
 - outils promotionnels ;
