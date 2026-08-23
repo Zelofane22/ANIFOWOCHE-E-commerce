@@ -24,7 +24,7 @@ PLAN_LIMITS = {
     # puis prix de référence à 5 000 F/mois (cf. docs/.../04-modele-economique.md).
     "STARTER": {
         "max_products": 100,
-        "max_orders_per_month": None,
+        "max_orders_per_month": 100,
         "price_xof": 5000,
         "promo_price_xof": 2000,
         "promo_duration_months": 3,
