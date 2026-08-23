@@ -122,3 +122,38 @@ class BackofficeNotification(models.Model):
     def __str__(self):
         # Représentation lisible : le titre de l'alerte.
         return self.title
+
+
+class SellerNotification(models.Model):
+    """Notification inbox pour un vendeur — messages broadcasts ANIFOWOCHE
+    et alertes métier (nouvelle commande, stock bas, etc.)."""
+
+    class Type(models.TextChoices):
+        NEW_ORDER = "new_order", "Nouvelle commande"
+        ORDER_CANCELLED = "order_cancelled", "Commande annulée"
+        LOW_STOCK = "low_stock", "Stock faible"
+        PLAN_EXPIRING = "plan_expiring", "Abonnement bientôt expiré"
+        BROADCAST = "broadcast", "Message ANIFOWOCHE"
+        ACCOUNT = "account", "Compte"
+        SYSTEM = "system", "Système"
+
+    seller = models.ForeignKey(
+        "sellers.SellerProfile",
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    notification_type = models.CharField(max_length=20, choices=Type.choices, default=Type.BROADCAST)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(blank=True, null=True)
+    action_url = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Notification vendeur"
+        verbose_name_plural = "Notifications vendeur"
+
+    def __str__(self):
+        return f"{self.title} → {self.seller}"
