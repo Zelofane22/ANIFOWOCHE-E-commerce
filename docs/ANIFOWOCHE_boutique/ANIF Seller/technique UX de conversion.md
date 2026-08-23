@@ -102,6 +102,7 @@ multi-utilisateurs ; - outils promotionnels ; - relances clients.
 
 **Faire évoluer le discours de la capacité vers la performance.**
 
+
 Starter répond à :
 
 > « Puis-je vendre davantage ? »
@@ -119,10 +120,9 @@ transition : - taux de commandes validées ; - taux de conversion ; -
 Éviter de présenter toutes les fonctionnalités au même niveau.
 
 Mettre en avant en priorité : 1. pilotage des ventes ; 2. compréhension
-des performances ; 3. relance des clients ; 4. promotion des produits ;
-5. travail en équipe.
+des performances ; 3. relance des clients ; 4. promotion des produits ; 5. travail en équipe.
 
-Dans le dashboard Starter, montrer un aperçu flouté de la page de statistique avancé avec un CTA :
+Flouté de la page de statistique avec un CTA :
 > « Débloquer les statistiques avancées avec Pro »
 
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   createOption,
   createOptionGroup,
@@ -849,10 +849,12 @@ export default function ProductForm({ seller, categoryTree, product, activeProdu
         {success && <p role="status" aria-live="polite" className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
         {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         {createLimitReached && (
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Plan gratuit : maximum {productLimit} produits actifs atteint. Archivez un produit pour en
-            publier un nouveau.
-          </p>
+          <div className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <p>Vous avez atteint la limite de {productLimit} produits de votre offre Gratuit.</p>
+            <Link to="/plan" className="mt-1 inline-flex font-bold text-[#8B6604] hover:underline">
+              Passer à Starter pour gérer jusqu&apos;à 100 produits
+            </Link>
+          </div>
         )}
 
         <button

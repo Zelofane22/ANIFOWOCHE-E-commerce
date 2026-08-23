@@ -121,6 +121,10 @@ export default function SellerDashboard() {
   const pending_count = data.metrics?.pending_orders ?? 0;
   const products_count = data.metrics?.products ?? 0;
   const revenue_today = 0;
+  const products_used = limits?.products_used ?? products_count;
+  const orders_used = limits?.orders_this_month ?? orders_count;
+  const products_near_limit = plan === "FREE" && limits?.max_products != null && products_used / limits.max_products >= 0.8;
+  const orders_near_limit = plan === "FREE" && limits?.max_orders_per_month != null && orders_used / limits.max_orders_per_month >= 0.8;
 
   const planMeta = PLAN_META[plan] || PLAN_META.FREE;
   const chartData = revenue_chart.map((d) => ({
@@ -377,9 +381,20 @@ export default function SellerDashboard() {
                 </div>
               )}
             </div>
-            <Link to="/settings" className="mt-3 inline-flex text-xs font-bold text-brand transition hover:text-brand/80">
-              Voir les offres
-            </Link>
+            {plan === "FREE" && (products_near_limit || orders_near_limit) ? (
+              <div className="mt-4 rounded-xl bg-[#FEF9E7] p-3">
+                <p className="text-xs leading-relaxed text-[#8B6604]">
+                  Vous approchez de la limite de votre offre Gratuit. Passez à Starter pour gérer jusqu&apos;à 100 produits et 100 commandes.
+                </p>
+                <Link to="/plan" className="mt-2 inline-flex text-xs font-bold text-[#8B6604] transition hover:text-[#6B4F03]">
+                  Passer à Starter pour vendre plus
+                </Link>
+              </div>
+            ) : (
+              <Link to="/plan" className="mt-3 inline-flex text-xs font-bold text-brand transition hover:text-brand/80">
+                Voir les offres
+              </Link>
+            )}
           </div>
         )}
 

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   AlertCircleIcon,
   BarChartIcon,
   ChevronLeftIcon,
+  ChevronRightIcon,
   CheckIcon,
   CircleIcon,
   TrendingUpIcon,
@@ -23,12 +24,6 @@ import {
   YAxis,
 } from "recharts";
 
-const PERIODS = [
-  { key: "7j", label: "7 jours", days: 7 },
-  { key: "30j", label: "30 jours", days: 30 },
-  { key: "3m", label: "3 mois", days: 90 },
-];
-
 const STATUS_META = {
   received: { label: "Recues", color: "#C99F08" },
   prepared: { label: "En preparation", color: "#2563EB" },
@@ -44,6 +39,21 @@ function formatXOF(amount) {
 
 function formatAverage(amount) {
   return `${Math.round(Number(amount || 0) / 1000)}k F`;
+}
+
+function getMonthBounds(reference) {
+  const year = reference.getFullYear();
+  const month = reference.getMonth();
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  return {
+    date_from: first.toISOString().slice(0, 10),
+    date_to: last.toISOString().slice(0, 10),
+  };
+}
+
+function formatMonthLabel(date) {
+  return date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 }
 
 function StatCard({ icon: Icon, iconClass, label, value, detail, children }) {
@@ -73,11 +83,17 @@ function ChartTooltip({ active, payload, label }) {
 export default function SellerStats() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [period, setPeriod] = useState("30j");
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
   const [view, setView] = useState("bar");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -86,7 +102,9 @@ export default function SellerStats() {
   useEffect(() => {
     if (!user) return undefined;
     let cancelled = false;
-    getSellerDashboard({ period: PERIODS.find((item) => item.key === period)?.days || 30 })
+    const { date_from, date_to } = getMonthBounds(currentMonth);
+    // Keep previous data visible while loading next month
+    getSellerDashboard({ date_from, date_to })
       .then((response) => {
         if (!cancelled) {
           setData(response);
@@ -100,7 +118,35 @@ export default function SellerStats() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [period, user]);
+  }, [currentMonth, user]);
+
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  }, []);
+
+  const goToNextMonth = useCallback(() => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  }, []);
+
+  const handleTouchStart = useCallback((e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX < 0) {
+        goToNextMonth();
+      } else {
+        goToPreviousMonth();
+      }
+    }
+  }, [goToNextMonth, goToPreviousMonth]);
 
   const chartData = useMemo(() => (data?.sales_chart || []).map((point) => ({
     label: point.day,
@@ -148,7 +194,11 @@ export default function SellerStats() {
   return (
     <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0}>
       <div className="mx-auto max-w-3xl space-y-4">
-        <header className="bg-[#111827] px-5 pb-7 pt-7 text-white sm:rounded-b-2xl sm:px-7">
+        <header
+          className="bg-[#111827] px-5 pb-7 pt-7 text-white sm:rounded-b-2xl sm:px-7"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className="mb-6 flex items-center justify-between">
             <Link to="/dashboard" aria-label="Retour au tableau de bord" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20">
               <ChevronLeftIcon size={18} />
@@ -169,14 +219,16 @@ export default function SellerStats() {
             <BarChartIcon size={13} className="text-[#C99F08]" />
             <span className="font-bold text-[#C99F08]">{formatAverage(averageRevenue)} moy. / jour</span>
             <span className="text-white/30">·</span>
-            <span className="text-white/50">{PERIODS.find((item) => item.key === period)?.label}</span>
+            <span className="text-white/50">{formatMonthLabel(currentMonth)}</span>
           </div>
-          <div className="mt-5 flex gap-1 rounded-full bg-black/20 p-1">
-            {PERIODS.map((item) => (
-              <button key={item.key} type="button" onClick={() => setPeriod(item.key)} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold transition ${period === item.key ? "bg-[#C99F08] text-white" : "text-white/50 hover:text-white"}`}>
-                {item.label}
-              </button>
-            ))}
+          <div className="mt-5 flex items-center justify-between">
+            <button type="button" aria-label="Mois precedent" onClick={goToPreviousMonth} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20">
+              <ChevronLeftIcon size={16} />
+            </button>
+            <p className="text-sm font-bold capitalize">{formatMonthLabel(currentMonth)}</p>
+            <button type="button" aria-label="Mois suivant" onClick={goToNextMonth} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20">
+              <ChevronRightIcon size={16} />
+            </button>
           </div>
         </header>
 

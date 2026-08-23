@@ -106,7 +106,7 @@ export default function SellerPlan() {
   const { loading, isAuthenticated } = useAuth();
   const [plans, setPlans] = useState([]);
   const [data, setData] = useState(null);
-  const [selected, setSelected] = useState("PRO");
+  const [selected, setSelected] = useState("STARTER");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);

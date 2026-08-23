@@ -293,6 +293,11 @@ export default function SellerSettings() {
               <p className="rounded-[12px] bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700">
                 Quota mensuel de commandes atteint. Votre boutique est masquée jusqu'au mois prochain.
               </p>
+              {seller.plan === "FREE" && (
+                <Link to="/plan" className="mt-2 inline-flex px-3 text-xs font-bold text-[#8B6604] hover:underline">
+                  Passer à Starter pour continuer à vendre
+                </Link>
+              )}
             </div>
           )}
         </div>
