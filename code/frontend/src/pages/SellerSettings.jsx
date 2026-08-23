@@ -4,7 +4,6 @@ import { fetchDeliveryZones } from "../api/delivery.js";
 import { checkShopSlugAvailability, getSellerProfile, updateSellerProfile } from "../api/seller.js";
 import {
   BarChartIcon,
-  BellIcon,
   CheckIcon,
   ChevronRightIcon,
   ExternalLinkIcon,
@@ -198,29 +197,6 @@ export default function SellerSettings() {
       setEditingProfile(false);
     } catch (err) {
       setError(extractErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleShopSave = async () => {
-    setError(null);
-    setSuccess(null);
-    setSubmitting(true);
-    try {
-      const data = await updateSellerProfile(form);
-      setSeller(data);
-      setSlugError(null);
-      setSlugChecking(false);
-      setSuccess("Boutique mise à jour.");
-      setEditingShop(false);
-    } catch (err) {
-      const slugMessages = err?.response?.data?.shop?.slug;
-      if (Array.isArray(slugMessages) && slugMessages.length > 0) {
-        setSlugError(slugMessages[0]);
-      } else {
-        setError(extractErrorMessage(err));
-      }
     } finally {
       setSubmitting(false);
     }
