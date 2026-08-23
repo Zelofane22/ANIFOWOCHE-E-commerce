@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { checkShopSlugAvailability, updateSellerProfile } from "../api/seller.js";
+import { getSellerProfile, updateSellerProfile } from "../api/seller.js";
 import {
   BarChartIcon,
   CheckIcon,
@@ -94,8 +94,6 @@ export default function SellerSettings() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [setSlugError] = useState(null);
-  const [setSlugChecking] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [notifications, setNotifications] = useState({
     new_orders: true,
@@ -103,38 +101,26 @@ export default function SellerSettings() {
     low_stock: true,
     promotions: false,
   });
-  const slugRequestIdRef = useRef(0);
-
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) {
       navigate("/login", { replace: true });
       return;
     }
+    getSellerProfile()
+      .then((data) => {
+        setSeller(data);
+        setForm({
+          display_name: data.display_name,
+          phone: data.phone,
+          city: data.city || "",
+        });
+      })
+      .catch(() => {
+        navigate("/login", { replace: true });
+      });
   }, [isAuthenticated, loading, navigate]);
 
-  const shopSlug = form?.shop?.slug ?? "";
-  const savedSlug = seller?.shop?.slug ?? "";
-
-  useEffect(() => {
-    const requestId = ++slugRequestIdRef.current;
-    if (!shopSlug || shopSlug === savedSlug) return;
-    const timer = setTimeout(() => {
-      setSlugChecking(true);
-      checkShopSlugAvailability(shopSlug)
-        .then((result) => {
-          if (slugRequestIdRef.current !== requestId) return;
-          setSlugError(result.available ? null : "Ce lien boutique est déjà utilisé.");
-        })
-        .catch(() => {
-          if (slugRequestIdRef.current === requestId) setSlugError(null);
-        })
-        .finally(() => {
-          if (slugRequestIdRef.current === requestId) setSlugChecking(false);
-        });
-    }, 400);
-    return () => clearTimeout(timer);
-  });
 
   const handleProfileSave = async () => {
     setError(null);

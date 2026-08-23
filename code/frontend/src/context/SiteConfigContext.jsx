@@ -43,6 +43,9 @@ export function SiteConfigProvider({ children }) {
   const sections = config?.sections ?? null;
 
   const value = useMemo(() => {
+    const menu_items = config?.menu_items ?? [];
+    const footer_blocks = config?.footer_blocks ?? [];
+
     // Sécurise le tri même si l'API l'a déjà fait.
     const orderedSections = sections
       ? sections.slice().sort((a, b) => a.order - b.order)
@@ -54,7 +57,7 @@ export function SiteConfigProvider({ children }) {
       return sections.some((section) => section.type === type && section.enabled);
     };
 
-    return { config, loaded, theme, sections, orderedSections, isSectionEnabled };
+    return { config, loaded, theme, sections, orderedSections, isSectionEnabled, menu_items, footer_blocks };
   }, [config, loaded, theme, sections]);
 
   return (

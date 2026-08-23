@@ -82,7 +82,6 @@ export default function SellerShopPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [ setEditingProfile] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -143,7 +142,6 @@ export default function SellerShopPage() {
       setSlugError(null);
       setSlugChecking(false);
       setSuccess("Paramètres sauvegardés.");
-      setEditingProfile(false);
       setEditingShop(false);
     } catch (err) {
       const slugMessages = err?.response?.data?.shop?.slug;

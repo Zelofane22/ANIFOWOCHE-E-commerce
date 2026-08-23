@@ -2,7 +2,7 @@ from unfold.admin import ModelAdmin
 
 from django.contrib import admin
 
-from .models import HomeSection, SiteTheme
+from .models import HomeSection, MenuItem, FooterBlock, SiteTheme
 
 
 @admin.register(SiteTheme)
@@ -47,3 +47,15 @@ class HomeSectionAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(MenuItem)
+class MenuItemAdmin(ModelAdmin):
+    list_display = ["label", "order", "is_visible"]
+    list_editable = ["order", "is_visible"]
+
+
+@admin.register(FooterBlock)
+class FooterBlockAdmin(ModelAdmin):
+    list_display = ["title", "order", "is_visible"]
+    list_editable = ["order", "is_visible"]
