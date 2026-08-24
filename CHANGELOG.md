@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.8.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.7.0...v2.8.0) (2026-08-24)
+
+
+### Features
+
+* **ui:** ScrollToTop au changement de page ([1d0227c](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/1d0227cef87a69feb42ac41c221495a23a753184))
+* **ui:** ScrollToTop sur le sous-domaine vendeur ([2fcef07](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/2fcef0792f9e3ef3f745b93138bd975da3dbe3ef))
+
+
+### Bug Fixes
+
+* remove Cart tab from MobileTabBar component ([942b762](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/942b76237be26423e928023e94673d85114fe54b))
+* remove unused Cart context and import in MobileTabBar component ([6d587c4](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/6d587c442c70a88ab06b751c113e5890fdfb6d96))
+
 ## [2.7.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.6.0...v2.7.0) (2026-08-24)
 
 
