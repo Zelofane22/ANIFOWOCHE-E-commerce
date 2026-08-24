@@ -34,7 +34,6 @@ export default function MobileTabBar() {
       <div className="mx-auto flex h-[var(--tabbar-h)] max-w-lg items-stretch">
         <Tab to="/" label="Accueil" Icon={HomeIcon} />
         <Tab to="/catalogue" label="Catalogue" Icon={MenuIcon} />
-        <Tab to="/panier" label="Panier" Icon={CartIcon} badge={itemCount} />
         <Tab to="/compte/favoris" label="Favoris" Icon={HeartIcon} />
         <Tab to="/compte" label="Compte" Icon={UserIcon} />
       </div>
