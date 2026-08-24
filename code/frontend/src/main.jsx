@@ -27,6 +27,7 @@ const EXPECTED_VALIDATION_ENDPOINTS = [
   "/auth/register/",
   "/seller/register/",
   "/promotions/coupons/validate/",
+  "/orders/",
 ];
 
 if (import.meta.env.PROD && sentryDsn) {
@@ -52,7 +53,9 @@ if (import.meta.env.PROD && sentryDsn) {
         const status = event?.contexts?.response?.status_code ?? event?.contexts?.response?.status;
         const url = event?.request?.url ?? "";
         if (status === 404) return null;
-        if (status === 401 && (url.includes("/auth/me/") || url.includes("/auth/token/"))) return null;
+        // Tout 401 API passe par l'intercepteur axios (refresh silencieux + déconnexion)
+        // avant d'atteindre ce filtre : il est donc déjà géré côté UI.
+        if (status === 401) return null;
         if (
           status === 400 &&
           EXPECTED_VALIDATION_ENDPOINTS.some((endpoint) => url.includes(endpoint))
