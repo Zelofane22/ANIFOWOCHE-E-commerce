@@ -12,10 +12,27 @@ function firstLeafMessage(obj) {
   return String(obj);
 }
 
+export function decodeUnicodeEscapes(value) {
+  return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
+    String.fromCharCode(Number.parseInt(code, 16)),
+  );
+}
+
+export function decodeUnicodeEscapesDeep(value) {
+  if (typeof value === "string") return decodeUnicodeEscapes(value);
+  if (Array.isArray(value)) return value.map(decodeUnicodeEscapesDeep);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, decodeUnicodeEscapesDeep(item)]),
+    );
+  }
+  return value;
+}
+
 export function extractErrorMessage(error) {
   const data = error?.response?.data;
   if (!data) return "Une erreur est survenue.";
-  if (typeof data === "string") return data;
-  if (data.detail) return data.detail;
-  return firstLeafMessage(data);
+  if (typeof data === "string") return decodeUnicodeEscapes(data);
+  if (data.detail) return decodeUnicodeEscapes(String(data.detail));
+  return decodeUnicodeEscapes(firstLeafMessage(data));
 }

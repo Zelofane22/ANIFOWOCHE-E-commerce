@@ -1,5 +1,6 @@
 import axios from "axios";
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from "../utils/tokenStorage.js";
+import { decodeUnicodeEscapesDeep } from "../utils/apiError.js";
 
 const rawBaseURL = import.meta.env.VITE_API_BASE_URL;
 const baseURL = rawBaseURL ? rawBaseURL.replace(/\/+$/, "") : "http://localhost:8000/api";
@@ -22,6 +23,15 @@ export const AUTH_LOGIN_EVENT = "anifowoche:auth-login";
 let refreshPromise = null;
 
 const notifyAuthExpired = () => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+
+const decodeResponse = (response) => {
+  response.data = decodeUnicodeEscapesDeep(response.data);
+  return response;
+};
+
+apiClient.interceptors.response.use(decodeResponse);
+refreshClient.interceptors.response.use(decodeResponse);
+publicClient.interceptors.response.use(decodeResponse);
 
 export async function refreshAccessToken() {
   const refresh = getRefreshToken();
