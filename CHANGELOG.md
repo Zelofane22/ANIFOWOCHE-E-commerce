@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.6.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.5.0...v2.6.0) (2026-08-23)
+
+
+### Features
+
+* add MenuItem and FooterBlock models with serializers and admin interfaces; update SiteConfigView and Footer component to include new data ([861a469](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/861a46958d9f354957e906e910dfca58f9b2b6b1))
+* add SellerNotification model, views, and serializers; implement notifications for sellers ([1ed11fb](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/1ed11fb1fea42f5940964aea5b1bba6664410adf))
+* add SellerProductManage component for managing seller products ([7bd1874](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/7bd1874d7c20ec505ac0e7b42b967dfc4944b442))
+* add SellerStats page and update SellerDashboard links ([cffcc07](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/cffcc07f3647ddf8ff16c492a49060bd8e7682b6))
+* add SubscriptionSuccessModal component with animations for successful subscription feedback ([697a3d0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/697a3d0f1252a170463cb6809972c57daaa42298))
+* add TypeScript support and improve API documentation ([bc4cdb3](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/bc4cdb31bfa25dc92cc20677e4d8fb94d3e21afa))
+* **core:** US-1802 — taux d'activation vendeurs sur dashboard admin ([bbac826](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/bbac826b81a068510f1ee27d1138255b2554e7d2))
+* **dashboard:** add MRR, ARPU, and churn metrics to seller dashboard ([01c2642](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/01c2642179f7289a2e9f64529def84b501e0881e))
+* **dashboard:** enhance seller dashboard with period and date range filters ([e2f422a](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/e2f422a658a72ec41707de175d429ff6fce563bf))
+* **dashboard:** KPIs plateforme ANIF Seller (global + par plan) ([430a9e4](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/430a9e43d4ae9b4a865d797afe8769ebd567fb53))
+* **docs:** update economic model document and reintroduce UX conversion techniques ([0be2229](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/0be2229cd1cc4d03e6fac59f07485508b234f600))
+* enhance product limit notifications and upgrade prompts across seller pages ([83dd5ff](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/83dd5ff623547f72b3908a18539c297e0e2a80b0))
+* enhance SellerOrders page with improved order filtering and status management; add SellerShopPage for shop sharing functionality ([cf66dd3](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/cf66dd34c7e586cc47a39494e91337d180d9d114))
+* implement SellerShopPage with shop editing functionality and delivery zone management ([7e7709c](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/7e7709c8d616b9520f24790bbde5bef1c77b329f))
+* **notifications:** add seller notifications inbox ([6d9c0e2](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/6d9c0e26f00b1c5087b5cbd14ab52cdb739b328c))
+* **notifications:** add sensitive action notifications and related middleware ([f031523](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/f0315234a12a05bdac014052acb02cae61e677ad))
+* remove unused seller state from SellerDashboard component ([c132f56](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/c132f56f092c450712809810566f02cb4f3095e6))
+* **seller-stats:** gate advanced stats behind Pro plan ([3142f00](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/3142f00eb4c7054304c08f26f09979a7bce75d16))
+* **sellers:** rappel d'expiration abonnement vendeur (1j/2 pendant 7j avant ends_at) ([19e2668](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/19e26683af42fafd1f202df450552d66fadac5ed))
+* update BUSINESS plan pricing and features; enhance SellerDashboard and SellerPlan components ([364141a](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/364141a9682dd85d086a2b799effce193f9c1cdb))
+* update seller plan limits and dashboard metrics; remove basic customization features ([aeb63c8](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/aeb63c8c324e6413c89553e54386972bbda4f679))
+* **workflow:** add daily subscriptions management workflow with reminders and expirations ([deabf11](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/deabf115c8cd0ac9596a3b344acba717d14e0b17))
+
+
+### Bug Fixes
+
+* add missing jsdom dev dependency for vitest ([a231e0c](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/a231e0cef0a2abfb99d6acf2ddec33802d5692b8))
+* add missing recharts dependency for SellerStats ([bce6a9b](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/bce6a9b756e51a86ef39605d8410c6d93956cc26))
+* correct 'selle.localhost' typo to 'seller.localhost' in 4 frontend files ([007e8b9](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/007e8b94ec54385f3ca2daf73227aa304a5106ac))
+* **limits:** set max_orders_per_month for STARTER plan to 100 ([fe12e8e](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/fe12e8e93edb1ebc349f03a5ce803bf8d32fd3fa))
+* remove unused BellIcon import and handleShopSave in SellerSettings ([8f228b8](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/8f228b83418a0a56097aee388bb6e9f60314a2ca))
+* **seller-dashboard:** handle fetch errors to prevent infinite loader ([bb51473](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/bb514739e0d106a4f698cdf240021ae5ebf1144e))
+* SellerDashboard ne charge pas - mapper la reponse backend et corriger le param period ([11fc0ca](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/11fc0ca12112dd8465e17830442ba36b281bf55b))
+
 ## [2.5.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.4.0...v2.5.0) (2026-08-20)
 
 
