@@ -541,7 +541,7 @@ export default function Checkout() {
                       Vous pouvez toutefois commander et payer à la livraison.
                     </p>
                     <div className="mt-2 flex gap-2">
-                      <a href="/connexion" className="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700">
+                      <a href="/compte" className="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700">
                         Se connecter
                       </a>
                       <a href="/inscription" className="inline-block rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
