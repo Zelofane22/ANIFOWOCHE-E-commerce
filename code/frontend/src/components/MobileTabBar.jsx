@@ -1,6 +1,5 @@
 import { NavLink } from "react-router";
-import { useCart } from "../context/useCart.js";
-import { CartIcon, HeartIcon, HomeIcon, MenuIcon, UserIcon } from "./icons.jsx";
+import {HeartIcon, HomeIcon, MenuIcon, UserIcon } from "./icons.jsx";
 
 function Tab({ to, label, Icon, badge = 0 }) {
   return (
@@ -23,7 +22,6 @@ function Tab({ to, label, Icon, badge = 0 }) {
 }
 
 export default function MobileTabBar() {
-  const { itemCount } = useCart();
 
   return (
     <nav
@@ -34,7 +32,6 @@ export default function MobileTabBar() {
       <div className="mx-auto flex h-[var(--tabbar-h)] max-w-lg items-stretch">
         <Tab to="/" label="Accueil" Icon={HomeIcon} />
         <Tab to="/catalogue" label="Catalogue" Icon={MenuIcon} />
-        <Tab to="/panier" label="Panier" Icon={CartIcon} badge={itemCount} />
         <Tab to="/compte/favoris" label="Favoris" Icon={HeartIcon} />
         <Tab to="/compte" label="Compte" Icon={UserIcon} />
       </div>

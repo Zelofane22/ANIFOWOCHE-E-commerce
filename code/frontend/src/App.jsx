@@ -57,6 +57,14 @@ function PageViewTracker() {
   return null;
 }
 
+function ScrollToTop() {
+  const location = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  return null;
+}
+
 export default function App() {
   const location = useLocation();
   const isSellerSurface = isSellerSubdomain || location.pathname.startsWith("/shop/");
@@ -65,6 +73,7 @@ export default function App() {
     return (
       <AuthProvider>
         <div className="min-h-screen bg-white text-ink">
+          <ScrollToTop />
           <main>
             <Suspense fallback={<PageSkeleton />}>
               <Routes>
@@ -101,6 +110,7 @@ export default function App() {
         <CartProvider>
           <div className="min-h-screen bg-white text-ink">
             <PageViewTracker />
+            <ScrollToTop />
             {!isSellerSurface && <Navbar />}
             <main className="pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] md:pb-0">
               <div key={location.pathname} className="animate-page">
