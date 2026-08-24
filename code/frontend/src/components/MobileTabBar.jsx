@@ -1,6 +1,5 @@
 import { NavLink } from "react-router";
-import { useCart } from "../context/useCart.js";
-import { CartIcon, HeartIcon, HomeIcon, MenuIcon, UserIcon } from "./icons.jsx";
+import {HeartIcon, HomeIcon, MenuIcon, UserIcon } from "./icons.jsx";
 
 function Tab({ to, label, Icon, badge = 0 }) {
   return (
@@ -23,7 +22,6 @@ function Tab({ to, label, Icon, badge = 0 }) {
 }
 
 export default function MobileTabBar() {
-  const { itemCount } = useCart();
 
   return (
     <nav
