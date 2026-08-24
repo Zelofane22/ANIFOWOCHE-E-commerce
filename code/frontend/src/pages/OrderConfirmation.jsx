@@ -135,6 +135,20 @@ export default function OrderConfirmation() {
     }
   };
 
+  const handlePayOnDelivery = async () => {
+    setRetryError(null);
+    setRetrying(true);
+    try {
+      await initiatePayment({ order_id: orderId, method: "cash_on_delivery" });
+      clearCart();
+      setPaymentStatus("cash_on_delivery");
+    } catch (err) {
+      setRetryError(extractErrorMessage(err));
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   return (
     <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-16 text-center">
       <Seo title={content.title} path="/confirmation" type="website" />
@@ -182,6 +196,14 @@ export default function OrderConfirmation() {
             className="mt-4 w-full rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark disabled:bg-gray-200 disabled:text-gray-400"
           >
             {retrying ? "En attente du paiement…" : "Réessayer le paiement"}
+          </button>
+          <button
+            type="button"
+            onClick={handlePayOnDelivery}
+            disabled={retrying}
+            className="mt-3 w-full rounded-lg border border-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-light disabled:border-gray-200 disabled:text-gray-400"
+          >
+            Payer à la livraison à la place
           </button>
         </div>
       )}
