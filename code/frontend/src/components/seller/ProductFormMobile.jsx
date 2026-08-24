@@ -232,7 +232,7 @@ function PhotoGallery({ slug, colors }) {
         )
       );
     } catch {
-      setError("Erreur lors de la mise \u00e0 jour.");
+      setError("Erreur lors de la mise à jour.");
     }
   };
 
@@ -261,7 +261,7 @@ function PhotoGallery({ slug, colors }) {
         })
       );
     } catch {
-      setError("Erreur lors du r\u00e9ordonnancement.");
+      setError("Erreur lors du réordonnancement.");
     }
   };
 
@@ -283,7 +283,7 @@ function PhotoGallery({ slug, colors }) {
         Images du produit
       </h3>
       <p className="mt-1 text-sm" style={{ color: "#9CA3AF" }}>
-        Ajoutez des photos suppl\u00e9mentaires.
+        Ajoutez des photos supplémentaires.
       </p>
 
       {error && (
@@ -438,7 +438,7 @@ export default function ProductFormMobile({
     setSubmitting(true);
     setError(null);
     if (!form.category_id) {
-      setError("Veuillez s\u00e9lectionner une cat\u00e9gorie.");
+      setError("Veuillez sélectionner une catégorie.");
       setSubmitting(false);
       return;
     }
@@ -474,7 +474,7 @@ export default function ProductFormMobile({
           <div className="mx-auto overflow-hidden rounded-[12px]" style={{ maxWidth: 200 }}>
             <ProductImage
               src={form.imagePreview}
-              alt="Aper\u00e7u"
+              alt="Aperçu"
               className="aspect-square w-full object-cover"
             />
           </div>
@@ -512,7 +512,7 @@ export default function ProductFormMobile({
       >
         <InfoIcon size={16} style={{ color: "#C99F08", marginTop: 1, flexShrink: 0 }} />
         <p className="text-xs leading-relaxed" style={{ color: "#6B7280" }}>
-          Utilisez une photo claire et bien \u00e9clair\u00e9e. Les produits avec de belles photos se
+          Utilisez une photo claire et bien éclairée. Les produits avec de belles photos se
           vendent mieux !
         </p>
       </div>
@@ -541,7 +541,7 @@ export default function ProductFormMobile({
 
       <div>
         <label className={labelClass}>
-          Cat\u00e9gorie
+          Catégorie
         </label>
         <div className="mt-1.5">
           <CategoryCascadeSelect
@@ -564,7 +564,7 @@ export default function ProductFormMobile({
           rows={4}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="Coupe, mati\u00e8re, usage, disponibilit\u00e9..."
+          placeholder="Coupe, matière, usage, disponibilité..."
           className={`mt-1.5 ${inputClass} min-h-[100px] resize-y`}
         />
       </div>
@@ -612,7 +612,7 @@ export default function ProductFormMobile({
         {fieldConfig.unit && (
           <div>
             <label className={labelClass}>
-              Unit\u00e9
+              Unité
             </label>
             <div className="mt-1.5 flex gap-2">
               {["piece", "metre"].map((u) => (
@@ -627,7 +627,7 @@ export default function ProductFormMobile({
                     color: form.unit === u ? "#C99F08" : "#6B7280",
                   }}
                 >
-                  {u === "piece" ? "Pi\u00e8ce" : "M\u00e8tre"}
+                  {u === "piece" ? "Pièce" : "Mètre"}
                 </button>
               ))}
             </div>
@@ -736,7 +736,7 @@ export default function ProductFormMobile({
               <>
                 <EyeOffIcon size={14} style={{ color: "#9CA3AF" }} />
                 <span className="text-sm font-medium" style={{ color: "#9CA3AF" }}>
-                  Masqu\u00e9
+                  Masqué
                 </span>
               </>
             )}
@@ -748,7 +748,7 @@ export default function ProductFormMobile({
             className="rounded-[16px] border border-black/[0.05] bg-white p-4"
           >
             <h4 className="text-sm font-bold" style={{ color: "#111827" }}>
-              Aper\u00e7u financier
+              Aperçu financier
             </h4>
             <div className="mt-3 flex flex-col gap-2">
               <div className="flex items-center justify-between">
@@ -797,10 +797,10 @@ export default function ProductFormMobile({
             <CheckIcon size={32} style={{ color: "#16A34A" }} />
           </div>
           <h3 className="text-lg font-bold" style={{ color: "#111827" }}>
-            {isEditing ? "Produit mis \u00e0 jour !" : "Produit publi\u00e9 !"}
+            {isEditing ? "Produit mis à jour !" : "Produit publié !"}
           </h3>
           <p className="text-sm" style={{ color: "#6B7280" }}>
-            Votre produit est maintenant {form.is_active ? "visible" : "masqu\u00e9"} dans votre
+            Votre produit est maintenant {form.is_active ? "visible" : "masqué"} dans votre
             boutique.
           </p>
           <button
@@ -817,7 +817,7 @@ export default function ProductFormMobile({
     return (
       <div className="flex flex-col gap-4">
         <h3 className="text-base font-bold" style={{ color: "#111827" }}>
-          R\u00e9capitulatif
+          Récapitulatif
         </h3>
 
         <div
@@ -841,7 +841,7 @@ export default function ProductFormMobile({
               {form.name || "Sans nom"}
             </p>
             <p className="mt-0.5 text-sm font-semibold" style={{ color: "#C99F08" }}>
-              {form.price_xof ? `${parseInt(form.price_xof, 10).toLocaleString("fr-FR")} XOF` : " Prix non d\u00e9fini"}
+              {form.price_xof ? `${parseInt(form.price_xof, 10).toLocaleString("fr-FR")} XOF` : " Prix non défini"}
             </p>
             <div className="mt-1">
               <span
@@ -851,7 +851,7 @@ export default function ProductFormMobile({
                   color: form.is_active ? "#16A34A" : "#9CA3AF",
                 }}
               >
-                {form.is_active ? "Actif" : "Masqu\u00e9"}
+                {form.is_active ? "Actif" : "Masqué"}
               </span>
             </div>
           </div>
@@ -860,10 +860,10 @@ export default function ProductFormMobile({
         <div className="flex flex-col gap-2.5 rounded-[16px] border border-black/[0.05] bg-white p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm" style={{ color: "#6B7280" }}>
-              Cat\u00e9gorie
+              Catégorie
             </span>
             <span className="text-sm font-medium" style={{ color: "#111827" }}>
-              {selectedCategory?.name || "Non s\u00e9lectionn\u00e9e"}
+              {selectedCategory?.name || "Non sélectionnée"}
             </span>
           </div>
           {fieldConfig.stock && (
@@ -878,10 +878,10 @@ export default function ProductFormMobile({
           )}
           <div className="flex items-center justify-between">
             <span className="text-sm" style={{ color: "#6B7280" }}>
-              Visibilit\u00e9
+              Visibilité
             </span>
             <span className="text-sm font-medium" style={{ color: form.is_active ? "#16A34A" : "#9CA3AF" }}>
-              {form.is_active ? "Visible" : "Masqu\u00e9"}
+              {form.is_active ? "Visible" : "Masqué"}
             </span>
           </div>
           {form.colors.length > 0 && (
@@ -985,9 +985,9 @@ export default function ProductFormMobile({
           </h2>
           <p className="mt-0.5 text-xs" style={{ color: "#9CA3AF" }}>
             {step === 0 && "Photo principale du produit"}
-            {step === 1 && "D\u00e9crivez votre produit"}
-            {step === 2 && "D\u00e9finissez le prix et la disponibilit\u00e9"}
-            {step === 3 && "V\u00e9rifiez et publiez"}
+            {step === 1 && "Décrivez votre produit"}
+            {step === 2 && "Définissez le prix et la disponibilité"}
+            {step === 3 && "Vérifiez et publiez"}
           </p>
         </div>
       )}
