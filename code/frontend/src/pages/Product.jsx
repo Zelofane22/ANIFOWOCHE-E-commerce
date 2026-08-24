@@ -99,7 +99,7 @@ function ProductView({ slug }) {
   const isRestaurantProduct = Boolean(product.made_to_order);
 
   const handleAddToCart = () => {
-    if (!productInStock) return;
+    if (!productInStock) return false;
 
     const nextErrors = {};
     for (const group of product.option_groups ?? []) {
@@ -110,7 +110,7 @@ function ProductView({ slug }) {
       }
     }
     setOptionErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) return false;
 
     const selectedColorData = selectedColor
       ? product.colors.find((c) => c.name === selectedColor)
@@ -138,6 +138,11 @@ function ProductView({ slug }) {
     );
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
+    return true;
+  };
+
+  const handleBuyNow = () => {
+    if (handleAddToCart()) navigate("/commande");
   };
 
   const handleOptionToggle = (groupId, optionId, maxSelections) => {
@@ -579,11 +584,19 @@ function ProductView({ slug }) {
           <div className="mt-auto hidden gap-3 pt-6 lg:flex">
             <button
               type="button"
+              onClick={handleBuyNow}
+              disabled={outOfStock}
+              className="min-w-0 flex-[3_1_0%] rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
+            >
+              {outOfStock ? "Rupture de stock" : "Acheter"}
+            </button>
+            <button
+              type="button"
               onClick={handleAddToCart}
               disabled={outOfStock}
-              className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-medium active:bg-brand-dark disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
+              className="min-w-0 flex-[1_1_0%] rounded-lg border border-brand px-4 py-3 text-sm font-semibold text-brand-dark transition hover:bg-brand-light active:bg-brand-medium/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent"
             >
-              {outOfStock ? "Rupture de stock" : added ? "✓ Ajouté au panier !" : "Ajouter au panier"}
+              {added ? "✓ Ajouté !" : "Panier"}
             </button>
             <button
               type="button"
@@ -721,14 +734,24 @@ function ProductView({ slug }) {
               <p className="mb-2 text-sm font-semibold">Quantité</p>
               <QuantityStepper quantity={quantity} onChange={setQuantity} max={madeToOrder ? Infinity : stock} className="w-full justify-between" />
             </div>
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={outOfStock}
-              className="mt-5 w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium active:bg-brand-dark disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
-            >
-              {outOfStock ? "Rupture de stock" : added ? "✓ Ajouté !" : "Ajouter au panier"}
-            </button>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={outOfStock}
+                className="min-w-0 flex-[3_1_0%] rounded-lg bg-ink px-6 py-3.5 font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
+              >
+                {outOfStock ? "Rupture de stock" : "Acheter"}
+              </button>
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={outOfStock}
+                className="min-w-0 flex-[1_1_0%] rounded-lg border border-brand px-3 py-3.5 font-semibold text-brand-dark transition hover:bg-brand-light active:bg-brand-medium/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent"
+              >
+                {added ? "✓ Ajouté !" : "Panier"}
+              </button>
+            </div>
             <div className="mt-4 space-y-2 border-t border-black/10 pt-4 text-xs text-muted">
               <div className="flex items-center gap-2">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
@@ -753,11 +776,19 @@ function ProductView({ slug }) {
       <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+var(--tabbar-safe))] z-20 flex gap-3 border-t border-black/10 bg-white p-4 md:bottom-0 lg:hidden">
         <button
           type="button"
+          onClick={handleBuyNow}
+          disabled={outOfStock}
+          className="min-w-0 flex-[3_1_0%] rounded-lg bg-ink px-6 py-3.5 font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300"
+        >
+          {outOfStock ? "Rupture de stock" : "Acheter"}
+        </button>
+        <button
+          type="button"
           onClick={handleAddToCart}
           disabled={outOfStock}
-          className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+          className="min-w-0 flex-[1_1_0%] rounded-lg border border-brand bg-white px-3 py-3.5 font-semibold text-brand-dark disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
         >
-          {outOfStock ? "Rupture de stock" : added ? "✓ Ajouté !" : "Ajouter au panier"}
+          {added ? "✓ Ajouté !" : "Panier"}
         </button>
         <button
           type="button"
