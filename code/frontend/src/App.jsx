@@ -73,6 +73,7 @@ export default function App() {
     return (
       <AuthProvider>
         <div className="min-h-screen bg-white text-ink">
+          <ScrollToTop />
           <main>
             <Suspense fallback={<PageSkeleton />}>
               <Routes>
