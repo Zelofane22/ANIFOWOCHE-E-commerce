@@ -37,7 +37,7 @@ class Shop(models.Model):
     description = models.TextField(blank=True)
     delivery_zones = models.ManyToManyField("delivery.DeliveryZone", blank=True, related_name="shops")
     is_published = models.BooleanField(default=True)
-    is_official = models.BooleanField(default=False, help_text="Boutique officielle anifowoche.com : aucune limite de plan. Une seule boutique peut être officielle.")
+    is_official = models.BooleanField(default=False, help_text="Boutique officielle anifowoche.com : aucune limite de plan. Plusieurs boutiques peuvent être officielles.")
     visible_on_main_store = models.BooleanField(
         default=True,
         help_text="Afficher les produits de cette boutique dans le catalogue, "
@@ -62,9 +62,9 @@ class Shop(models.Model):
         # Génère automatiquement un slug unique à partir du nom si absent.
         if not self.slug:
             self.slug = self._build_unique_slug(self.name)
-        # Une seule boutique peut être officielle à la fois.
+        # Plusieurs boutiques peuvent être officielles ; chacune voit son
+        # vendeur promu BUSINESS (les limites restent exemptées via limits.py).
         if self.is_official:
-            Shop.objects.filter(is_official=True).exclude(pk=self.pk).update(is_official=False)
             SellerProfile.objects.filter(pk=self.seller_id).exclude(
                 plan=SellerProfile.Plan.BUSINESS
             ).update(plan=SellerProfile.Plan.BUSINESS)
