@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.10.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.9.0...v2.10.0) (2026-08-25)
+
+
+### Features
+
+* **sellers:** autoriser plusieurs boutiques officielles exemptées des limites ([712d333](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/712d33342690656df789f5d81b5058282de1cfea))
+* **sellers:** autoriser plusieurs boutiques officielles exemptées des limites ([2dde970](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/2dde97024980bfed0757b4362122c5883a678ce3))
+
 ## [2.9.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.8.0...v2.9.0) (2026-08-25)
 
 
