@@ -194,7 +194,7 @@ export default function Navbar() {
               placeholder="Rechercher..."
               className="min-w-0 flex-1 px-4 py-2.5 text-sm text-ink outline-none"
             />
-            <button type="submit" aria-label="Rechercher" className="bg-brand px-4 text-white">
+            <button type="submit" aria-label="Rechercher" className="bg-brand px-4 py-3 text-white">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="7" />
                 <path strokeLinecap="round" d="m20 20-3.5-3.5" />
@@ -216,7 +216,7 @@ export default function Navbar() {
             <Link
               to="/compte"
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 border-b border-white/10 py-2.5 font-semibold text-white transition hover:text-brand"
+              className="flex items-center gap-2 border-b border-white/10 py-3 font-semibold text-white transition hover:text-brand"
             >
               <UserIcon size={15} />
               {user ? `Mon compte (${user.username})` : "Mon compte"}
@@ -224,14 +224,14 @@ export default function Navbar() {
             <Link
               to="/catalogue"
               onClick={() => setMenuOpen(false)}
-              className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
+              className="border-b border-white/10 py-3 text-white transition hover:text-brand"
             >
               Catalogue
             </Link>
             <Link
               to="/commande/public"
               onClick={() => setMenuOpen(false)}
-              className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
+              className="border-b border-white/10 py-3 text-white transition hover:text-brand"
             >
               Commander
             </Link>
@@ -240,13 +240,13 @@ export default function Navbar() {
                 key={category.slug}
                 to={`/catalogue?category=${encodeURIComponent(category.slug)}`}
                 onClick={() => setMenuOpen(false)}
-                className="border-b border-white/10 py-2.5 text-white transition hover:text-brand"
+                className="border-b border-white/10 py-3 text-white transition hover:text-brand"
               >
                 {category.name}
               </Link>
             ))}
             {user?.is_staff && (
-              <a href={ADMIN_URL} className="border-b border-white/10 py-2.5 text-white transition hover:text-brand">
+              <a href={ADMIN_URL} className="border-b border-white/10 py-3 text-white transition hover:text-brand">
                 Admin
               </a>
             )}

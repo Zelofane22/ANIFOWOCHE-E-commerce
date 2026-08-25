@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
 import { createDelivery, fetchDeliverySlots, fetchDeliveryZones, geolocateZone } from "../api/delivery.js";
@@ -28,14 +28,35 @@ const isPaymentMethodDisabled = (method, storeStatus) => {
   return paymentMethodsStatus[method.value] === false;
 };
 
+const cartItemSignature = (item) =>
+  JSON.stringify([
+    item.id,
+    item.slug,
+    item.quantity,
+    item.price_xof,
+    item.colorName || "",
+    item.colorHex || "",
+    item.selectedOptions || [],
+  ]);
+
 export default function Checkout() {
   const { items, subtotal, clearCart, reconcileCart } = useCart();
+  const initialCartRef = useRef(items);
 
   // Réconcilie le panier localStorage avec le catalogue live au montage
   // (retire les produits supprimés, met à jour prix/id) avant commande — cf. issue JAVASCRIPT-REACT-S.
   useEffect(() => {
     reconcileCart();
   }, [reconcileCart]);
+  const [cartAdjustmentNotice, setCartAdjustmentNotice] = useState(false);
+
+  useEffect(() => {
+    const initialItems = initialCartRef.current;
+    const adjusted =
+      initialItems.length !== items.length ||
+      initialItems.some((item, index) => cartItemSignature(item) !== cartItemSignature(items[index]));
+    if (adjusted) setCartAdjustmentNotice(true);
+  }, [items]);
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -294,19 +315,44 @@ export default function Checkout() {
   return (
     <form onSubmit={handlePay} className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
       <Seo title="Commande" path="/commande" type="website" />
-      <div className="mb-6 flex items-center gap-2 text-sm text-muted">
+      <div className="mb-6 flex items-center gap-1 text-sm text-muted sm:gap-2">
         <button type="button" onClick={() => navigate("/panier")} className="font-medium transition hover:text-brand-dark">
           Panier
         </button>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
-        </svg>
-        <span className={step === 1 ? "font-semibold text-brand-dark" : "font-medium text-ink"}>Livraison</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
-        </svg>
-        <span className={step === 2 ? "font-semibold text-brand-dark" : ""}>Paiement</span>
+        <span aria-hidden="true" className="mx-1 text-black/30 sm:mx-2">/</span>
+        {["Livraison", "Paiement", "Confirmation"].map((label, index) => {
+          const stepNumber = index + 1;
+          const completed = step > stepNumber;
+          const active = step === stepNumber;
+          return (
+            <div key={label} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+              <div
+                aria-current={active ? "step" : undefined}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
+                  completed || active
+                    ? "border-brand bg-brand text-white"
+                    : "border-black/20 bg-white text-muted"
+                }`}
+              >
+                {stepNumber}
+              </div>
+              <span className={`min-w-0 truncate ${active ? "font-semibold text-brand-dark" : completed ? "font-medium text-ink" : "text-muted"}`}>
+                <span className="min-[380px]:hidden">{label === "Livraison" ? "Livr." : label === "Paiement" ? "Paiem." : "Confirm."}</span>
+                <span className="hidden min-[380px]:inline">{label}</span>
+              </span>
+              {stepNumber < 3 && (
+                <span className={`h-0.5 min-w-2 flex-1 ${step > stepNumber ? "bg-brand" : "bg-black/10"}`} />
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {cartAdjustmentNotice && (
+        <p role="alert" className="mb-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Un ou plusieurs articles de votre panier ont été mis à jour (stock ou prix). Vérifiez votre commande avant de continuer.
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -557,6 +603,12 @@ export default function Checkout() {
                   ? "Votre commande sera préparée et le paiement sera effectué à la livraison."
                   : "Paiement sécurisé. Aucune donnée bancaire n'est stockée par ANIFOWOCHE."}
               </div>
+
+              {waitingForPayment && (
+                <p aria-live="polite" className="mt-4 rounded-lg bg-brand-pale px-4 py-3 text-sm text-brand-dark">
+                  Vous allez être redirigé vers notre partenaire de paiement sécurisé FedaPay. Votre panier est conservé.
+                </p>
+              )}
 
               <div className="mt-6 hidden gap-3 md:flex">
                 <button
