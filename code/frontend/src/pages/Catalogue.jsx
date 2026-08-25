@@ -17,6 +17,7 @@ export default function Catalogue() {
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [availableCategorySlugs, setAvailableCategorySlugs] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchInput, setSearchInput] = useState(search);
@@ -55,8 +56,14 @@ export default function Catalogue() {
   });
 
   useEffect(() => {
-    fetchCategories()
-      .then((data) => setCategories(data.results ?? data))
+    Promise.all([fetchCategories(), fetchProducts()])
+      .then(([categoryData, productData]) => {
+        setCategories(categoryData.results ?? categoryData);
+        const catalogueProducts = productData.results ?? productData;
+        setAvailableCategorySlugs(
+          new Set(catalogueProducts.map((product) => product.category?.slug).filter(Boolean))
+        );
+      })
       .catch(() => {});
   }, []);
 
@@ -97,6 +104,7 @@ export default function Catalogue() {
   const activeFilterCount = [unit, minPrice, maxPrice, inStockOnly ? "stock" : "", sort].filter(
     (value) => Boolean(value)
   ).length;
+  const visibleCategories = categories.filter((category) => availableCategorySlugs.has(category.slug));
 
   const filterControls = (
     <div className="flex flex-wrap items-end gap-3">
@@ -196,35 +204,10 @@ export default function Catalogue() {
       <section className="bg-brand-pale">
         <div className="mx-auto max-w-7xl px-4 py-8 md:py-10">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-dark">Catalogue</p>
-          <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-ink md:text-4xl">Tous nos produits</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-                Parcourez les tissus, vêtements et accessoires disponibles, puis commandez avec livraison sur Cotonou.
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-ink">
-              {loading ? "…" : `${products.length} article${products.length > 1 ? "s" : ""}`}
-            </p>
-          </div>
         </div>
       </section>
 
       <div className="mx-auto max-w-7xl px-4">
-        <div className="grid gap-3 border-b border-black/10 py-4 text-xs font-semibold text-ink sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            "Livraison sous 48h",
-            "Paiement sécurisé",
-            "Prix boutique",
-            "Support WhatsApp",
-          ].map((label) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-brand" />
-              {label}
-            </div>
-          ))}
-        </div>
-
         <div className="py-5">
           <label className="sr-only" htmlFor="catalogue-search">
             Recherche produit
@@ -259,7 +242,7 @@ export default function Catalogue() {
           >
             Tout
           </button>
-          {categories.map((category) => (
+          {visibleCategories.map((category) => (
             <button
               key={category.slug}
               type="button"
