@@ -65,6 +65,9 @@ class Shop(models.Model):
         # Une seule boutique peut être officielle à la fois.
         if self.is_official:
             Shop.objects.filter(is_official=True).exclude(pk=self.pk).update(is_official=False)
+            SellerProfile.objects.filter(pk=self.seller_id).exclude(
+                plan=SellerProfile.Plan.BUSINESS
+            ).update(plan=SellerProfile.Plan.BUSINESS)
         # Hygiène des données : une boutique FREE tierce ne peut pas figurer sur
         # le catalogue principal (la règle est aussi appliquée côté requêtes).
         from apps.sellers.limits import is_free  # Import local : évite le cycle au chargement.

@@ -50,10 +50,9 @@ class ShopAdmin(ModelAdmin):
 
     @admin.action(description="Marquer comme boutique officielle")
     def set_as_official(self, request, queryset):
-        from apps.sellers.models import Shop
         for shop in queryset:
-            Shop.objects.filter(pk=shop.pk).update(is_official=True)
-            Shop.objects.filter(is_official=True).exclude(pk=shop.pk).update(is_official=False)
+            shop.is_official = True
+            shop.save(update_fields=["is_official"])
         self.message_user(request, f"{queryset.count()} boutique(s) marquée(s) comme officielle(s).")
 
 
