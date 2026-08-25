@@ -16,6 +16,7 @@ from apps.core.factories import (
     UserFactory,
 )
 from apps.orders.models import Order, OrderItem
+
 from apps.products.models import Category, Product
 
 from .models import SellerProfile, Shop
@@ -690,6 +691,8 @@ class SellerPlanLimitsTests(APITestCase):
         self.shop.is_official = True
         self.shop.visible_on_main_store = True
         self.shop.save()
+        self.seller.refresh_from_db()
+        self.assertEqual(self.seller.plan, SellerProfile.Plan.BUSINESS)
         product = self._create_orders_for_seller(5)
 
         shop_response = self.client.get(f"/api/public/shops/{self.shop.slug}/")
