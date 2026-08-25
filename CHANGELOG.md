@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.9.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.8.0...v2.9.0) (2026-08-25)
+
+
+### Features
+
+* **ui:** enhance Navbar and Checkout components with improved styling and cart adjustment notice ([1b27cd5](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/1b27cd5bbd8db8c5685c5e525fda7fcc80ce37a2))
+
+
+### Bug Fixes
+
+* **catalogue:** fetch products and categories together, update available categories logic ([fd171e5](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/fd171e5c7853b98663d05f98b23d6458d0647435))
+
 ## [2.8.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.7.0...v2.8.0) (2026-08-24)
 
 
