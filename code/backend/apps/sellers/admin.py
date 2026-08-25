@@ -35,6 +35,7 @@ class ShopAdmin(ModelAdmin):
     search_fields = ["name", "slug", "whatsapp_phone"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ["delivery_zones"]
+    actions = ["set_as_official", "remove_official_status"]
 
     def has_add_permission(self, request):
         return False
@@ -53,7 +54,24 @@ class ShopAdmin(ModelAdmin):
         for shop in queryset:
             shop.is_official = True
             shop.save(update_fields=["is_official"])
-        self.message_user(request, f"{queryset.count()} boutique(s) marquée(s) comme officielle(s).")
+        self.message_user(
+            request,
+            f"{queryset.count()} boutique(s) marquée(s) comme officielle(s) : "
+            + ", ".join(shop.name for shop in queryset)
+            + ".",
+        )
+
+    @admin.action(description="Retirer le statut officiel")
+    def remove_official_status(self, request, queryset):
+        for shop in queryset:
+            shop.is_official = False
+            shop.save(update_fields=["is_official"])
+        self.message_user(
+            request,
+            f"{queryset.count()} boutique(s) retirée(s) du statut officiel : "
+            + ", ".join(shop.name for shop in queryset)
+            + ".",
+        )
 
 
 @admin.register(SellerSubscription)

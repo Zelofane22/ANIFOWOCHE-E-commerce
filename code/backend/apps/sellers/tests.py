@@ -529,6 +529,68 @@ class SellerAdminTests(TestCase):
         response = self.client.get("/admin/sellers/shop/")
         self.assertEqual(response.status_code, 302)
 
+    def test_set_as_official_action_marks_multiple_shops(self):
+        shop_one = ShopFactory(name="Boutique Officielle Un", slug="officielle-un")
+        shop_two = ShopFactory(name="Boutique Officielle Deux", slug="officielle-deux")
+
+        response = self.client.post(
+            "/admin/sellers/shop/",
+            {"action": "set_as_official", "_selected_action": [shop_one.pk, shop_two.pk]},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        shop_one.refresh_from_db()
+        shop_two.refresh_from_db()
+        self.assertTrue(shop_one.is_official)
+        self.assertTrue(shop_two.is_official)
+
+    def test_remove_official_status_action(self):
+        shop_one = ShopFactory(name="Officielle Un", slug="officielle-un", is_official=True)
+        shop_two = ShopFactory(name="Officielle Deux", slug="officielle-deux", is_official=True)
+
+        response = self.client.post(
+            "/admin/sellers/shop/",
+            {"action": "remove_official_status", "_selected_action": [shop_one.pk, shop_two.pk]},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        shop_one.refresh_from_db()
+        shop_two.refresh_from_db()
+        self.assertFalse(shop_one.is_official)
+        self.assertFalse(shop_two.is_official)
+
+
+class ShopOfficialStatusTests(TestCase):
+    """Plusieurs boutiques peuvent être officielles, exemptées des limites vendeur."""
+
+    def setUp(self):
+        self.category = CategoryFactory(name="Tissus", slug="tissus")
+
+    def test_multiple_shops_can_be_official_simultaneously(self):
+        seller_one = SellerProfileFactory(display_name="Vendeur Un", phone="+2290191000001")
+        seller_two = SellerProfileFactory(display_name="Vendeur Deux", phone="+2290191000002")
+
+        shop_one = ShopFactory(seller=seller_one, name="Officielle Un", slug="officielle-un", is_official=True)
+        shop_two = ShopFactory(seller=seller_two, name="Officielle Deux", slug="officielle-deux", is_official=True)
+
+        shop_one.refresh_from_db()
+        shop_two.refresh_from_db()
+        self.assertTrue(shop_one.is_official)
+        self.assertTrue(shop_two.is_official)
+        self.assertEqual(shop_one.seller.plan, SellerProfile.Plan.BUSINESS)
+        self.assertEqual(shop_two.seller.plan, SellerProfile.Plan.BUSINESS)
+
+    def test_official_shop_exempt_from_free_limits(self):
+        from apps.sellers.limits import can_create_product, orders_quota_reached
+
+        seller = SellerProfileFactory(plan=SellerProfile.Plan.FREE)
+        ShopFactory(seller=seller, name="Officielle", slug="officielle", is_official=True)
+        ProductFactory.create_batch(8, seller=seller, category=self.category)
+
+        seller.refresh_from_db()
+        self.assertTrue(can_create_product(seller))
+        self.assertFalse(orders_quota_reached(seller))
+
 
 class SellerPlanLimitsTests(APITestCase):
     """Limites du plan gratuit : 5 produits actifs, 5 commandes/mois, vitrine principale."""
