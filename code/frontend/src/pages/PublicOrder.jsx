@@ -110,12 +110,30 @@ export default function PublicOrder() {
         })),
       });
 
+      const orderMessage = [
+        `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`} chez ${shop?.name}`,
+        "",
+        "Articles :",
+        ...selectedItems.map(
+          (item) => `- ${item.quantity} x ${item.product.name} — ${formatXof(item.product.price_xof * item.quantity)}`
+        ),
+        `Total : ${formatXof(order.total_xof)}`,
+        "",
+        `Nom : ${form.fullName.trim()}`,
+        `Téléphone : ${form.phone.trim()}`,
+        `Adresse : ${form.address.trim()}`,
+        "",
+        "Merci !",
+      ].join("\n");
+
       navigate("/commande/confirmation", {
         state: {
           orderId: order.id,
           total: order.total_xof,
           paymentStatus: "cash_on_delivery",
           method: "cash_on_delivery",
+          whatsappPhone: shop?.whatsapp_phone ?? "",
+          whatsappMessage: orderMessage,
         },
       });
     } catch (err) {
