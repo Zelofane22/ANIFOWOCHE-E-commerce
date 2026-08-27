@@ -129,6 +129,7 @@ export default function PublicOrder() {
       navigate("/commande/confirmation", {
         state: {
           orderId: order.id,
+          orderDetails: order,
           total: order.total_xof,
           paymentStatus: "cash_on_delivery",
           method: "cash_on_delivery",

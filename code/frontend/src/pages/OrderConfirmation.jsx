@@ -74,7 +74,15 @@ export default function OrderConfirmation() {
   const navigate = useNavigate();
   const { clearCart } = useCart();
   const { isAuthenticated } = useAuth();
-  const { orderId, total, method: initialMethod, paymentId, whatsappPhone, whatsappMessage } = location.state ?? {};
+  const {
+    orderId,
+    orderDetails,
+    total,
+    method: initialMethod,
+    paymentId,
+    whatsappPhone,
+    whatsappMessage,
+  } = location.state ?? {};
 
   const [paymentStatus, setPaymentStatus] = useState(location.state?.paymentStatus);
   const [retryMethod, setRetryMethod] = useState(initialMethod ?? ONLINE_PAYMENT_METHODS[0].value);
@@ -160,19 +168,55 @@ export default function OrderConfirmation() {
           <path strokeLinecap="round" strokeLinejoin="round" d={style.path} />
         </svg>
       </div>
-      <h1 className="mt-6 text-xl font-bold text-ink">{content.title}</h1>
-      <p className="mt-2 text-sm text-muted">Numéro de commande</p>
-      <p className="text-lg font-semibold text-ink">ANW-{orderId}</p>
-      {typeof total === "number" && (
-        <p className="mt-1 text-sm text-muted">Total : {formatXof(total)}</p>
+      {orderDetails ? (
+        <div className="mt-6 w-full max-w-2xl rounded-xl border border-black/10 bg-white p-6 text-left">
+          <h1 className="text-xl font-bold text-ink">{content.title}</h1>
+          <p className="mt-2 text-base text-muted">
+            Votre commande <span className="font-bold text-ink">{orderDetails.reference || `#CMD-${String(orderId).padStart(6, "0")}`}</span> a bien été enregistrée.
+          </p>
+
+          <div className="mt-6 space-y-3 text-base">
+            {orderDetails.items?.map((item) => (
+              <div key={item.id} className="flex justify-between gap-4">
+                <span className="text-muted">{item.product_name}</span>
+                <span className="font-bold text-ink">{item.quantity}</span>
+              </div>
+            ))}
+            {orderDetails.delivery_zone && (
+              <div className="flex justify-between gap-4">
+                <span className="text-muted">Zone de livraison</span>
+                <span className="font-bold text-ink">{orderDetails.delivery_zone.name}</span>
+              </div>
+            )}
+            {orderDetails.delivery_zone && (
+              <div className="flex justify-between gap-4">
+                <span className="text-muted">Frais de livraison</span>
+                <span className="font-bold text-ink">{formatXof(orderDetails.delivery_zone.fee_xof)}</span>
+              </div>
+            )}
+            <div className="flex justify-between gap-4 border-t border-black/10 pt-3 text-xl font-bold text-ink">
+              <span>Total</span>
+              <span>{formatXof(orderDetails.total_xof ?? total)}</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <h1 className="mt-6 text-xl font-bold text-ink">{content.title}</h1>
+          <p className="mt-2 text-sm text-muted">Numéro de commande</p>
+          <p className="text-lg font-semibold text-ink">ANW-{orderId}</p>
+          {typeof total === "number" && (
+            <p className="mt-1 text-sm text-muted">Total : {formatXof(total)}</p>
+          )}
+          <p className="mt-4 max-w-xs text-sm text-muted">{content.message}</p>
+          <p className="mt-2 max-w-xs text-sm text-muted">
+            Un récapitulatif de votre commande vous sera envoyé par SMS ou WhatsApp.
+          </p>
+        </>
       )}
-      <p className="mt-4 max-w-xs text-sm text-muted">{content.message}</p>
-      <p className="mt-2 max-w-xs text-sm text-muted">
-        Un récapitulatif de votre commande vous sera envoyé par SMS ou WhatsApp.
-      </p>
 
       {whatsappUrl && (
-        <div className="mt-6 w-full max-w-xs">
+        <div className={`${orderDetails ? "mt-6 w-full max-w-2xl" : "mt-6 w-full max-w-xs"}`}>
           <p className="text-sm text-muted">
             Une question sur votre commande ? Contactez directement le vendeur.
           </p>
