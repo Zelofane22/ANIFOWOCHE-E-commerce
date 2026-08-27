@@ -45,7 +45,7 @@ const FEATURE_LABELS = {
 
 const FALLBACK_FEATURES = {
   FREE: [
-    "5 produits",
+    "50 produits",
     "5 commandes par mois",
     "Vitrine publique avec identité ANIF",
     "Bouton WhatsApp",
