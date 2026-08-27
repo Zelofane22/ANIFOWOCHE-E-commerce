@@ -64,9 +64,12 @@ export default function PublicShop() {
               {shop.city && <p className="text-sm text-muted">{shop.city}</p>}
             </div>
           </div>
-          <span className="hidden text-sm text-muted sm:inline">
-            Sélectionnez un produit pour commander
-          </span>
+          <Link
+            to={`/${slug}/commande`}
+            className="shrink-0 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium"
+          >
+            Passer une commande
+          </Link>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">
