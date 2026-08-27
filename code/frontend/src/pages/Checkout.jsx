@@ -37,6 +37,7 @@ const cartItemSignature = (item) =>
     item.colorName || "",
     item.colorHex || "",
     item.selectedOptions || [],
+    item.deliveryMethod || "delivery",
   ]);
 
 export default function Checkout() {
@@ -177,9 +178,14 @@ export default function Checkout() {
     );
   }
 
+  // Separate items by delivery method
+  const deliveryItems = items.filter((item) => (item.deliveryMethod || "delivery") === "delivery");
+  const pickupItems = items.filter((item) => (item.deliveryMethod || "delivery") === "pickup");
+  const hasDeliveryItems = deliveryItems.length > 0;
+
   const selectedZone = zones.find((option) => option.id === zoneId);
   const selectedSlot = slots.find((option) => option.id === slotId);
-  const deliveryFee = selectedZone?.fee_xof ?? 0;
+  const deliveryFee = hasDeliveryItems ? (selectedZone?.fee_xof ?? 0) : 0;
   const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.discount_percent) / 100) : 0;
   const total = subtotal - discountAmount + deliveryFee;
   const selectedPaymentMethod = PAYMENT_METHODS.find((method) => method.value === paymentMethod);
@@ -189,20 +195,17 @@ export default function Checkout() {
       : PAYMENT_METHODS.find((method) => !isMethodDisabled(method));
   const effectivePaymentMethodValue = effectivePaymentMethod?.value ?? paymentMethod;
   const isSelectedMethodOffline = effectivePaymentMethod?.type === "offline";
-  const canPay =
-    fullName.trim() !== "" &&
-    phone.trim() !== "" &&
-    zoneId != null &&
-    slotId != null &&
-    !!effectivePaymentMethod &&
-    !submitting &&
-    !loadingDeliveryOptions;
 
   const canContinueToPayment =
     fullName.trim() !== "" &&
     phone.trim() !== "" &&
-    zoneId != null &&
-    slotId != null &&
+    (!hasDeliveryItems || (zoneId != null && slotId != null)) &&
+    !loadingDeliveryOptions;
+
+  const canPay =
+    canContinueToPayment &&
+    !!effectivePaymentMethod &&
+    !submitting &&
     !loadingDeliveryOptions;
 
   const handleApplyCoupon = async () => {
@@ -235,14 +238,17 @@ export default function Checkout() {
 
     const zone = selectedZone;
     const slot = selectedSlot;
-    const address = [zone.name, addressLine.trim(), "créneau : " + slot.label, notes.trim()].filter(Boolean).join(" — ");
+    const addressParts = hasDeliveryItems
+      ? [zone?.name, addressLine.trim(), "créneau : " + slot?.label, notes.trim()].filter(Boolean)
+      : [notes.trim()].filter(Boolean);
+    const address = addressParts.join(" — ");
 
     try {
       const order = await createOrder({
         full_name: fullName.trim(),
         phone: phone.trim(),
         email: user?.email ?? "",
-        address,
+        address: hasDeliveryItems ? address : "",
         city: "Cotonou",
         ...(coordinates ?? {}),
         coupon_code: appliedCoupon?.code ?? "",
@@ -252,16 +258,19 @@ export default function Checkout() {
           color_name: item.colorName || "",
           color_hex: item.colorHex || "",
           selected_options: item.selectedOptions || [],
+          delivery_method: item.deliveryMethod || "delivery",
         })),
       });
 
       let orderTotal = order.total_xof;
-      try {
-        await createDelivery({ order_id: order.id, zone_id: zoneId, slot_id: slotId });
-        orderTotal += deliveryFee;
-      } catch {
-        // La commande reste valide même si l'enregistrement de la livraison échoue ;
-        // elle pourra être rattachée manuellement depuis l'admin.
+      if (hasDeliveryItems) {
+        try {
+          await createDelivery({ order_id: order.id, zone_id: zoneId, slot_id: slotId });
+          orderTotal += deliveryFee;
+        } catch {
+          // La commande reste valide même si l'enregistrement de la livraison échoue ;
+          // elle pourra être rattachée manuellement depuis l'admin.
+        }
       }
 
       let paymentStatus = "cash_on_delivery";
@@ -364,7 +373,7 @@ export default function Checkout() {
         <div>
           {step === 1 && (
             <>
-              <h1 className="text-xl font-bold text-ink">Adresse de livraison</h1>
+              <h1 className="text-xl font-bold text-ink">{hasDeliveryItems ? "Adresse de livraison" : "Informations de commande"}</h1>
               {!isAuthenticated && (
                 <p className="mt-2 text-sm text-muted">Commandez sans créer de compte. Le paiement se fera à la livraison.</p>
               )}
@@ -381,7 +390,7 @@ export default function Checkout() {
                   />
                 </label>
 
-                {savedAddresses.length > 0 && (
+                {savedAddresses.length > 0 && hasDeliveryItems && (
                   <label className="block text-sm font-semibold text-ink">
                     Utiliser une adresse enregistrée
                     <select
@@ -399,59 +408,64 @@ export default function Checkout() {
                   </label>
                 )}
 
-                <label className="block text-sm font-semibold text-ink">
-                  Quartier / Zone à Cotonou
-                  {loadingDeliveryOptions ? (
-                    <p className="mt-2 rounded-lg border border-black/10 px-4 py-3 text-sm font-normal text-muted">
-                      Chargement des zones de livraison…
-                    </p>
-                  ) : (
-                    <select
-                      value={zoneId ?? ""}
-                      onChange={(event) => setZoneId(Number(event.target.value))}
-                      required
-                      className={inputClass}
-                    >
-                      {zones.map((zone) => (
-                        <option key={zone.id} value={zone.id}>
-                          {zone.name}
-                          {zone.fee_xof > 0 ? ` (+${formatXof(zone.fee_xof)})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </label>
+                {hasDeliveryItems && (
+                  <>
+                    <label className="block text-sm font-semibold text-ink">
+                      Quartier / Zone à Cotonou *
+                      {loadingDeliveryOptions ? (
+                        <p className="mt-2 rounded-lg border border-black/10 px-4 py-3 text-sm font-normal text-muted">
+                          Chargement des zones de livraison…
+                        </p>
+                      ) : (
+                        <select
+                          value={zoneId ?? ""}
+                          onChange={(event) => setZoneId(Number(event.target.value))}
+                          required
+                          className={inputClass}
+                        >
+                          {zones.map((zone) => (
+                            <option key={zone.id} value={zone.id}>
+                              {zone.name}
+                              {zone.fee_xof > 0 ? ` (+${formatXof(zone.fee_xof)})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </label>
 
-                <label className="block text-sm font-semibold text-ink">
-                  Adresse ou repère
-                  <input type="text" value={addressLine} onChange={(event) => setAddressLine(event.target.value)} placeholder="Rue, maison, repère proche..." className={inputClass} />
-                </label>
+                    <label className="block text-sm font-semibold text-ink">
+                      Adresse ou repère *
+                      <input type="text" value={addressLine} onChange={(event) => setAddressLine(event.target.value)} placeholder="Rue, maison, repère proche..." className={inputClass} required />
+                    </label>
 
-                <div className="rounded-lg border border-brand/20 bg-brand-pale px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-ink">Localiser l'adresse</p>
-                      <p className="mt-1 text-xs text-muted">La position servira à confirmer la zone de livraison.</p>
+                    <div className="rounded-lg border border-brand/20 bg-brand-pale px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-ink">Localiser l'adresse</p>
+                          <p className="mt-1 text-xs text-muted">La position servira à confirmer la zone de livraison.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleUseLocation}
+                          disabled={locating}
+                          className="rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60"
+                        >
+                          {locating ? "Localisation..." : "Utiliser ma position"}
+                        </button>
+                      </div>
+                      {coordinates && (
+                        <p aria-live="polite" className="mt-2 text-xs text-green-700">
+                          Position enregistrée : {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}
+                        </p>
+                      )}
+                      {locationError && (
+                        <p role="alert" className="mt-2 text-xs text-red-600">
+                          {locationError}
+                        </p>
+                      )}
                     </div>
-                    <button 
-                      type="button" 
-                      onClick={handleUseLocation} 
-                      disabled={locating} 
-                      className="rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60">
-                      {locating ? "Localisation..." : "Utiliser ma position"}
-                    </button>
-                  </div>
-                  {coordinates && (
-                    <p aria-live="polite" className="mt-2 text-xs text-green-700">
-                      Position enregistrée : {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}
-                    </p>
-                  )}
-                  {locationError && (
-                    <p role="alert" className="mt-2 text-xs text-red-600">
-                      {locationError}
-                    </p>
-                  )}
-                </div>
+                  </>
+                )}
 
                 <label className="block text-sm font-semibold text-ink">
                   Indications complémentaires
@@ -465,7 +479,7 @@ export default function Checkout() {
                 </label>
 
                 <label className="block text-sm font-semibold text-ink">
-                  Téléphone (SMS + WhatsApp)
+                  Téléphone (SMS + WhatsApp) *
                   <input
                     type="tel"
                     value={phone}
@@ -480,28 +494,30 @@ export default function Checkout() {
                 </label>
               </div>
 
-              <div className="mt-6">
-                <p className="text-sm font-semibold text-ink">Créneau de livraison</p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  {slots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => setSlotId(slot.id)}
-                      className={`rounded-[10px] border-2 px-3 py-4 text-center transition ${
-                        slotId === slot.id
-                          ? "border-brand bg-brand-light"
-                          : "border-black/10 bg-white hover:border-black/25"
-                      }`}
-                    >
-                      <span className="block text-sm font-semibold text-ink">{slot.label}</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        {slot.start_time?.slice(0, 5)} - {slot.end_time?.slice(0, 5)}
-                      </span>
-                    </button>
-                  ))}
+              {hasDeliveryItems && (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold text-ink">Créneau de livraison</p>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {slots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setSlotId(slot.id)}
+                        className={`rounded-[10px] border-2 px-3 py-4 text-center transition ${
+                          slotId === slot.id
+                            ? "border-brand bg-brand-light"
+                            : "border-black/10 bg-white hover:border-black/25"
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold text-ink">{slot.label}</span>
+                        <span className="mt-1 block text-xs text-muted">
+                          {slot.start_time?.slice(0, 5)} - {slot.end_time?.slice(0, 5)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 type="button"
@@ -533,8 +549,8 @@ export default function Checkout() {
                         disabled
                           ? "cursor-not-allowed border-gray-200 bg-gray-50 opacity-75"
                           : selected
-                            ? "border-brand bg-brand-light"
-                            : "border-black/10 bg-white hover:border-black/20"
+                          ? "border-brand bg-brand-light"
+                          : "border-black/10 bg-white hover:border-black/20"
                       }`}
                     >
                       <span
@@ -633,44 +649,103 @@ export default function Checkout() {
         <aside>
           <div className="sticky top-24 rounded-xl border border-black/10 bg-white p-5 shadow-sm">
             <h2 className="font-bold text-ink">Votre commande</h2>
-            <div className="mt-4 space-y-3">
-              {items.map((item) => (
-                <div key={item.slug} className="flex items-center gap-3">
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-brand-pale">
-                    {item.image && <ProductImage src={item.image} alt={item.name} className="h-full w-full object-cover" />}
-                    <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-charcoal px-1 text-[10px] font-bold text-white">
-                      {item.quantity}
+            
+            {/* Delivery items group */}
+            {deliveryItems.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <h3 className="text-sm font-semibold text-brand-dark flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                  </svg>
+                  À livrer ({deliveryItems.length})
+                </h3>
+                {deliveryItems.map((item) => (
+                  <div key={`${item.slug}-${item.colorName || ""}-delivery`} className="flex items-center gap-3">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-brand-pale">
+                      {item.image && <ProductImage src={item.image} alt={item.name} className="h-full w-full object-cover" />}
+                      <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-charcoal px-1 text-[10px] font-bold text-white">
+                        {item.quantity}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium text-ink">{item.name}</p>
+                      {item.size && item.size !== "UNIQUE" && <p className="text-xs text-muted">Taille {item.size}</p>}
+                      {item.colorName && (
+                        <p className="flex items-center gap-1 text-xs text-muted">
+                          <span
+                            className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
+                            style={{ backgroundColor: item.colorHex }}
+                          />
+                          {item.colorName}
+                        </p>
+                      )}
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <div className="mt-0.5 space-y-0.5">
+                          {item.selectedOptions.map((opt) => (
+                            <p key={opt.option_id} className="text-[10px] text-muted">
+                              {opt.group_name} : {opt.option_name}
+                              {opt.price_xof > 0 && <span className="text-muted"> +{formatXof(opt.price_xof)}</span>}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-ink">
+                      {formatXof(item.price_xof * item.quantity)}
                     </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-ink">{item.name}</p>
-                    {item.size && item.size !== "UNIQUE" && <p className="text-xs text-muted">Taille {item.size}</p>}
-                    {item.colorName && (
-                      <p className="flex items-center gap-1 text-xs text-muted">
-                        <span
-                          className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
-                          style={{ backgroundColor: item.colorHex }}
-                        />
-                        {item.colorName}
-                      </p>
-                    )}
-                    {item.selectedOptions && item.selectedOptions.length > 0 && (
-                      <div className="mt-0.5 space-y-0.5">
-                        {item.selectedOptions.map((opt) => (
-                          <p key={opt.option_id} className="text-[10px] text-muted">
-                            {opt.group_name} : {opt.option_name}
-                            {opt.price_xof > 0 && <span className="text-muted"> +{formatXof(opt.price_xof)}</span>}
-                          </p>
-                        ))}
-                      </div>
-                    )}
+                ))}
+              </div>
+            )}
+
+            {/* Pickup items group */}
+            {pickupItems.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <h3 className="text-sm font-semibold text-green-700 flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                  </svg>
+                  À retirer chez le vendeur ({pickupItems.length})
+                </h3>
+                {pickupItems.map((item) => (
+                  <div key={`${item.slug}-${item.colorName || ""}-pickup`} className="flex items-center gap-3">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-brand-pale">
+                      {item.image && <ProductImage src={item.image} alt={item.name} className="h-full w-full object-cover" />}
+                      <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-charcoal px-1 text-[10px] font-bold text-white">
+                        {item.quantity}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium text-ink">{item.name}</p>
+                      {item.size && item.size !== "UNIQUE" && <p className="text-xs text-muted">Taille {item.size}</p>}
+                      {item.colorName && (
+                        <p className="flex items-center gap-1 text-xs text-muted">
+                          <span
+                            className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
+                            style={{ backgroundColor: item.colorHex }}
+                          />
+                          {item.colorName}
+                        </p>
+                      )}
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <div className="mt-0.5 space-y-0.5">
+                          {item.selectedOptions.map((opt) => (
+                            <p key={opt.option_id} className="text-[10px] text-muted">
+                              {opt.group_name} : {opt.option_name}
+                              {opt.price_xof > 0 && <span className="text-muted"> +{formatXof(opt.price_xof)}</span>}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-ink">
+                      {formatXof(item.price_xof * item.quantity)}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-sm font-semibold text-ink">
-                    {formatXof(item.price_xof * item.quantity)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-4 border-t border-black/10 pt-4">
               {appliedCoupon ? (
@@ -734,14 +809,16 @@ export default function Checkout() {
                   <span>-{formatXof(discountAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-muted">
-                <span>Livraison</span>
-                {deliveryFee > 0 ? (
-                  <span className="text-ink">{formatXof(deliveryFee)}</span>
-                ) : (
-                  <span className="font-medium text-green-700">Gratuite</span>
-                )}
-              </div>
+              {hasDeliveryItems && (
+                <div className="flex justify-between text-muted">
+                  <span>Livraison</span>
+                  {deliveryFee > 0 ? (
+                    <span className="text-ink">{formatXof(deliveryFee)}</span>
+                  ) : (
+                    <span className="font-medium text-green-700">Gratuite</span>
+                  )}
+                </div>
+              )}
               <div className="flex justify-between border-t border-black/10 pt-3 text-base font-bold text-ink">
                 <span>Total</span>
                 <span>{formatXof(total)}</span>

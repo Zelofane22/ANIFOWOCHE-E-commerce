@@ -43,6 +43,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "color_name",
             "color_hex",
             "selected_options",
+            "delivery_method",
         ]
         read_only_fields = ["unit_price_xof"]
 
@@ -105,6 +106,7 @@ class OrderSerializer(serializers.ModelSerializer):
     delivery_zone = DeliveryZoneSerializer(read_only=True)
     coupon_code = serializers.CharField(required=False, allow_blank=True, default="")
     payment_info = serializers.SerializerMethodField()
+    requires_delivery = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Order
@@ -129,6 +131,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "cancellation_reason",
             "created_at",
             "updated_at",
+            "requires_delivery",
         ]
         read_only_fields = ["discount_xof", "total_xof", "cancelled_at", "cancellation_reason", "created_at", "updated_at"]
 
@@ -155,6 +158,13 @@ class OrderSerializer(serializers.ModelSerializer):
                     {"items": f"La boutique « {seller.display_name} » a atteint sa limite "
                               "de commandes pour ce mois-ci. Merci de réessayer le mois prochain."}
                 )
+
+        # Si aucun item n'est en livraison, l'adresse n'est pas requise.
+        items_data = attrs.get("items", [])
+        has_delivery = any(item.get("delivery_method", "delivery") == "delivery" for item in items_data)
+        if has_delivery and not attrs.get("address"):
+            raise serializers.ValidationError({"address": "L'adresse de livraison est requise pour les articles en livraison."})
+
         return attrs
 
     def validate_coupon_code(self, value):
@@ -191,6 +201,7 @@ class OrderSerializer(serializers.ModelSerializer):
             color_name = item_data.get("color_name", "")
             color_hex = item_data.get("color_hex", "")
             selected_options = item_data.get("selected_options", [])
+            delivery_method = item_data.get("delivery_method", "delivery")
             options_total = sum(opt.get("price_xof", 0) for opt in selected_options)
             # Création de la ligne de commande.
             OrderItem.objects.create(
@@ -201,6 +212,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 color_name=color_name,
                 color_hex=color_hex,
                 selected_options=selected_options,
+                delivery_method=delivery_method,
             )
             total += quantity * (unit_price + options_total)
 

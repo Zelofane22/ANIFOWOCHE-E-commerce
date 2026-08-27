@@ -62,6 +62,9 @@ class DeliverySerializer(serializers.ModelSerializer):
             existing = existing.exclude(pk=self.instance.pk)
         if existing.exists():
             raise serializers.ValidationError("Cette commande a déjà une livraison associée.")
+        # Vérifier que la commande nécessite une livraison (au moins un item en delivery).
+        if not order.requires_delivery:
+            raise serializers.ValidationError("Cette commande ne nécessite pas de livraison (tous les articles sont en retrait).")
         return order
 
     def create(self, validated_data):

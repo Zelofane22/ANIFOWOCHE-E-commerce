@@ -5,9 +5,10 @@ import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
 import Seo from "../components/Seo.jsx";
+import DeliveryMethodSelector from "../components/DeliveryMethodSelector.jsx";
 
 export default function Cart() {
-  const { items, updateQuantity, removeItem, subtotal, reconcileCart } = useCart();
+  const { items, updateQuantity, removeItem, updateDeliveryMethod, subtotal, reconcileCart } = useCart();
 
   // Réconcilie le panier localStorage avec le catalogue live au montage
   // (retire les produits supprimés, met à jour prix/id) — cf. issue JAVASCRIPT-REACT-S.
@@ -39,6 +40,11 @@ export default function Cart() {
     );
   }
 
+  const deliveryItems = items.filter((item) => item.deliveryMethod === "delivery");
+  const pickupItems = items.filter((item) => item.deliveryMethod === "pickup");
+
+  const getItemKey = (item) => `${item.slug}-${item.colorName || ""}-${item.deliveryMethod || "delivery"}`;
+
   return (
     <>
       <Seo title="Panier" path="/panier" type="website" />
@@ -53,60 +59,71 @@ export default function Cart() {
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
           <ul className="flex flex-col gap-4">
             {items.map((item) => (
-              <li key={`${item.slug}-${item.colorName || ""}`} className="flex gap-4 rounded-xl border border-black/10 bg-white p-4">
-                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-pale sm:h-28 sm:w-28">
-                  {item.image && (
-                    <ProductImage src={item.image} alt={item.name} className="h-full w-full object-cover" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">{item.name}</p>
-                      {item.size && item.size !== "UNIQUE" && (
-                        <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-muted">
-                          Taille : {item.size}
-                        </span>
-                      )}
-                      {item.colorName && (
-                        <span className="mt-1 inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-muted">
-                          <span
-                            className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
-                            style={{ backgroundColor: item.colorHex }}
-                          />
-                          {item.colorName}
-                        </span>
-                      )}
-                      <div className="mt-2 flex items-center gap-1 text-xs text-green-700">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+              <li key={getItemKey(item)} className="flex flex-col gap-4 rounded-xl border border-black/10 bg-white p-4">
+                <div className="flex gap-4">
+                  <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-pale sm:h-28 sm:w-28">
+                    {item.image && (
+                      <ProductImage src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">{item.name}</p>
+                        {item.size && item.size !== "UNIQUE" && (
+                          <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-muted">
+                            Taille : {item.size}
+                          </span>
+                        )}
+                        {item.colorName && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-muted">
+                            <span
+                              className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
+                              style={{ backgroundColor: item.colorHex }}
+                            />
+                            {item.colorName}
+                          </span>
+                        )}
+                        <div className="mt-2 flex items-center gap-1 text-xs text-green-700">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                          </svg>
+                          En stock
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.slug, item.colorName, item.selectedOptions, item.deliveryMethod)}
+                        aria-label="Retirer l'article"
+                        className="rounded p-1 text-muted transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" />
                         </svg>
-                        En stock - livraison 24h
+                      </button>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-lg font-bold text-ink">{formatXof(item.price_xof * item.quantity)}</p>
+                      <div className="flex items-center gap-2">
+                        {item.unit === "metre" && <span className="text-xs text-muted">mètres :</span>}
+                        <QuantityStepper
+                          quantity={item.quantity}
+                          onChange={(quantity) => updateQuantity(item.slug, quantity, item.colorName, item.selectedOptions, item.deliveryMethod)}
+                        />
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.slug, item.colorName)}
-                      aria-label="Retirer l'article"
-                      className="rounded p-1 text-muted transition hover:bg-red-50 hover:text-red-600"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-lg font-bold text-ink">{formatXof(item.price_xof * item.quantity)}</p>
-                    <div className="flex items-center gap-2">
-                      {item.unit === "metre" && <span className="text-xs text-muted">mètres :</span>}
-                      <QuantityStepper
-                        quantity={item.quantity}
-                        onChange={(quantity) => updateQuantity(item.slug, quantity, item.colorName)}
-                      />
-                    </div>
                   </div>
                 </div>
+
+                <DeliveryMethodSelector
+                  value={item.deliveryMethod || "delivery"}
+                  onChange={(method) => {
+                    updateDeliveryMethod(item.slug, item.colorName, item.selectedOptions, item.deliveryMethod || "delivery", method);
+                  }}
+                  sellerAddress={item.sellerAddress}
+                  name={`delivery-${getItemKey(item)}`}
+                />
               </li>
             ))}
           </ul>

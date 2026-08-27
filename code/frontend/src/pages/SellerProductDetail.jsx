@@ -8,6 +8,7 @@ import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
 import { buildWhatsappUrl } from "../utils/whatsappPhone.js";
+import DeliveryMethodSelector from "../components/DeliveryMethodSelector.jsx";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/15";
@@ -21,6 +22,7 @@ export default function SellerProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [form, setForm] = useState({ fullName: "", phone: "", address: "" });
   const [selectedZone, setSelectedZone] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState("delivery");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [order, setOrder] = useState(null);
@@ -56,7 +58,7 @@ export default function SellerProductDetail() {
     [product, quantity]
   );
   const deliveryFee = zone?.fee_xof ?? 0;
-  const total = productTotal + deliveryFee;
+  const total = productTotal + (deliveryMethod === "delivery" ? deliveryFee : 0);
 
   const galleryImages = [
     ...(product?.image ? [{ id: "cover", image: product.image, color_name: "" }] : []),
@@ -73,11 +75,12 @@ export default function SellerProductDetail() {
     setActiveImageIndex((index) => (index + 1) % displayImages.length);
   };
 
+  const isDelivery = deliveryMethod === "delivery";
   const canSubmit = Boolean(
-    zone &&
+    (!isDelivery || zone) &&
       form.fullName.trim() &&
       form.phone.trim() &&
-      form.address.trim() &&
+      (!isDelivery || form.address.trim()) &&
       quantity > 0 &&
       !submitting &&
       (product?.made_to_order || (product?.stock ?? 0) >= quantity)
@@ -135,10 +138,10 @@ export default function SellerProductDetail() {
       const created = await createOrder({
         full_name: form.fullName.trim(),
         phone: form.phone.trim(),
-        address: form.address.trim(),
+        address: isDelivery ? form.address.trim() : "",
         city: "Cotonou",
-        items: [{ product_id: product.id, quantity }],
-        delivery_zone_id: Number(selectedZone),
+        items: [{ product_id: product.id, quantity, delivery_method: deliveryMethod }],
+        delivery_zone_id: isDelivery ? Number(selectedZone) : undefined,
       });
       setOrder(created);
     } catch (err) {
@@ -168,7 +171,7 @@ export default function SellerProductDetail() {
   }
 
   const whatsappMessage = order
-    ? `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}\n\nProduit : ${product.name}\nQuantité : ${quantity}\nPrix unitaire : ${formatXof(product.price_xof)}\nFrais de livraison (${zone.name}) : ${formatXof(zone.fee_xof)}\nTotal : ${formatXof(order.total_xof)}\n\nNom : ${form.fullName.trim()}\nTéléphone : ${form.phone.trim()}\nAdresse : ${form.address.trim()}\n\nMerci !`
+    ? `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`}\n\nProduit : ${product.name}\nQuantité : ${quantity}\nPrix unitaire : ${formatXof(product.price_xof)}\nMode de récupération : ${deliveryMethod === "delivery" ? "Livraison à domicile" : "Retrait chez le vendeur"}${isDelivery ? `\nFrais de livraison (${zone.name}) : ${formatXof(zone.fee_xof)}` : ""}\nTotal : ${formatXof(order.total_xof)}\n\nNom : ${form.fullName.trim()}\nTéléphone : ${form.phone.trim()}${isDelivery ? `\nAdresse : ${form.address.trim()}` : ""}\n\nMerci !`
     : "";
   const whatsappUrl = buildWhatsappUrl(shop?.whatsapp_phone, whatsappMessage);
 
@@ -335,13 +338,21 @@ export default function SellerProductDetail() {
                     <span className="font-semibold text-ink">{quantity}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted">Zone de livraison</span>
-                    <span className="font-semibold text-ink">{zone?.name}</span>
+                    <span className="text-muted">Mode de récupération</span>
+                    <span className="font-semibold text-ink">{deliveryMethod === "delivery" ? "Livraison à domicile" : "Retrait chez le vendeur"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted">Frais de livraison</span>
-                    <span className="font-semibold text-ink">{formatXof(zone?.fee_xof ?? 0)}</span>
-                  </div>
+                  {isDelivery && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted">Zone de livraison</span>
+                        <span className="font-semibold text-ink">{zone?.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted">Frais de livraison</span>
+                        <span className="font-semibold text-ink">{formatXof(zone?.fee_xof ?? 0)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between border-t border-black/10 pt-2 text-base font-bold text-ink">
                     <span>Total</span>
                     <span>{formatXof(order.total_xof)}</span>
@@ -372,12 +383,13 @@ export default function SellerProductDetail() {
 
                 <div>
                   <label className="block text-sm font-semibold text-ink">
-                    Zone de livraison *
+                    Zone de livraison {isDelivery ? <span className="text-red-500 ml-1">*</span> : null}
                     <select
                       value={selectedZone}
                       onChange={(e) => setSelectedZone(e.target.value)}
-                      required
-                      className={inputClass}
+                      required={isDelivery}
+                      disabled={!isDelivery}
+                      className={inputClass + (isDelivery ? "" : " opacity-50")}
                     >
                       <option value="">Choisir une zone</option>
                       {deliveryZones.map((z) => (
@@ -391,7 +403,7 @@ export default function SellerProductDetail() {
                     <button
                       type="button"
                       onClick={handleGeolocate}
-                      disabled={geoLoading}
+                      disabled={geoLoading || !isDelivery}
                       className="text-xs font-semibold text-brand-dark underline hover:text-brand disabled:text-muted"
                     >
                       {geoLoading ? "Localisation…" : "Utiliser ma position"}
@@ -470,26 +482,36 @@ export default function SellerProductDetail() {
                 </div>
 
                 <label className="block text-sm font-semibold text-ink">
-                  Adresse de livraison *
+                  Adresse de livraison {isDelivery ? <span className="text-red-500 ml-1">*</span> : null}
                   <input
                     type="text"
                     value={form.address}
                     onChange={(e) => updateForm("address", e.target.value)}
-                    required
-                    className={inputClass}
+                    required={isDelivery}
+                    disabled={!isDelivery}
+                    className={inputClass + (isDelivery ? "" : " opacity-50")}
                     placeholder="Quartier, rue, repère proche"
                   />
                 </label>
+
+                <DeliveryMethodSelector
+                  value={deliveryMethod}
+                  onChange={setDeliveryMethod}
+                  sellerAddress={shop?.address}
+                  name="delivery-method"
+                />
 
                 <div className="rounded-lg border border-black/10 bg-white p-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted">Produit ({quantity})</span>
                     <span className="font-semibold text-ink">{formatXof(productTotal)}</span>
                   </div>
-                  <div className="mt-2 flex justify-between text-sm">
-                    <span className="text-muted">Livraison {zone ? `(${zone.name})` : ""}</span>
-                    <span className="font-semibold text-ink">{formatXof(deliveryFee)}</span>
-                  </div>
+                  {isDelivery && (
+                    <div className="mt-2 flex justify-between text-sm">
+                      <span className="text-muted">Livraison {zone ? `(${zone.name})` : ""}</span>
+                      <span className="font-semibold text-ink">{formatXof(deliveryFee)}</span>
+                    </div>
+                  )}
                   <div className="mt-3 flex justify-between border-t border-black/10 pt-3 text-base font-bold text-ink">
                     <span>Total</span>
                     <span>{formatXof(total)}</span>

@@ -5,6 +5,9 @@ from django.db import models
 from apps.products.models import Product
 
 
+DELIVERY_METHOD_CHOICES = [("delivery", "Livraison"), ("pickup", "Retrait chez le vendeur")]
+
+
 class Order(models.Model):
     """Commande client : statut, total, remise coupon, annulation et suivi de livraison."""
     class Status(models.TextChoices):
@@ -25,7 +28,7 @@ class Order(models.Model):
     full_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True)
-    address = models.CharField(max_length=255)
+    address = models.CharField(max_length=255, null=True, blank=True)
     city = models.CharField(max_length=100, default="Cotonou")
     latitude = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True)
@@ -57,6 +60,10 @@ class Order(models.Model):
     def reference(self):
         # Référence humaine de la commande (numéro zéro-paddé).
         return f"CMD-{self.pk:06d}" if self.pk else "—"
+
+    @property
+    def requires_delivery(self):
+        return self.items.filter(delivery_method="delivery").exists()
 
     def recompute_total(self):
         # Recalcule le total à partir de la somme des sous-totaux des lignes.
@@ -103,6 +110,7 @@ class OrderItem(models.Model):
         default=list, blank=True,
         help_text='[{"group_id": 1, "group_name": "Accompagnement", "option_id": 5, "option_name": "Frites", "price_xof": 500}, ...]',
     )
+    delivery_method = models.CharField(max_length=20, choices=DELIVERY_METHOD_CHOICES, default="delivery")
 
     def __str__(self):
         # Représentation lisible : quantité et nom du produit.
