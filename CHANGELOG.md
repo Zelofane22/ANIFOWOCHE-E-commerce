@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.11.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.10.0...v2.11.0) (2026-08-27)
+
+
+### Features
+
+* **sellers:** update free plan limits to allow 50 active products ([93e9f83](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/93e9f830d890a3630c99cf2476d997af49d0ed7b))
+* **sellers:** update free plan limits to allow 50 active products ([b541731](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/b5417313b5b6f7a36a641683654a1b2e235b39b1))
+
 ## [2.10.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.9.0...v2.10.0) (2026-08-25)
 
 
