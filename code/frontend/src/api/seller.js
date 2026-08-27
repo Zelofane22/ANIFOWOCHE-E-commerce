@@ -95,6 +95,13 @@ export const archiveSellerProduct = (slug) =>
   apiClient.delete(`/seller/products/${slug}/`).then((res) => res.data);
 
 /**
+ * Réactive un produit archivé (PATCH is_active=true).
+ * @returns {Promise<Product>}
+ */
+export const reactivateSellerProduct = (slug) =>
+  apiClient.patch(`/seller/products/${slug}/`, { is_active: true }).then((res) => res.data);
+
+/**
  * @returns {Promise<Paginated & {results: ProductImage[]}>}
  */
 export const getSellerProductImages = (slug) =>
