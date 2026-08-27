@@ -1,7 +1,7 @@
 """Limites des plans vendeurs par palier (FREE/STARTER/PRO/BUSINESS).
 
 Règles métier (cf. docs/.../04-modele-economique.md) :
-- FREE : 5 produits actifs max, 5 commandes reçues par mois max ; produits
+- FREE : 50 produits actifs max, 5 commandes reçues par mois max ; produits
   jamais visibles sur le catalogue principal (anifowoche.com).
 - STARTER : 100 produits actifs max, commandes illimitées.
 - PRO/BUSINESS : produits et commandes illimités.
@@ -19,7 +19,7 @@ from django.utils import timezone
 
 
 PLAN_LIMITS = {
-    "FREE": {"max_products": 5, "max_orders_per_month": 5, "price_xof": 0},
+    "FREE": {"max_products": 50, "max_orders_per_month": 5, "price_xof": 0},
     # STARTER : tarif de lancement à 2 000 F/mois pendant les 3 premiers mois,
     # puis prix de référence à 5 000 F/mois (cf. docs/.../04-modele-economique.md).
     "STARTER": {

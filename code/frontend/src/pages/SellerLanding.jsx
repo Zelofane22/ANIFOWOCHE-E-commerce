@@ -108,7 +108,7 @@ const FAQ = [
   },
   {
     q: "Combien de produits puis-je ajouter ?",
-    a: "La version gratuite vous permet d'ajouter jusqu'à 5 produits et de recevoir jusqu'à 5 commandes par mois sur votre boutique publique. Les offres payantes Starter et Pro (bientôt disponibles) augmenteront ces limites (100 produits et commandes illimitées pour Starter) et ajouteront la visibilité sur le catalogue anifowoche.com.",
+    a: "La version gratuite vous permet d'ajouter jusqu'à 50 produits et de recevoir jusqu'à 5 commandes par mois sur votre boutique publique. Les offres payantes Starter et Pro augmenteront ces limites (100 produits et commandes illimitées pour Starter) et ajouteront la visibilité sur le catalogue anifowoche.com.",
   },
   {
     q: "Mes données sont-elles sécurisées ?",
