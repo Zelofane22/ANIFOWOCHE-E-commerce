@@ -775,7 +775,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         limits = response.data["seller"]["limits"]
         self.assertEqual(limits["plan"], "FREE")
-        self.assertEqual(limits["max_products"], 5)
+        self.assertEqual(limits["max_products"], 50)
         self.assertEqual(limits["max_orders_per_month"], 5)
         self.assertEqual(limits["products_used"], 4)  # 3 + produit des commandes
         self.assertEqual(limits["orders_this_month"], 2)
