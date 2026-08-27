@@ -130,6 +130,7 @@ export default function PublicOrder() {
         state: {
           orderId: order.id,
           orderDetails: order,
+          shopSlug: slug,
           total: order.total_xof,
           paymentStatus: "cash_on_delivery",
           method: "cash_on_delivery",

@@ -77,6 +77,7 @@ export default function OrderConfirmation() {
   const {
     orderId,
     orderDetails,
+    shopSlug,
     total,
     method: initialMethod,
     paymentId,
@@ -275,10 +276,10 @@ export default function OrderConfirmation() {
       )}
 
       <Link
-        to="/"
+        to={shopSlug ? `/${shopSlug}` : "/"}
         className="mt-8 rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-medium"
       >
-        Retour à l'accueil
+        {shopSlug ? "Retour à la boutique" : "Retour à l'accueil"}
       </Link>
     </div>
   );
