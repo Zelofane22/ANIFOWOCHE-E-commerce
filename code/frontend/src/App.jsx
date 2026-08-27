@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import { SiteConfigProvider } from "./context/SiteConfigContext.jsx";
+import { useAuth } from "./context/useAuth.js";
 import Home from "./pages/Home.jsx";
 import ShopRedirect from "./pages/ShopRedirect.jsx";
 
@@ -47,6 +48,18 @@ function SellerShopRedirect() {
   return <Navigate to={`/${slug}`} replace />;
 }
 
+function SellerHome() {
+  const { loading, isAuthenticated } = useAuth();
+  if (loading) return <PageSkeleton />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <SellerLanding />;
+}
+
+function SellerFallback() {
+  const { loading, isAuthenticated } = useAuth();
+  if (loading) return <PageSkeleton />;
+  return <Navigate to={isAuthenticated ? "/dashboard" : "/"} replace />;
+}
+
 function PageViewTracker() {
   const location = useLocation();
 
@@ -77,7 +90,7 @@ export default function App() {
           <main>
             <Suspense fallback={<PageSkeleton />}>
               <Routes>
-                <Route path="/" element={<SellerLanding />} />
+                <Route path="/" element={<SellerHome />} />
                 <Route path="/login" element={<SellerAuth />} />
                 <Route path="/register" element={<SellerAuth />} />
                 <Route path="/dashboard" element={<SellerDashboard />} />
@@ -96,7 +109,7 @@ export default function App() {
                 <Route path="/:slug/commande" element={<PublicOrder />} />
                 <Route path="/shop/:slug" element={<SellerShopRedirect />} />
                 <Route path="/:slug" element={<PublicShop />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<SellerFallback />} />
               </Routes>
             </Suspense>
           </main>
