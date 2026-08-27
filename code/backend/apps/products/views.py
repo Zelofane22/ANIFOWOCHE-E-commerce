@@ -15,7 +15,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 
 from apps.promotions.models import Promotion
-from apps.sellers.limits import main_store_catalog_q
+from apps.sellers.limits import can_create_product, main_store_catalog_q, plan_limits
 from apps.sellers.models import SellerProfile
 
 from .models import Category, Option, OptionGroup, Product, ProductImage
@@ -158,6 +158,51 @@ class SellerProductViewSet(viewsets.ModelViewSet):
             )
             .order_by("-updated_at")
         )
+
+    def _blocked_by_product_limit(self):
+        """Réponse 400 si le vendeur a atteint sa limite de produits actifs."""
+        seller = self._seller()
+        if can_create_product(seller):
+            return None
+        limit = plan_limits(seller)["max_products"]
+        return Response(
+            {
+                "detail": (
+                    f"Vous avez atteint la limite de {limit} produits actifs "
+                    "pour votre plan."
+                )
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def _check_reactivation(self):
+        """Bloque la réactivation d'un produit inactif si la limite est atteinte."""
+        instance = self.get_object()
+        raw = self.request.data.get("is_active")
+        activating = raw is True or (
+            isinstance(raw, str) and raw.strip().lower() in {"true", "1", "on"}
+        )
+        if activating and not instance.is_active:
+            return self._blocked_by_product_limit()
+        return None
+
+    def create(self, request, *args, **kwargs):
+        blocked = self._blocked_by_product_limit()
+        if blocked:
+            return blocked
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        blocked = self._check_reactivation()
+        if blocked:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        blocked = self._check_reactivation()
+        if blocked:
+            return blocked
+        return super().partial_update(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         # Associe automatiquement le produit au vendeur courant.

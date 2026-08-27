@@ -93,6 +93,7 @@ export default function App() {
                 <Route path="/settings" element={<SellerSettings />} />
                 <Route path="/notifications" element={<SellerNotifications />} />
                 <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
+                <Route path="/:slug/commande" element={<PublicOrder />} />
                 <Route path="/shop/:slug" element={<SellerShopRedirect />} />
                 <Route path="/:slug" element={<PublicShop />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -121,7 +122,6 @@ export default function App() {
                     <Route path="/produits/:slug" element={<Product />} />
                     <Route path="/panier" element={<Cart />} />
                     <Route path="/commande" element={<Checkout />} />
-                    <Route path="/commande/public" element={<PublicOrder />} />
                     <Route path="/commande/confirmation" element={<OrderConfirmation />} />
                     <Route path="/compte" element={<Account />} />
                     <Route path="/compte/commandes" element={<Orders />} />

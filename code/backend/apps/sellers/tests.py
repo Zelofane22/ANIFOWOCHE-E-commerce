@@ -593,7 +593,7 @@ class ShopOfficialStatusTests(TestCase):
 
 
 class SellerPlanLimitsTests(APITestCase):
-    """Limites du plan gratuit : 5 produits actifs, 5 commandes/mois, vitrine principale."""
+    """Limites du plan gratuit : 50 produits actifs, 5 commandes/mois, vitrine principale."""
 
     def setUp(self):
         self.category = CategoryFactory(name="Tissus", slug="tissus")
@@ -648,13 +648,13 @@ class SellerPlanLimitsTests(APITestCase):
 
     # --- Limite produits -------------------------------------------------------
 
-    def test_free_seller_blocked_at_sixth_active_product(self):
-        ProductFactory.create_batch(5, seller=self.seller, category=self.category)
+    def test_free_seller_blocked_at_limit(self):
+        ProductFactory.create_batch(50, seller=self.seller, category=self.category)
 
         response = self._create_product_via_api()
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("5 produits actifs", str(response.data))
+        self.assertIn("50 produits actifs", str(response.data))
 
     def test_archived_products_do_not_count_toward_limit(self):
         products = ProductFactory.create_batch(5, seller=self.seller, category=self.category)
@@ -666,7 +666,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 201)
 
     def test_reactivation_blocked_at_limit(self):
-        products = ProductFactory.create_batch(6, seller=self.seller, category=self.category)
+        products = ProductFactory.create_batch(51, seller=self.seller, category=self.category)
         archived = products[0]
         archived.is_active = False
         archived.save(update_fields=["is_active"])
@@ -775,7 +775,7 @@ class SellerPlanLimitsTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         limits = response.data["seller"]["limits"]
         self.assertEqual(limits["plan"], "FREE")
-        self.assertEqual(limits["max_products"], 5)
+        self.assertEqual(limits["max_products"], 50)
         self.assertEqual(limits["max_orders_per_month"], 5)
         self.assertEqual(limits["products_used"], 4)  # 3 + produit des commandes
         self.assertEqual(limits["orders_this_month"], 2)

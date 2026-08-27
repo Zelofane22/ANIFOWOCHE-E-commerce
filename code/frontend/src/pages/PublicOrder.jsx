@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { createOrder } from "../api/orders.js";
-import { fetchProducts } from "../api/products.js";
+import { getPublicShop } from "../api/seller.js";
 import Seo from "../components/Seo.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
@@ -20,7 +20,9 @@ const inputClass =
   "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-500 focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 export default function PublicOrder() {
+  const { slug } = useParams();
   const navigate = useNavigate();
+  const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [form, setForm] = useState(INITIAL_FORM);
@@ -29,11 +31,14 @@ export default function PublicOrder() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchProducts({ in_stock: "1", ordering: "-created_at" })
-      .then((data) => setProducts((data.results ?? data).slice(0, 24)))
+    getPublicShop(slug)
+      .then((data) => {
+        setShop(data);
+        setProducts((data.products ?? []).filter((product) => product.in_stock).slice(0, 24));
+      })
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoading(false));
-  }, []);
+  }, [slug]);
 
   const selectedItems = useMemo(
     () =>
@@ -123,9 +128,9 @@ export default function PublicOrder() {
   return (
     <div className="bg-white">
       <Seo
-        title="Commander"
-        description="Passez une commande ANIFOWOCHE sans créer de compte, avec livraison à Cotonou."
-        path="/commande/public"
+        title={`Commander chez ${shop?.name ?? "la boutique"}`}
+        description={`Passez une commande auprès de ${shop?.name ?? "cette boutique"} sans créer de compte.`}
+        path={`/${slug}/commande`}
       />
 
       <section className="border-b border-black/10 bg-brand-pale">
@@ -136,7 +141,7 @@ export default function PublicOrder() {
                 Commande rapide
               </p>
               <h1 className="mt-2 text-3xl font-bold text-ink md:text-4xl">
-                Formulaire de commande public
+                Commander chez {shop?.name}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
                 Sélectionnez les articles, laissez vos coordonnées, puis l'équipe confirme la
@@ -144,10 +149,10 @@ export default function PublicOrder() {
               </p>
             </div>
             <Link
-              to="/catalogue"
+              to={`/${slug}`}
               className="inline-flex items-center justify-center rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark"
             >
-              Voir le catalogue
+              Voir la boutique
             </Link>
           </div>
         </div>

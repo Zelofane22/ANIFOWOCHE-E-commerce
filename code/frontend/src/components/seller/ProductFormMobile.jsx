@@ -382,7 +382,7 @@ export default function ProductFormMobile({
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [published, setPublished] = useState(isEditing);
+  const [published, setPublished] = useState(false);
   const [savedProduct, setSavedProduct] = useState(product ?? null);
 
   const editingSlug = savedProduct?.slug ?? null;
@@ -1043,11 +1043,11 @@ export default function ProductFormMobile({
                   <ChevronRightIcon size={16} />
                 </>
               ) : submitting ? (
-                "Publication..."
+                isEditing ? "Enregistrement..." : "Publication..."
               ) : (
                 <>
                   <CheckIcon size={16} />
-                  Publier
+                  {isEditing ? "Enregistrer" : "Publier"}
                 </>
               )}
             </button>

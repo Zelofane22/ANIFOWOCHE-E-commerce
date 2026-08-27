@@ -156,10 +156,10 @@ export default function Navbar() {
                     Toutes les catégories
                   </Link>
                   <Link
-                    to="/commande/public"
+                    to="/catalogue"
                     className="rounded px-3 py-1.5 font-medium text-white transition hover:bg-white/10 hover:text-brand"
                   >
-                    Commander
+                    Catalogue
                   </Link>
                 </>
               )}
@@ -229,11 +229,11 @@ export default function Navbar() {
               Catalogue
             </Link>
             <Link
-              to="/commande/public"
+              to="/catalogue"
               onClick={() => setMenuOpen(false)}
               className="border-b border-white/10 py-3 text-white transition hover:text-brand"
             >
-              Commander
+              Catalogue
             </Link>
             {categories.map((category) => (
               <Link
