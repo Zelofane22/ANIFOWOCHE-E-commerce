@@ -85,35 +85,38 @@ export default function App() {
   if (isSellerSubdomain) {
     return (
       <AuthProvider>
-        <div className="min-h-screen bg-white text-ink">
-          <ScrollToTop />
-          <main>
-            <Suspense fallback={<PageSkeleton />}>
-              <Routes>
-                <Route path="/" element={<SellerHome />} />
-                <Route path="/login" element={<SellerAuth />} />
-                <Route path="/register" element={<SellerAuth />} />
-                <Route path="/dashboard" element={<SellerDashboard />} />
-                <Route path="/stats" element={<SellerStats />} />
-                <Route path="/orders" element={<SellerOrders />} />
-                <Route path="/orders/:id" element={<SellerOrderDetail />} />
-                <Route path="/products/new" element={<SellerProductNew />} />
-                <Route path="/products/:slug" element={<SellerProductManage />} />
-                <Route path="/products/:slug/edit" element={<SellerProductEdit />} />
-                <Route path="/products" element={<SellerProducts />} />
-                <Route path="/boutique" element={<SellerShopPage />} />
-                <Route path="/plan" element={<SellerPlan />} />
-                <Route path="/settings" element={<SellerSettings />} />
-                <Route path="/notifications" element={<SellerNotifications />} />
-                <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
-                <Route path="/:slug/commande" element={<PublicOrder />} />
+        <CartProvider>
+          <div className="min-h-screen bg-white text-ink">
+            <ScrollToTop />
+            <main>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="/" element={<SellerHome />} />
+                  <Route path="/login" element={<SellerAuth />} />
+                  <Route path="/register" element={<SellerAuth />} />
+                  <Route path="/dashboard" element={<SellerDashboard />} />
+                  <Route path="/stats" element={<SellerStats />} />
+                  <Route path="/orders" element={<SellerOrders />} />
+                  <Route path="/orders/:id" element={<SellerOrderDetail />} />
+                  <Route path="/products/new" element={<SellerProductNew />} />
+                  <Route path="/products/:slug" element={<SellerProductManage />} />
+                  <Route path="/products/:slug/edit" element={<SellerProductEdit />} />
+                  <Route path="/products" element={<SellerProducts />} />
+                  <Route path="/boutique" element={<SellerShopPage />} />
+                  <Route path="/plan" element={<SellerPlan />} />
+                  <Route path="/settings" element={<SellerSettings />} />
+                  <Route path="/notifications" element={<SellerNotifications />} />
+                  <Route path="/:slug/produits/:productSlug" element={<SellerProductDetail />} />
+                  <Route path="/:slug/commande" element={<PublicOrder />} />
+                  <Route path="/commande/confirmation" element={<OrderConfirmation />} />
                 <Route path="/shop/:slug" element={<SellerShopRedirect />} />
                 <Route path="/:slug" element={<PublicShop />} />
                 <Route path="*" element={<SellerFallback />} />
-              </Routes>
-            </Suspense>
-          </main>
-        </div>
+                </Routes>
+              </Suspense>
+            </main>
+          </div>
+        </CartProvider>
       </AuthProvider>
     );
   }
