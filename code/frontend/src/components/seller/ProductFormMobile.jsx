@@ -760,21 +760,9 @@ export default function ProductFormMobile({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: "#6B7280" }}>
-                  Revenu vendeur
+                  Revenu vendeur (sans commission)
                 </span>
                 <span className="text-sm font-semibold" style={{ color: "#16A34A" }}>
-                  {price.toLocaleString("fr-FR")} XOF
-                </span>
-              </div>
-              <div
-                className="my-1 border-t"
-                style={{ borderColor: "rgba(0,0,0,0.06)" }}
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold" style={{ color: "#111827" }}>
-                  Revenu net
-                </span>
-                <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
                   {price.toLocaleString("fr-FR")} XOF
                 </span>
               </div>
