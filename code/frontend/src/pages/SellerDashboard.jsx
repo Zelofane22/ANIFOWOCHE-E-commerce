@@ -224,7 +224,9 @@ export default function SellerDashboard() {
         <div className="grid grid-cols-3 gap-3 px-4 sm:px-0">
           <StatCard label="Commandes" value={orders_count} sub="ce mois" color="text-blue-600" icon={PackageIcon} />
           <StatCard label="Actifs" value={products_count} sub="produits" color="text-emerald-600" icon={PackageIcon} />
-          <StatCard label="En attente" value={pending_count} sub="a traiter" color="text-amber-600" icon={AlertCircleIcon} />
+          <Link to="/orders?filter=pending" className="block rounded-2xl transition active:scale-[0.98]">
+            <StatCard label="En attente" value={pending_count} sub="a traiter" color="text-amber-600" icon={AlertCircleIcon} />
+          </Link>
         </div>
 
         <div className="px-4 sm:px-0">
@@ -265,23 +267,6 @@ export default function SellerDashboard() {
             </Link>
           </div>
         </div>
-
-        {pending_count > 0 && (
-          <div className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:mx-0">
-            <div className="mb-3 flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                <AlertCircleIcon className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold leading-snug text-gray-900">{pending_count} commande{pending_count > 1 ? "s" : ""} necessite{pending_count > 1 ? "nt" : ""} votre attention</p>
-                <p className="mt-1 text-xs text-gray-500">Consultez vos commandes en attente de traitement.</p>
-              </div>
-            </div>
-            <Link to="/orders" className="flex w-full items-center justify-center rounded-[10px] bg-amber-100 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-200">
-              Voir les commandes
-            </Link>
-          </div>
-        )}
 
         {low_stock.length > 0 && (
           <div className="mx-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 sm:mx-0">
