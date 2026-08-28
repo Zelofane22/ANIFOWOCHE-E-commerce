@@ -201,13 +201,15 @@ function ProductGallery({ slug, colors }) {
     setUploading(true);
     setError(null);
     try {
-      for (const file of files) {
-        const fd = new FormData();
-        fd.append("image", file);
-        fd.append("order", String(images.length));
-        await createSellerProductImage(slug, fd);
-      }
-      fetchImages();
+      const newImages = await Promise.all(
+        files.map((file, index) => {
+          const fd = new FormData();
+          fd.append("image", file);
+          fd.append("order", String(images.length + index));
+          return createSellerProductImage(slug, fd);
+        })
+      );
+      setImages((prev) => [...prev, ...newImages]);
     } catch {
       setError("Erreur lors de l'ajout des images.");
     } finally {

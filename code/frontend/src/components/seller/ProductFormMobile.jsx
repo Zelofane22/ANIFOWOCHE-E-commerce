@@ -195,14 +195,15 @@ function PhotoGallery({ slug, colors }) {
     setUploading(true);
     setError(null);
     try {
-      for (const file of files) {
-        const fd = new FormData();
-        fd.append("image", file);
-        fd.append("order", String(images.length));
-        await createSellerProductImage(slug, fd);
-      }
-      const data = await getSellerProductImages(slug);
-      setImages(data.results ?? data);
+      const newImages = await Promise.all(
+        files.map((file, index) => {
+          const fd = new FormData();
+          fd.append("image", file);
+          fd.append("order", String(images.length + index));
+          return createSellerProductImage(slug, fd);
+        })
+      );
+      setImages((prev) => [...prev, ...newImages]);
     } catch {
       setError("Erreur lors de l\u2019ajout des images.");
     } finally {
