@@ -573,8 +573,6 @@ export default function ProductFormMobile({
   );
 
   const renderStepPriceStock = () => {
-    const price = parseFloat(form.price_xof) || 0;
-
     return (
       <div className="flex flex-col gap-4">
         <div>
@@ -742,33 +740,6 @@ export default function ProductFormMobile({
           </div>
         </div>
 
-        {price > 0 && (
-          <div
-            className="rounded-[16px] border border-black/[0.05] bg-white p-4"
-          >
-            <h4 className="text-sm font-bold" style={{ color: "#111827" }}>
-              Aperçu financier
-            </h4>
-            <div className="mt-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: "#6B7280" }}>
-                  Prix de vente
-                </span>
-                <span className="text-sm font-bold" style={{ color: "#111827" }}>
-                  {price.toLocaleString("fr-FR")} XOF
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: "#6B7280" }}>
-                  Revenu vendeur (sans commission)
-                </span>
-                <span className="text-sm font-semibold" style={{ color: "#16A34A" }}>
-                  {price.toLocaleString("fr-FR")} XOF
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
