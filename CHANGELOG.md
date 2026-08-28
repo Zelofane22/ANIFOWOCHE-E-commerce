@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.12.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.11.0...v2.12.0) (2026-08-28)
+
+
+### Features
+
+* delivery method per item (delivery/pickup) ([c47cda3](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/c47cda3d896320c1c855491d025590bc34b9125b))
+* **order:** add WhatsApp contact option with order details in confirmation ([655265c](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/655265c59fb85f4e867f0cf2be76f483d5e568b4))
+* **order:** include order details in confirmation state for improved display ([d4e0ce6](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/d4e0ce68273237205d3d972e95ff403252ac6efb))
+* **seller:** permettre au vendeur de réactiver un produit archivé ([bed4304](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/bed43040253b9de481f44fa77cb4c4447ae7a91d))
+* **seller:** update StatCard component to accept additional className prop ([23d2731](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/23d27317ac51a6eba0fbe3288a58fcd461f4c715))
+* update public order and shop routing, remove deprecated paths ([ed4ba1f](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/ed4ba1fc0f3f074489251ad40a10f7519c9e4aa5))
+
+
+### Bug Fixes
+
+* **notifications:** ensure email check for seller notifications is correctly placed ([23d2731](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/23d27317ac51a6eba0fbe3288a58fcd461f4c715))
+* **order:** pass shopSlug to order details for improved navigation ([b62f570](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/b62f570dd847a0d042d1bcffba5270a2d547a3a3))
+* **SellerOrders:** initialize activeFilter state from searchParams for improved filtering ([23d2731](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/23d27317ac51a6eba0fbe3288a58fcd461f4c715))
+* **seller:** redirect connected sellers away from landing, auto-redirect to products after save ([f3f581e](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/f3f581e53b76ef29a5ddf308096733b4cf5b3009))
+* **seller:** wrap seller routes in CartProvider for improved cart management ([5a4ff92](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/5a4ff92cdf09e01c941e28755e19fbcba66ad7e6))
+
 ## [2.11.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.10.0...v2.11.0) (2026-08-27)
 
 
