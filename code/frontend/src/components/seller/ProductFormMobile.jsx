@@ -574,8 +574,6 @@ export default function ProductFormMobile({
 
   const renderStepPriceStock = () => {
     const price = parseFloat(form.price_xof) || 0;
-    const commission = Math.round(price * 0.02);
-    const netRevenue = price - commission;
 
     return (
       <div className="flex flex-col gap-4">
@@ -762,10 +760,10 @@ export default function ProductFormMobile({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: "#6B7280" }}>
-                  Commission ANIF (2%)
+                  Revenu vendeur
                 </span>
-                <span className="text-sm font-semibold" style={{ color: "#EF4444" }}>
-                  -{commission.toLocaleString("fr-FR")} XOF
+                <span className="text-sm font-semibold" style={{ color: "#16A34A" }}>
+                  {price.toLocaleString("fr-FR")} XOF
                 </span>
               </div>
               <div
@@ -777,7 +775,7 @@ export default function ProductFormMobile({
                   Revenu net
                 </span>
                 <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
-                  {netRevenue.toLocaleString("fr-FR")} XOF
+                  {price.toLocaleString("fr-FR")} XOF
                 </span>
               </div>
             </div>
