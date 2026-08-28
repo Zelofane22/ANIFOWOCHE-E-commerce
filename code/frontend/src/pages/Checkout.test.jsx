@@ -53,7 +53,7 @@ vi.mock("../components/ProductImage.jsx", () => ({
   default: ({ src, alt }) => <img src={src} alt={alt} />,
 }));
 
-const cartValue = {
+const createCartValue = (items = []) => ({
   items: [
     {
       id: 1,
@@ -67,16 +67,34 @@ const cartValue = {
       colorHex: "#ff0000",
       selectedOptions: [],
       quantity: 1,
+      deliveryMethod: "delivery",
+      ...items[0],
     },
-  ],
-  subtotal: 15000,
-  itemCount: 1,
+    {
+      id: 2,
+      slug: "sac-cuir",
+      name: "Sac en cuir",
+      price_xof: 25000,
+      unit: "pièce",
+      size: "UNIQUE",
+      image: null,
+      colorName: "",
+      colorHex: "",
+      selectedOptions: [],
+      quantity: 1,
+      deliveryMethod: "pickup",
+      ...items[1],
+    },
+  ].filter(Boolean),
+  subtotal: 40000,
+  itemCount: 2,
   addItem: vi.fn(),
   updateQuantity: vi.fn(),
   removeItem: vi.fn(),
+  updateDeliveryMethod: vi.fn(),
   clearCart: vi.fn(),
   reconcileCart: vi.fn(),
-};
+});
 
 const authValue = {
   user: null,
@@ -91,7 +109,7 @@ function ConfirmationStub() {
   return <p>Confirmation affichée</p>;
 }
 
-function renderCheckout() {
+function renderCheckout(cartValue = createCartValue()) {
   return render(
     <AuthContextValue.Provider value={authValue}>
       <CartContextValue.Provider value={cartValue}>
@@ -118,7 +136,7 @@ async function goToPaymentStep() {
 }
 
 async function submitOrder() {
-  const buttons = screen.getAllByRole("button", { name: /Commander/ });
+  const buttons = screen.getAllByRole("button", { name: /Commander|Payer/ });
   fireEvent.click(buttons[0]);
 }
 
@@ -132,7 +150,7 @@ describe("Checkout", () => {
       payment_methods: { mtn: true, moov: true, card: true, cash_on_delivery: true },
     });
     vi.mocked(getAddresses).mockResolvedValue({ results: [] });
-    vi.mocked(createOrder).mockResolvedValue({ id: 42, total_xof: 15000 });
+    vi.mocked(createOrder).mockResolvedValue({ id: 42, total_xof: 40000 });
     vi.mocked(createDelivery).mockResolvedValue({ id: 7 });
     vi.mocked(initiatePayment).mockResolvedValue({ id: 99, status: "cash_on_delivery", payment_url: null });
     vi.mocked(openFedapayCheckout).mockResolvedValue("approved");
@@ -144,14 +162,16 @@ describe("Checkout", () => {
     expect(screen.getByRole("heading", { name: "Adresse de livraison" })).toBeInTheDocument();
     expect(screen.getByText("Votre commande")).toBeInTheDocument();
     expect(screen.getByText("Robe Wax")).toBeInTheDocument();
+    expect(screen.getByText("Sac en cuir")).toBeInTheDocument();
     expect(screen.getByText("Sous-total")).toBeInTheDocument();
 
     await screen.findByRole("combobox", { name: /Quartier/ });
     expect(screen.getByRole("option", { name: /Cotonou/ })).toBeInTheDocument();
   });
 
-  it("soumet la commande avec le bon payload (items) et redirige vers la confirmation", async () => {
-    renderCheckout();
+  it("soumet la commande avec le bon payload (items avec delivery_method) et redirige vers la confirmation", async () => {
+    const cart = createCartValue();
+    renderCheckout(cart);
     await goToPaymentStep();
     await submitOrder();
 
@@ -163,14 +183,57 @@ describe("Checkout", () => {
       address: "Cotonou — créneau : Matin",
       city: "Cotonou",
       coupon_code: "",
-      items: [{ product_id: 1, quantity: 1, color_name: "Rouge", color_hex: "#ff0000", selected_options: [] }],
+      items: [
+        { product_id: 1, quantity: 1, color_name: "Rouge", color_hex: "#ff0000", selected_options: [], delivery_method: "delivery" },
+        { product_id: 2, quantity: 1, color_name: "", color_hex: "", selected_options: [], delivery_method: "pickup" },
+      ],
     });
 
+    // createDelivery should be called only for delivery items
     expect(createDelivery).toHaveBeenCalledWith({ order_id: 42, zone_id: 1, slot_id: 1 });
     expect(initiatePayment).toHaveBeenCalledWith({ order_id: 42, method: "cash_on_delivery" });
-    expect(cartValue.clearCart).toHaveBeenCalled();
+    expect(cart.clearCart).toHaveBeenCalled();
 
     expect(await screen.findByText("Confirmation affichée")).toBeInTheDocument();
+  });
+
+  it("groupe les articles par mode de récupération dans le récapitulatif", async () => {
+    renderCheckout();
+
+    expect(screen.getByText("À livrer (1)")).toBeInTheDocument();
+    expect(screen.getByText("À retirer chez le vendeur (1)")).toBeInTheDocument();
+    expect(screen.getByText("Robe Wax")).toBeInTheDocument();
+    expect(screen.getByText("Sac en cuir")).toBeInTheDocument();
+  });
+
+  it("ne nécessite pas d'adresse si tous les articles sont en retrait", async () => {
+    const pickupOnlyCart = createCartValue([
+      { id: 1, deliveryMethod: "pickup" },
+      { id: 2, deliveryMethod: "pickup" },
+    ]);
+    renderCheckout(pickupOnlyCart);
+
+    // Should show "Informations de commande" instead of "Adresse de livraison"
+    expect(screen.getByRole("heading", { name: "Informations de commande" })).toBeInTheDocument();
+    
+    // Zone selector should not be present for pickup-only orders
+    const zoneLabel = screen.queryByLabelText(/Quartier/);
+    expect(zoneLabel).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Nom complet"), { target: { value: "Fofo" } });
+    fireEvent.change(screen.getByLabelText(/Téléphone/), { target: { value: "+229 01 00 00 00" } });
+    // Wait for delivery options to load (even for pickup, component waits)
+    await waitFor(() => expect(screen.getByRole("button", { name: "Continuer vers le paiement" })).not.toBeDisabled());
+    
+    fireEvent.click(screen.getByRole("button", { name: "Continuer vers le paiement" }));
+    await submitOrder();
+
+    await waitFor(() => expect(createOrder).toHaveBeenCalledTimes(1));
+    expect(createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ address: "" })
+    );
+    // createDelivery should NOT be called for pickup-only orders
+    expect(createDelivery).not.toHaveBeenCalled();
   });
 
   it("inclut coupon_code dans le payload quand un coupon est appliqué", async () => {

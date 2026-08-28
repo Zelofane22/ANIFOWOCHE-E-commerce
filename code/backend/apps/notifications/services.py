@@ -319,9 +319,6 @@ def notify_seller_new_order(order):
     sent = []
     for seller, items in sellers_items.items():
         seller_user = seller.user
-        if not seller_user.email:
-            continue
-
         items_summary = ", ".join(f"{item.quantity}x {item.product.name}" for item in items)
         seller_total = sum(item.subtotal_xof for item in items)
         message = (
@@ -331,6 +328,9 @@ def notify_seller_new_order(order):
             f"Montant pour votre boutique : {seller_total} FCFA\n"
             f"Adresse de livraison : {order.address}, {order.city}"
         )
+        if not seller_user.email:
+            continue
+
         notification = _send_email(
             event=Notification.Event.ORDER_CONFIRMATION,
             recipient_email=seller_user.email,

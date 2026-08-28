@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { getAddresses } from "../api/addresses.js";
-import { createDelivery, fetchDeliverySlots, fetchDeliveryZones, geolocateZone } from "../api/delivery.js";
+import { createDelivery, fetchDeliverySlots, fetchDeliveryZones } from "../api/delivery.js";
 import { createOrder } from "../api/orders.js";
 import { initiatePayment } from "../api/payments.js";
 import { fetchStoreStatus } from "../api/store.js";
-import { validateCoupon } from "../api/promotions.js";
 import { PAYMENT_METHODS } from "../constants/payments.js";
 import { useAuth } from "../context/useAuth.js";
 import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { openFedapayCheckout } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
-import ProductImage from "../components/ProductImage.jsx";
 import Seo from "../components/Seo.jsx";
+import CheckoutSteps from "../components/checkout/CheckoutSteps.jsx";
+import ShippingForm from "../components/checkout/ShippingForm.jsx";
+import PaymentMethodSelector from "../components/checkout/PaymentMethodSelector.jsx";
+import CheckoutSummary from "../components/checkout/CheckoutSummary.jsx";
 
 const DEFAULT_STORE_STATUS = {
   online_payment_enabled: true,
@@ -37,14 +39,13 @@ const cartItemSignature = (item) =>
     item.colorName || "",
     item.colorHex || "",
     item.selectedOptions || [],
+    item.deliveryMethod || "delivery",
   ]);
 
 export default function Checkout() {
   const { items, subtotal, clearCart, reconcileCart } = useCart();
   const initialCartRef = useRef(items);
 
-  // Réconcilie le panier localStorage avec le catalogue live au montage
-  // (retire les produits supprimés, met à jour prix/id) avant commande — cf. issue JAVASCRIPT-REACT-S.
   useEffect(() => {
     reconcileCart();
   }, [reconcileCart]);
@@ -130,56 +131,13 @@ export default function Checkout() {
     setNotes(address.notes);
   };
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationError("La geolocalisation n est pas disponible sur cet appareil.");
-      return;
-    }
-    setLocating(true);
-    setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords: position }) => {
-        const nextCoordinates = { latitude: parseFloat(position.latitude.toFixed(6)), longitude: parseFloat(position.longitude.toFixed(6)) };
-        setCoordinates(nextCoordinates);
-        try {
-          const result = await geolocateZone(nextCoordinates);
-          if (result.zone) setZoneId(result.zone.id);
-          else setLocationError("Aucune zone ne couvre cette position. Selectionnez une zone manuellement.");
-        } catch (err) {
-          setLocationError(extractErrorMessage(err));
-        } finally {
-          setLocating(false);
-        }
-      },
-      () => {
-        setLocating(false);
-        setLocationError("Position inaccessible. Autorisez la geolocalisation ou selectionnez une zone manuellement.");
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
-    );
-  };
-
-  if (authLoading) {
-    return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center">
-        <p className="text-lg font-medium text-ink">Votre panier est vide</p>
-        <Link
-          to="/catalogue"
-          className="mt-6 inline-block rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark"
-        >
-          Voir le catalogue
-        </Link>
-      </div>
-    );
-  }
+  const deliveryItems = items.filter((item) => (item.deliveryMethod || "delivery") === "delivery");
+  const pickupItems = items.filter((item) => (item.deliveryMethod || "delivery") === "pickup");
+  const hasDeliveryItems = deliveryItems.length > 0;
 
   const selectedZone = zones.find((option) => option.id === zoneId);
   const selectedSlot = slots.find((option) => option.id === slotId);
-  const deliveryFee = selectedZone?.fee_xof ?? 0;
+  const deliveryFee = hasDeliveryItems ? (selectedZone?.fee_xof ?? 0) : 0;
   const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.discount_percent) / 100) : 0;
   const total = subtotal - discountAmount + deliveryFee;
   const selectedPaymentMethod = PAYMENT_METHODS.find((method) => method.value === paymentMethod);
@@ -189,43 +147,18 @@ export default function Checkout() {
       : PAYMENT_METHODS.find((method) => !isMethodDisabled(method));
   const effectivePaymentMethodValue = effectivePaymentMethod?.value ?? paymentMethod;
   const isSelectedMethodOffline = effectivePaymentMethod?.type === "offline";
-  const canPay =
-    fullName.trim() !== "" &&
-    phone.trim() !== "" &&
-    zoneId != null &&
-    slotId != null &&
-    !!effectivePaymentMethod &&
-    !submitting &&
-    !loadingDeliveryOptions;
 
   const canContinueToPayment =
     fullName.trim() !== "" &&
     phone.trim() !== "" &&
-    zoneId != null &&
-    slotId != null &&
+    (!hasDeliveryItems || (zoneId != null && slotId != null)) &&
     !loadingDeliveryOptions;
 
-  const handleApplyCoupon = async () => {
-    const code = couponCode.trim();
-    if (!code) return;
-    setCouponError(null);
-    setValidatingCoupon(true);
-    try {
-      const result = await validateCoupon(code);
-      setAppliedCoupon(result);
-    } catch (err) {
-      setAppliedCoupon(null);
-      setCouponError(extractErrorMessage(err));
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode("");
-    setCouponError(null);
-  };
+  const canPay =
+    canContinueToPayment &&
+    !!effectivePaymentMethod &&
+    !submitting &&
+    !loadingDeliveryOptions;
 
   const handlePay = async (event) => {
     event.preventDefault();
@@ -235,14 +168,17 @@ export default function Checkout() {
 
     const zone = selectedZone;
     const slot = selectedSlot;
-    const address = [zone.name, addressLine.trim(), "créneau : " + slot.label, notes.trim()].filter(Boolean).join(" — ");
+    const addressParts = hasDeliveryItems
+      ? [zone?.name, addressLine.trim(), "créneau : " + slot?.label, notes.trim()].filter(Boolean)
+      : [notes.trim()].filter(Boolean);
+    const address = addressParts.join(" — ");
 
     try {
       const order = await createOrder({
         full_name: fullName.trim(),
         phone: phone.trim(),
         email: user?.email ?? "",
-        address,
+        address: hasDeliveryItems ? address : "",
         city: "Cotonou",
         ...(coordinates ?? {}),
         coupon_code: appliedCoupon?.code ?? "",
@@ -252,16 +188,18 @@ export default function Checkout() {
           color_name: item.colorName || "",
           color_hex: item.colorHex || "",
           selected_options: item.selectedOptions || [],
+          delivery_method: item.deliveryMethod || "delivery",
         })),
       });
 
       let orderTotal = order.total_xof;
-      try {
-        await createDelivery({ order_id: order.id, zone_id: zoneId, slot_id: slotId });
-        orderTotal += deliveryFee;
-      } catch {
-        // La commande reste valide même si l'enregistrement de la livraison échoue ;
-        // elle pourra être rattachée manuellement depuis l'admin.
+      if (hasDeliveryItems) {
+        try {
+          await createDelivery({ order_id: order.id, zone_id: zoneId, slot_id: slotId });
+          orderTotal += deliveryFee;
+        } catch {
+          // La commande reste valide même si l'enregistrement de la livraison échoue ;
+        }
       }
 
       let paymentStatus = "cash_on_delivery";
@@ -278,7 +216,6 @@ export default function Checkout() {
             paymentStatus = payment.status;
           }
         } catch {
-          // La commande est bien enregistrée même si l'appel FedaPay échoue (sandbox indisponible).
           paymentStatus = "failed";
         }
       } else {
@@ -309,44 +246,28 @@ export default function Checkout() {
     return isSelectedMethodOffline ? `Commander ${formatXof(total)}` : `Payer ${formatXof(total)}`;
   };
 
-  const inputClass =
-    "mt-1.5 w-full rounded-lg border border-black/15 px-4 py-3 text-sm text-ink placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/15";
+  if (authLoading) {
+    return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center">
+        <p className="text-lg font-medium text-ink">Votre panier est vide</p>
+        <Link
+          to="/catalogue"
+          className="mt-6 inline-block rounded-lg bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark"
+        >
+          Voir le catalogue
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handlePay} className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
       <Seo title="Commande" path="/commande" type="website" />
-      <div className="mb-6 flex items-center gap-1 text-sm text-muted sm:gap-2">
-        <button type="button" onClick={() => navigate("/panier")} className="font-medium transition hover:text-brand-dark">
-          Panier
-        </button>
-        <span aria-hidden="true" className="mx-1 text-black/30 sm:mx-2">/</span>
-        {["Livraison", "Paiement", "Confirmation"].map((label, index) => {
-          const stepNumber = index + 1;
-          const completed = step > stepNumber;
-          const active = step === stepNumber;
-          return (
-            <div key={label} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-              <div
-                aria-current={active ? "step" : undefined}
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
-                  completed || active
-                    ? "border-brand bg-brand text-white"
-                    : "border-black/20 bg-white text-muted"
-                }`}
-              >
-                {stepNumber}
-              </div>
-              <span className={`min-w-0 truncate ${active ? "font-semibold text-brand-dark" : completed ? "font-medium text-ink" : "text-muted"}`}>
-                <span className="min-[380px]:hidden">{label === "Livraison" ? "Livr." : label === "Paiement" ? "Paiem." : "Confirm."}</span>
-                <span className="hidden min-[380px]:inline">{label}</span>
-              </span>
-              {stepNumber < 3 && (
-                <span className={`h-0.5 min-w-2 flex-1 ${step > stepNumber ? "bg-brand" : "bg-black/10"}`} />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <CheckoutSteps currentStep={step} />
 
       {cartAdjustmentNotice && (
         <p role="alert" className="mb-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -363,392 +284,72 @@ export default function Checkout() {
       <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
         <div>
           {step === 1 && (
-            <>
-              <h1 className="text-xl font-bold text-ink">Adresse de livraison</h1>
-              {!isAuthenticated && (
-                <p className="mt-2 text-sm text-muted">Commandez sans créer de compte. Le paiement se fera à la livraison.</p>
-              )}
-
-              <div className="mt-5 space-y-4">
-                <label className="block text-sm font-semibold text-ink">
-                  Nom complet
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                    required
-                    className={inputClass}
-                  />
-                </label>
-
-                {savedAddresses.length > 0 && (
-                  <label className="block text-sm font-semibold text-ink">
-                    Utiliser une adresse enregistrée
-                    <select
-                      defaultValue=""
-                      onChange={(event) => applySavedAddress(event.target.value)}
-                      className={inputClass}
-                    >
-                      <option value="">Sélectionner une adresse</option>
-                      {savedAddresses.map((address) => (
-                        <option key={address.id} value={address.id}>
-                          {address.label || address.zone_name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-
-                <label className="block text-sm font-semibold text-ink">
-                  Quartier / Zone à Cotonou
-                  {loadingDeliveryOptions ? (
-                    <p className="mt-2 rounded-lg border border-black/10 px-4 py-3 text-sm font-normal text-muted">
-                      Chargement des zones de livraison…
-                    </p>
-                  ) : (
-                    <select
-                      value={zoneId ?? ""}
-                      onChange={(event) => setZoneId(Number(event.target.value))}
-                      required
-                      className={inputClass}
-                    >
-                      {zones.map((zone) => (
-                        <option key={zone.id} value={zone.id}>
-                          {zone.name}
-                          {zone.fee_xof > 0 ? ` (+${formatXof(zone.fee_xof)})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </label>
-
-                <label className="block text-sm font-semibold text-ink">
-                  Adresse ou repère
-                  <input type="text" value={addressLine} onChange={(event) => setAddressLine(event.target.value)} placeholder="Rue, maison, repère proche..." className={inputClass} />
-                </label>
-
-                <div className="rounded-lg border border-brand/20 bg-brand-pale px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-ink">Localiser l'adresse</p>
-                      <p className="mt-1 text-xs text-muted">La position servira à confirmer la zone de livraison.</p>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={handleUseLocation} 
-                      disabled={locating} 
-                      className="rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-medium disabled:opacity-60">
-                      {locating ? "Localisation..." : "Utiliser ma position"}
-                    </button>
-                  </div>
-                  {coordinates && (
-                    <p aria-live="polite" className="mt-2 text-xs text-green-700">
-                      Position enregistrée : {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}
-                    </p>
-                  )}
-                  {locationError && (
-                    <p role="alert" className="mt-2 text-xs text-red-600">
-                      {locationError}
-                    </p>
-                  )}
-                </div>
-
-                <label className="block text-sm font-semibold text-ink">
-                  Indications complémentaires
-                  <textarea
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    rows={3}
-                    placeholder="Bâtiment, étage, repère proche..."
-                    className={`${inputClass} resize-none`}
-                  />
-                </label>
-
-                <label className="block text-sm font-semibold text-ink">
-                  Téléphone (SMS + WhatsApp)
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    required
-                    placeholder="+229 01 XX XX XX XX"
-                    className={inputClass}
-                  />
-                  <span className="mt-1.5 block text-xs font-normal text-muted">
-                    Vous recevrez un SMS de confirmation sous 1h.
-                  </span>
-                </label>
-              </div>
-
-              <div className="mt-6">
-                <p className="text-sm font-semibold text-ink">Créneau de livraison</p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  {slots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => setSlotId(slot.id)}
-                      className={`rounded-[10px] border-2 px-3 py-4 text-center transition ${
-                        slotId === slot.id
-                          ? "border-brand bg-brand-light"
-                          : "border-black/10 bg-white hover:border-black/25"
-                      }`}
-                    >
-                      <span className="block text-sm font-semibold text-ink">{slot.label}</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        {slot.start_time?.slice(0, 5)} - {slot.end_time?.slice(0, 5)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                disabled={!canContinueToPayment}
-                onClick={() => setStep(2)}
-                className="mt-6 w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium disabled:bg-gray-200 disabled:text-gray-400"
-              >
-                Continuer vers le paiement
-              </button>
-            </>
+            <ShippingForm
+              isAuthenticated={isAuthenticated}
+              zones={zones}
+              slots={slots}
+              loadingDeliveryOptions={loadingDeliveryOptions}
+              savedAddresses={savedAddresses}
+              zoneId={zoneId}
+              setZoneId={setZoneId}
+              slotId={slotId}
+              setSlotId={setSlotId}
+              coordinates={coordinates}
+              setCoordinates={setCoordinates}
+              locating={locating}
+              setLocating={setLocating}
+              locationError={locationError}
+              setLocationError={setLocationError}
+              fullName={fullName}
+              setFullName={setFullName}
+              phone={phone}
+              setPhone={setPhone}
+              addressLine={addressLine}
+              setAddressLine={setAddressLine}
+              notes={notes}
+              setNotes={setNotes}
+              applySavedAddress={applySavedAddress}
+              canContinueToPayment={canContinueToPayment}
+              onContinue={() => setStep(2)}
+              hasDeliveryItems={hasDeliveryItems}
+            />
           )}
 
           {step === 2 && (
-            <>
-              <h1 className="text-xl font-bold text-ink">Moyen de paiement</h1>
-              <div className="mt-5 space-y-3">
-                {PAYMENT_METHODS.map((method) => {
-                  const disabled = isMethodDisabled(method);
-                  const selected = effectivePaymentMethodValue === method.value;
-                  return (
-                    <button
-                      key={method.value}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => {
-                        if (!disabled) setPaymentMethod(method.value);
-                      }}
-                      className={`flex w-full items-center gap-4 rounded-[10px] border-2 px-4 py-4 text-left transition ${
-                        disabled
-                          ? "cursor-not-allowed border-gray-200 bg-gray-50 opacity-75"
-                          : selected
-                            ? "border-brand bg-brand-light"
-                            : "border-black/10 bg-white hover:border-black/20"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                          disabled ? "bg-gray-300 text-gray-600" : "bg-ink text-white"
-                        }`}
-                      >
-                        {method.badge}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className={`block text-sm font-semibold ${disabled ? "text-gray-500" : "text-ink"}`}>
-                          {method.label}
-                        </span>
-                        <span className={`block text-xs ${disabled ? "text-gray-500" : "text-muted"}`}>
-                          {method.detail}
-                        </span>
-                        {disabled && (
-                          <span className="mt-1 block text-xs font-medium text-gray-500">
-                            Ce mode de paiement est indisponible pour le moment.
-                          </span>
-                        )}
-                      </span>
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                          selected && !disabled ? "border-brand bg-brand" : "border-black/20"
-                        }`}
-                      >
-                        {selected && !disabled && (
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
-                          </svg>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {!isAuthenticated && (
-                <div className="flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <div>
-                    <p className="font-semibold">Connectez-vous pour payer en ligne</p>
-                    <p className="mt-1 text-xs">
-                      Créez un compte ou connectez-vous pour utiliser le Mobile Money et la carte bancaire.
-                      Vous pouvez toutefois commander et payer à la livraison.
-                    </p>
-                    <div className="mt-2 flex gap-2">
-                      <a href="/compte" className="inline-block rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700">
-                        Se connecter
-                      </a>
-                      <a href="/inscription" className="inline-block rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100">
-                        Créer un compte
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 rounded-[10px] border border-brand/20 bg-brand-light p-4 text-sm text-brand-dark">
-                {isSelectedMethodOffline
-                  ? "Votre commande sera préparée et le paiement sera effectué à la livraison."
-                  : "Paiement sécurisé. Aucune donnée bancaire n'est stockée par ANIFOWOCHE."}
-              </div>
-
-              {waitingForPayment && (
-                <p aria-live="polite" className="mt-4 rounded-lg bg-brand-pale px-4 py-3 text-sm text-brand-dark">
-                  Vous allez être redirigé vers notre partenaire de paiement sécurisé FedaPay. Votre panier est conservé.
-                </p>
-              )}
-
-              <div className="mt-6 hidden gap-3 md:flex">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="rounded-lg border border-black/20 px-6 py-3.5 font-semibold text-ink transition hover:border-brand"
-                >
-                  Retour
-                </button>
-                <button
-                  type="submit"
-                  disabled={!canPay}
-                  className="min-w-0 flex-1 rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium disabled:bg-gray-200 disabled:text-gray-400"
-                >
-                  {getSubmitLabel()}
-                </button>
-              </div>
-            </>
+            <PaymentMethodSelector
+              isAuthenticated={isAuthenticated}
+              storeStatus={storeStatus}
+              setPaymentMethod={setPaymentMethod}
+              effectivePaymentMethodValue={effectivePaymentMethodValue}
+              isSelectedMethodOffline={isSelectedMethodOffline}
+              waitingForPayment={waitingForPayment}
+              onBack={() => setStep(1)}
+              canPay={canPay}
+              getSubmitLabel={getSubmitLabel}
+            />
           )}
         </div>
 
-        <aside>
-          <div className="sticky top-24 rounded-xl border border-black/10 bg-white p-5 shadow-sm">
-            <h2 className="font-bold text-ink">Votre commande</h2>
-            <div className="mt-4 space-y-3">
-              {items.map((item) => (
-                <div key={item.slug} className="flex items-center gap-3">
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-brand-pale">
-                    {item.image && <ProductImage src={item.image} alt={item.name} className="h-full w-full object-cover" />}
-                    <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-charcoal px-1 text-[10px] font-bold text-white">
-                      {item.quantity}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-ink">{item.name}</p>
-                    {item.size && item.size !== "UNIQUE" && <p className="text-xs text-muted">Taille {item.size}</p>}
-                    {item.colorName && (
-                      <p className="flex items-center gap-1 text-xs text-muted">
-                        <span
-                          className="inline-block h-2.5 w-2.5 rounded-full border border-black/10"
-                          style={{ backgroundColor: item.colorHex }}
-                        />
-                        {item.colorName}
-                      </p>
-                    )}
-                    {item.selectedOptions && item.selectedOptions.length > 0 && (
-                      <div className="mt-0.5 space-y-0.5">
-                        {item.selectedOptions.map((opt) => (
-                          <p key={opt.option_id} className="text-[10px] text-muted">
-                            {opt.group_name} : {opt.option_name}
-                            {opt.price_xof > 0 && <span className="text-muted"> +{formatXof(opt.price_xof)}</span>}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <span className="shrink-0 text-sm font-semibold text-ink">
-                    {formatXof(item.price_xof * item.quantity)}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 border-t border-black/10 pt-4">
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between gap-2">
-                  <p aria-live="polite" className="text-xs font-medium text-green-700">
-                    Code « {appliedCoupon.code} » appliqué (-{appliedCoupon.discount_percent}%)
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleRemoveCoupon}
-                    className="shrink-0 rounded-lg border border-black/15 px-3 py-2 text-sm font-semibold text-ink transition hover:border-red-300 hover:text-red-600"
-                  >
-                    Retirer
-                  </button>
-                </div>
-              ) : showCouponField ? (
-                <>
-                  <label className="block text-xs font-semibold text-ink">Code promo</label>
-                  <div className="mt-1.5 flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(event) => setCouponCode(event.target.value)}
-                      placeholder="Code coupon"
-                      className="min-w-0 flex-1 rounded-lg border border-black/15 px-3 py-2 text-sm uppercase placeholder:text-gray-400 placeholder:normal-case focus:border-brand"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleApplyCoupon}
-                      disabled={!couponCode.trim() || validatingCoupon}
-                      className="shrink-0 rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white transition disabled:opacity-50"
-                    >
-                      {validatingCoupon ? "…" : "Appliquer"}
-                    </button>
-                  </div>
-                  {couponError && (
-                    <p role="alert" className="mt-1.5 text-xs text-red-600">
-                      {couponError}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowCouponField(true)}
-                  className="text-xs font-semibold text-brand-dark hover:underline"
-                >
-                  Vous avez un code promo ?
-                </button>
-              )}
-            </div>
-
-            <div className="mt-4 space-y-2 border-t border-black/10 pt-4 text-sm">
-              <div className="flex justify-between text-muted">
-                <span>Sous-total</span>
-                <span className="text-ink">{formatXof(subtotal)}</span>
-              </div>
-              {appliedCoupon && (
-                <div className="flex justify-between text-green-700">
-                  <span>Réduction ({appliedCoupon.discount_percent}%)</span>
-                  <span>-{formatXof(discountAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-muted">
-                <span>Livraison</span>
-                {deliveryFee > 0 ? (
-                  <span className="text-ink">{formatXof(deliveryFee)}</span>
-                ) : (
-                  <span className="font-medium text-green-700">Gratuite</span>
-                )}
-              </div>
-              <div className="flex justify-between border-t border-black/10 pt-3 text-base font-bold text-ink">
-                <span>Total</span>
-                <span>{formatXof(total)}</span>
-              </div>
-            </div>
-          </div>
-        </aside>
+        <CheckoutSummary
+          items={items}
+          subtotal={subtotal}
+          appliedCoupon={appliedCoupon}
+          setAppliedCoupon={setAppliedCoupon}
+          couponCode={couponCode}
+          setCouponCode={setCouponCode}
+          couponError={couponError}
+          setCouponError={setCouponError}
+          validatingCoupon={validatingCoupon}
+          setValidatingCoupon={setValidatingCoupon}
+          showCouponField={showCouponField}
+          setShowCouponField={setShowCouponField}
+          deliveryFee={deliveryFee}
+          discountAmount={discountAmount}
+          total={total}
+          hasDeliveryItems={hasDeliveryItems}
+          deliveryItems={deliveryItems}
+          pickupItems={pickupItems}
+        />
       </div>
 
       {step === 2 && (

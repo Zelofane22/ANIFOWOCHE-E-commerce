@@ -13,13 +13,10 @@ import {
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
-
-const STATUS_CONFIG = {
-  received: { label: "Recue", color: "bg-blue-500" },
-  prepared: { label: "Preparee", color: "bg-amber-500" },
-  delivered: { label: "Livree", color: "bg-emerald-500" },
-  cancelled: { label: "Annulee", color: "bg-red-500" },
-};
+import { formatXof } from "../utils/format.js";
+import StatCard from "../components/seller/StatCard.jsx";
+import PlanLimitCard from "../components/seller/PlanLimitCard.jsx";
+import RecentOrders from "../components/seller/RecentOrders.jsx";
 
 const PLAN_META = {
   FREE: { name: "Gratuit", color: "text-gray-500", bg: "bg-gray-100" },
@@ -29,23 +26,6 @@ const PLAN_META = {
 };
 
 const PERIOD_MAP = { "7j": 7, "30j": 30, "3m": 90 };
-
-function formatXOF(amount) {
-  if (amount == null) return "0 F";
-  return Number(amount).toLocaleString("fr-FR") + " F";
-}
-
-function MiniBar({ value, max }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  return (
-    <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-      <div
-        className="h-full rounded-full bg-brand transition-all duration-500"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
 
 export default function SellerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -121,10 +101,6 @@ export default function SellerDashboard() {
   const pending_count = data.metrics?.pending_orders ?? 0;
   const products_count = data.metrics?.products ?? 0;
   const revenue_today = 0;
-  const products_used = limits?.products_used ?? products_count;
-  const orders_used = limits?.orders_this_month ?? orders_count;
-  const products_near_limit = plan === "FREE" && limits?.max_products != null && products_used / limits.max_products >= 0.8;
-  const orders_near_limit = plan === "FREE" && limits?.max_orders_per_month != null && orders_used / limits.max_orders_per_month >= 0.8;
 
   const planMeta = PLAN_META[plan] || PLAN_META.FREE;
   const chartData = revenue_chart.map((d) => ({
@@ -175,10 +151,10 @@ export default function SellerDashboard() {
             </div>
 
             <p className="text-3xl font-bold text-white">
-              {hideBalance ? "\u2022\u2022\u2022\u2022\u2022\u2022" : formatXOF(revenue)}
+              {hideBalance ? "\u2022\u2022\u2022\u2022\u2022\u2022" : formatXof(revenue)}
             </p>
             <p className="mt-1 text-sm text-gray-400">
-              Aujourd&apos;hui : {hideBalance ? "\u2022\u2022\u2022\u2022" : formatXOF(revenue_today)}
+              Aujourd&apos;hui : {hideBalance ? "\u2022\u2022\u2022\u2022" : formatXof(revenue_today)}
             </p>
 
             <div className="mt-3 flex items-center gap-1.5">
@@ -246,74 +222,51 @@ export default function SellerDashboard() {
         </div>
 
         <div className="grid grid-cols-3 gap-3 px-4 sm:px-0">
-          {[
-            { label: "Commandes", value: orders_count, sub: "ce mois", color: "text-blue-600" },
-            { label: "Actifs", value: products_count, sub: "produits", color: "text-emerald-600" },
-            { label: "En attente", value: pending_count, sub: "a traiter", color: "text-amber-600" },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-black/[0.05] bg-white p-3 text-center shadow-sm">
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className={`mt-0.5 text-xs font-bold ${stat.color}`}>{stat.label}</p>
-              <p className="text-[10px] text-gray-400">{stat.sub}</p>
-            </div>
-          ))}
+          <StatCard label="Commandes" value={orders_count} sub="ce mois" color="text-blue-600" icon={PackageIcon} />
+          <StatCard label="Actifs" value={products_count} sub="produits" color="text-emerald-600" icon={PackageIcon} />
+          <Link to="/orders?filter=pending" className="block rounded-2xl transition active:scale-[0.98]">
+            <StatCard label="En attente" value={pending_count} sub="a traiter" color="text-amber-600" icon={AlertCircleIcon} />
+          </Link>
         </div>
 
         <div className="px-4 sm:px-0">
           <p className="mb-3 px-1 text-sm font-bold text-gray-700">Actions rapides</p>
           <div className="grid grid-cols-4 gap-3">
-          <Link
-            to="/products/new"
-            className="group flex flex-col items-center gap-2"
-          >
-            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-brand text-white shadow-sm transition group-active:scale-95">
-              <PlusIcon className="h-5 w-5" />
-            </div>
-            <span className="text-center text-[10px] font-semibold leading-snug text-gray-700">Ajouter<br />produit</span>
-          </Link>
-          <button
-            onClick={handleCopyLink}
-            className="group flex flex-col items-center gap-2"
-          >
-            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-emerald-50 shadow-sm transition group-active:scale-95">
-              <Share2Icon className="h-5 w-5 text-emerald-500" />
-            </div>
-            <span className="text-center text-[10px] font-semibold leading-snug text-gray-700">{copyLabel}</span>
-          </button>
-          <Link
-            to="/orders"
-            className="group flex flex-col items-center gap-2"
-          >
-            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-blue-50 shadow-sm transition group-active:scale-95">
-              <PackageIcon className="h-5 w-5 text-blue-600" />
-            </div>
-            <span className="text-xs font-medium text-gray-700">Commandes</span>
-          </Link>
-          <Link to="/stats" className="group flex flex-col items-center gap-2">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-violet-50 shadow-sm transition group-active:scale-95">
-              <BarChartIcon className="h-5 w-5 text-violet-600" />
-            </div>
-            <span className="text-center text-[10px] font-semibold leading-snug text-gray-700">Stats</span>
-          </Link>
-          </div>
-        </div>
-
-        {pending_count > 0 && (
-          <div className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:mx-0">
-            <div className="mb-3 flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                <AlertCircleIcon className="h-4 w-4 text-amber-600" />
+            <Link
+              to="/products/new"
+              className="group flex flex-col items-center gap-2"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-brand text-white shadow-sm transition group-active:scale-95">
+                <PlusIcon className="h-5 w-5" />
               </div>
-              <div>
-                <p className="text-sm font-bold leading-snug text-gray-900">{pending_count} commande{pending_count > 1 ? "s" : ""} necessite{pending_count > 1 ? "nt" : ""} votre attention</p>
-                <p className="mt-1 text-xs text-gray-500">Consultez vos commandes en attente de traitement.</p>
+              <span className="text-center text-[10px] font-semibold leading-snug text-gray-700">Ajouter<br />produit</span>
+            </Link>
+            <button
+              onClick={handleCopyLink}
+              className="group flex flex-col items-center gap-2"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-emerald-50 shadow-sm transition group-active:scale-95">
+                <Share2Icon className="h-5 w-5 text-emerald-500" />
               </div>
-            </div>
-            <Link to="/orders" className="flex w-full items-center justify-center rounded-[10px] bg-amber-100 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-200">
-              Voir les commandes
+              <span className="text-center text-[10px] font-semibold leading-snug text-gray-700">{copyLabel}</span>
+            </button>
+            <Link
+              to="/orders"
+              className="group flex flex-col items-center gap-2"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-blue-50 shadow-sm transition group-active:scale-95">
+                <PackageIcon className="h-5 w-5 text-blue-600" />
+              </div>
+              <span className="text-xs font-medium text-gray-700">Commandes</span>
+            </Link>
+            <Link to="/stats" className="group flex flex-col items-center gap-2">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-violet-50 shadow-sm transition group-active:scale-95">
+                <BarChartIcon className="h-5 w-5 text-violet-600" />
+              </div>
+              <span className="text-center text-[10px] font-semibold leading-snug text-gray-700">Stats</span>
             </Link>
           </div>
-        )}
+        </div>
 
         {low_stock.length > 0 && (
           <div className="mx-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 sm:mx-0">
@@ -345,57 +298,13 @@ export default function SellerDashboard() {
           </div>
         )}
 
-        {limits && (
-          <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm mx-4 sm:mx-0">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Votre offre</p>
-                <p className="mt-0.5 text-sm font-semibold text-gray-900">{planMeta.name}</p>
-              </div>
-              <span className={`rounded-full border border-brand/25 px-2.5 py-1 text-[10px] font-bold uppercase ${planMeta.color} ${planMeta.bg}`}>
-                {planMeta.name}
-              </span>
-            </div>
-            <div className="space-y-3">
-              {limits.max_products != null && (
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Produits</span>
-                    <span className="font-medium text-gray-700">
-                      {products_count}/{limits.max_products}
-                    </span>
-                  </div>
-                  <MiniBar value={products_count} max={limits.max_products} />
-                </div>
-              )}
-              {limits.max_orders_per_month != null && (
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Commandes / mois</span>
-                    <span className="font-medium text-gray-700">
-                      {orders_count}/{limits.max_orders_per_month}
-                    </span>
-                  </div>
-                  <MiniBar value={orders_count} max={limits.max_orders_per_month} />
-                </div>
-              )}
-            </div>
-            {plan === "FREE" && (products_near_limit || orders_near_limit) ? (
-              <div className="mt-4 rounded-xl bg-[#FEF9E7] p-3">
-                <p className="text-xs leading-relaxed text-[#8B6604]">
-                  Vous approchez de la limite de votre offre Gratuit. Passez à Starter pour gérer jusqu&apos;à 100 produits et 100 commandes.
-                </p>
-                <Link to="/plan" className="mt-2 inline-flex text-xs font-bold text-[#8B6604] transition hover:text-[#6B4F03]">
-                  Passer à Starter pour vendre plus
-                </Link>
-              </div>
-            ) : (
-              <Link to="/plan" className="mt-3 inline-flex text-xs font-bold text-brand transition hover:text-brand/80">
-                Voir les offres
-              </Link>
-            )}
-          </div>
-        )}
+        <PlanLimitCard
+          plan={plan}
+          limits={limits}
+          productsCount={products_count}
+          ordersCount={orders_count}
+          planMeta={planMeta}
+        />
 
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm mx-4 sm:mx-0">
           <div className="mb-3 flex items-center justify-between">
@@ -407,37 +316,7 @@ export default function SellerDashboard() {
               Tout voir
             </Link>
           </div>
-          {recent_orders.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">
-              Aucune commande pour le moment.
-            </p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {recent_orders.map((order) => {
-                const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.received;
-                return (
-                  <Link
-                    key={order.id}
-                    to={`/orders/${order.id}`}
-                    className="flex items-center justify-between py-3 transition first:pt-0 last:pb-0"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${status.color}`} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {order.full_name || order.customer_name || `Commande #${order.id}`}
-                        </p>
-                        <p className="text-xs text-gray-400">{status.label}</p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {formatXOF(order.total_xof ?? order.total)}
-                    </p>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+          <RecentOrders recentOrders={recent_orders} />
         </div>
       </div>
     </SellerShell>

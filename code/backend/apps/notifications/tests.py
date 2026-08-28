@@ -30,6 +30,7 @@ from .services import (
     notify_delivery_in_transit,
     notify_invoice,
     notify_order_confirmation,
+    notify_seller_new_order,
 )
 
 User = get_user_model()

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
@@ -86,11 +86,12 @@ function formatTime(iso) {
 
 export default function SellerOrders() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { loading, isAuthenticated } = useAuth();
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState(null);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState(() => searchParams.get("filter") || "all");
   const [statusSelection, setStatusSelection] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState([]);
   const [statusErrors, setStatusErrors] = useState({});

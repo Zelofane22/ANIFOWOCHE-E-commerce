@@ -6,6 +6,7 @@ import Seo from "../components/Seo.jsx";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
+import DeliveryMethodSelector from "../components/DeliveryMethodSelector.jsx";
 
 const INITIAL_FORM = {
   fullName: "",
@@ -25,6 +26,7 @@ export default function PublicOrder() {
   const [shop, setShop] = useState(null);
   const [products, setProducts] = useState([]);
   const [quantities, setQuantities] = useState({});
+  const [deliveryMethods, setDeliveryMethods] = useState({});
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -43,9 +45,9 @@ export default function PublicOrder() {
   const selectedItems = useMemo(
     () =>
       products
-        .map((product) => ({ product, quantity: quantities[product.id] ?? 0 }))
+        .map((product) => ({ product, quantity: quantities[product.id] ?? 0, deliveryMethod: deliveryMethods[product.id] ?? "delivery" }))
         .filter((item) => item.quantity > 0),
-    [products, quantities]
+    [products, quantities, deliveryMethods]
   );
 
   const total = useMemo(
@@ -57,11 +59,13 @@ export default function PublicOrder() {
     [selectedItems]
   );
 
+  const hasDeliveryItems = selectedItems.some((item) => item.deliveryMethod === "delivery");
+
   const canSubmit = Boolean(
     selectedItems.length > 0 &&
       form.fullName.trim() &&
       form.phone.trim() &&
-      form.address.trim() &&
+      (!hasDeliveryItems || form.address.trim()) &&
       !submitting
   );
 
@@ -85,6 +89,10 @@ export default function PublicOrder() {
     });
   };
 
+  const updateDeliveryMethod = (productId, method) => {
+    setDeliveryMethods((current) => ({ ...current, [productId]: method }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -103,19 +111,40 @@ export default function PublicOrder() {
         phone: form.phone.trim(),
         email: form.email.trim(),
         city: form.city.trim() || "Cotonou",
-        address: addressParts.join(" — "),
+        address: hasDeliveryItems ? addressParts.join(" — ") : "",
         items: selectedItems.map((item) => ({
           product_id: item.product.id,
           quantity: item.quantity,
+          delivery_method: item.deliveryMethod,
         })),
       });
+
+      const orderMessage = [
+        `Bonjour, je confirme ma commande ${order.reference || `#CMD-${String(order.id).padStart(6, "0")}`} chez ${shop?.name}`,
+        "",
+        "Articles :",
+        ...selectedItems.map(
+          (item) => `- ${item.quantity} x ${item.product.name} (${item.deliveryMethod === "delivery" ? "Livraison" : "Retrait"}) — ${formatXof(item.product.price_xof * item.quantity)}`
+        ),
+        `Total : ${formatXof(order.total_xof)}`,
+        "",
+        `Nom : ${form.fullName.trim()}`,
+        `Téléphone : ${form.phone.trim()}`,
+        hasDeliveryItems ? `Adresse : ${form.address.trim()}` : "Retrait chez le vendeur",
+        "",
+        "Merci !",
+      ].join("\n");
 
       navigate("/commande/confirmation", {
         state: {
           orderId: order.id,
+          orderDetails: order,
+          shopSlug: slug,
           total: order.total_xof,
           paymentStatus: "cash_on_delivery",
           method: "cash_on_delivery",
+          whatsappPhone: shop?.whatsapp_phone ?? "",
+          whatsappMessage: orderMessage,
         },
       });
     } catch (err) {
@@ -189,64 +218,75 @@ export default function PublicOrder() {
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {products.map((product) => {
                   const quantity = quantities[product.id] ?? 0;
+                  const itemDeliveryMethod = deliveryMethods[product.id] ?? "delivery";
                   return (
                     <article
                       key={product.id}
-                      className={`flex gap-3 rounded-lg border p-3 transition ${
+                      className={`flex flex-col gap-3 rounded-lg border p-3 transition ${
                         quantity > 0 ? "border-brand bg-brand-pale" : "border-black/10 bg-white"
                       }`}
                     >
-                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-brand-pale">
-                        {product.image ? (
-                          <ProductImage
-                            src={product.image}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-xs font-semibold text-brand-dark">
-                            ANIF
+                      <div className="flex gap-3">
+                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-brand-pale">
+                          {product.image ? (
+                            <ProductImage
+                              src={product.image}
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs font-semibold text-brand-dark">
+                              ANIF
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-ink">
+                            {product.name}
+                          </h3>
+                          <p className="mt-1 text-sm font-bold text-ink">{formatXof(product.price_xof)}</p>
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(product.id, quantity - 1)}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/15 text-lg font-semibold text-ink transition hover:border-brand disabled:text-gray-400"
+                              disabled={quantity === 0}
+                              aria-label={`Retirer ${product.name}`}
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              max={product.made_to_order ? Number.MAX_SAFE_INTEGER : product.stock}
+                              value={quantity}
+                              onChange={(event) => updateQuantity(product.id, event.target.value)}
+                              className="h-9 w-16 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand"
+                              aria-label={`Quantité ${product.name}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(product.id, quantity + 1)}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-lg font-semibold text-white transition hover:bg-brand-medium"
+                              aria-label={`Ajouter ${product.name}`}
+                            >
+                              +
+                            </button>
+                            <span className="text-xs text-muted">
+                              {product.made_to_order ? "Sur commande" : `Stock ${product.stock}`}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-ink">
-                          {product.name}
-                        </h3>
-                        <p className="mt-1 text-sm font-bold text-ink">{formatXof(product.price_xof)}</p>
-                        <div className="mt-3 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(product.id, quantity - 1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/15 text-lg font-semibold text-ink transition hover:border-brand disabled:text-gray-400"
-                            disabled={quantity === 0}
-                            aria-label={`Retirer ${product.name}`}
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            max={product.made_to_order ? Number.MAX_SAFE_INTEGER : product.stock}
-                            value={quantity}
-                            onChange={(event) => updateQuantity(product.id, event.target.value)}
-                            className="h-9 w-16 rounded-lg border border-black/15 text-center text-sm font-semibold text-ink focus:border-brand"
-                            aria-label={`Quantité ${product.name}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(product.id, quantity + 1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-lg font-semibold text-white transition hover:bg-brand-medium"
-                            aria-label={`Ajouter ${product.name}`}
-                          >
-                            +
-                          </button>
-                          <span className="text-xs text-muted">
-                            {product.made_to_order ? "Sur commande" : `Stock ${product.stock}`}
-                          </span>
                         </div>
                       </div>
+                      {quantity > 0 && (
+                        <DeliveryMethodSelector
+                          value={itemDeliveryMethod}
+                          onChange={(method) => updateDeliveryMethod(product.id, method)}
+                          sellerAddress={shop?.address}
+                          name={`delivery-${product.id}`}
+                        />
+                      )}
                     </article>
                   );
                 })}
@@ -298,14 +338,15 @@ export default function PublicOrder() {
                 />
               </label>
               <label className="block text-sm font-semibold text-ink md:col-span-2">
-                Adresse de livraison
+                Adresse de livraison {hasDeliveryItems ? <span className="text-red-500 ml-1">*</span> : null}
                 <input
                   type="text"
                   value={form.address}
                   onChange={(event) => updateForm("address", event.target.value)}
-                  required
+                  required={hasDeliveryItems}
+                  disabled={!hasDeliveryItems}
                   placeholder="Quartier, rue, repère proche"
-                  className={inputClass}
+                  className={inputClass + (hasDeliveryItems ? "" : " opacity-50")}
                 />
               </label>
               <label className="block text-sm font-semibold text-ink md:col-span-2">
@@ -331,10 +372,13 @@ export default function PublicOrder() {
               </p>
             ) : (
               <div className="mt-4 space-y-3">
-                {selectedItems.map(({ product, quantity }) => (
+                {selectedItems.map(({ product, quantity, deliveryMethod }) => (
                   <div key={product.id} className="flex justify-between gap-3 text-sm">
                     <span className="min-w-0 text-muted">
                       {quantity} x <span className="text-ink">{product.name}</span>
+                      <span className="ml-2 inline-block rounded bg-brand-pale px-1.5 py-0.5 text-xs font-medium text-brand-dark">
+                        {deliveryMethod === "delivery" ? "Livraison" : "Retrait"}
+                      </span>
                     </span>
                     <span className="shrink-0 font-semibold text-ink">
                       {formatXof(product.price_xof * quantity)}

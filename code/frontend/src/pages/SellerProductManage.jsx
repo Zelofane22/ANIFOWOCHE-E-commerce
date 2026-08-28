@@ -4,6 +4,7 @@ import {
   getSellerProducts,
   getSellerProfile,
   archiveSellerProduct,
+  reactivateSellerProduct,
 } from "../api/seller.js";
 import {
   ChevronLeftIcon,
@@ -89,6 +90,7 @@ export default function SellerProductManage() {
   const [products, setProducts] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -144,6 +146,24 @@ export default function SellerProductManage() {
       console.error("Erreur lors de l’archivage", err);
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!product || reactivating) return;
+    setReactivating(true);
+    try {
+      await reactivateSellerProduct(product.slug);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.slug === product.slug ? { ...p, is_active: true } : p
+        )
+      );
+      setMenuOpen(false);
+    } catch (err) {
+      console.error("Erreur lors de la réactivation", err);
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -229,7 +249,7 @@ export default function SellerProductManage() {
                 <EditIcon size={14} />
                 Modifier
               </button>
-              {product.is_active && (
+              {product.is_active ? (
                 <button
                   type="button"
                   onClick={handleArchive}
@@ -238,6 +258,16 @@ export default function SellerProductManage() {
                 >
                   <TrashIcon size={14} />
                   {archiving ? "Archivage..." : "Archiver"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleReactivate}
+                  disabled={reactivating}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-green-600 hover:bg-green-50 disabled:opacity-50"
+                >
+                  <EyeOffIcon size={14} />
+                  {reactivating ? "Réactivation..." : "Réactiver"}
                 </button>
               )}
             </div>
@@ -329,11 +359,12 @@ export default function SellerProductManage() {
           ) : (
             <button
               type="button"
-              disabled
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-400 disabled:cursor-not-allowed"
+              onClick={handleReactivate}
+              disabled={reactivating}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-600 transition hover:bg-green-100 disabled:opacity-50"
             >
               <EyeOffIcon size={16} />
-              Désactivé
+              {reactivating ? "Réactivation..." : "Réactiver"}
             </button>
           )}
           <Link

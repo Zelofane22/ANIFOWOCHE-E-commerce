@@ -454,6 +454,7 @@ export default function ProductFormMobile({
         imageFile: null,
         imagePreview: saved.image || current.imagePreview,
       }));
+      navigate("/products", { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -805,7 +806,7 @@ export default function ProductFormMobile({
           </p>
           <button
             type="button"
-            onClick={() => navigate("/seller/products")}
+            onClick={() => navigate("/products")}
             className="mt-2 rounded-[10px] bg-[#C99F08] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06]"
           >
             Voir mes produits

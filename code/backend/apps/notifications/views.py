@@ -34,7 +34,9 @@ class SellerNotificationListView(ListAPIView):
 
     def get_queryset(self):
         seller = self.request.user.seller_profile
-        return SellerNotification.objects.filter(seller=seller)
+        return SellerNotification.objects.filter(seller=seller).exclude(
+            notification_type=SellerNotification.Type.NEW_ORDER
+        )
 
 
 class SellerNotificationMarkReadView(UpdateAPIView):

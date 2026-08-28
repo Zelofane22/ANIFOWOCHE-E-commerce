@@ -4,11 +4,11 @@ import {
   ClockIcon,
   PackageIcon,
 } from "../icons.jsx";
+import { formatDate as formatDateUtil } from "../../utils/format.js";
 
 export const orderRef = (id) => `ANW-${id}`;
 
-export const formatDate = (iso) =>
-  new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+export const formatDate = formatDateUtil;
 
 export const ORDER_STATUS = {
   received: { label: "Commande reçue", classes: "bg-gray-100 text-gray-600", Icon: ClockIcon },

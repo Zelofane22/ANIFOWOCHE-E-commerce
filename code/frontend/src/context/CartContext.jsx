@@ -32,10 +32,11 @@ export function CartProvider({ children }) {
   const itemKey = (item) => {
     const color = item.colorName || "";
     const opts = item.selectedOptions ? JSON.stringify(item.selectedOptions.map((o) => o.option_id)) : "";
-    return `${item.slug}|${color}|${opts}`;
+    const delivery = item.deliveryMethod || "delivery";
+    return `${item.slug}|${color}|${opts}|${delivery}`;
   };
 
-  const addItem = (product, quantity = 1) => {
+  const addItem = (product, quantity = 1, deliveryMethod = "delivery") => {
     setItems((current) => {
       const newItem = {
         id: product.id,
@@ -49,6 +50,8 @@ export function CartProvider({ children }) {
         colorHex: product.selectedColor?.hex || "",
         selectedOptions: product.selectedOptions || [],
         quantity,
+        deliveryMethod,
+        sellerAddress: product.sellerAddress || "",
       };
       const key = itemKey(newItem);
       const existing = current.find((item) => itemKey(item) === key);
@@ -61,25 +64,41 @@ export function CartProvider({ children }) {
     });
   };
 
-  const updateQuantity = (slug, quantity, colorName = "", selectedOptions = []) => {
+  const updateQuantity = (slug, quantity, colorName = "", selectedOptions = [], deliveryMethod = "delivery") => {
     if (quantity < 1) return;
     setItems((current) =>
       current.map((item) => {
         const opts = selectedOptions ? JSON.stringify(selectedOptions.map((o) => o.option_id)) : "";
-        const key = `${slug}|${colorName || ""}|${opts}`;
+        const delivery = deliveryMethod || "delivery";
+        const key = `${slug}|${colorName || ""}|${opts}|${delivery}`;
         return itemKey(item) === key ? { ...item, quantity } : item;
       })
     );
   };
 
-  const removeItem = (slug, colorName = "", selectedOptions = []) => {
+  const removeItem = (slug, colorName = "", selectedOptions = [], deliveryMethod = "delivery") => {
     setItems((current) =>
       current.filter((item) => {
         const opts = selectedOptions ? JSON.stringify(selectedOptions.map((o) => o.option_id)) : "";
-        const key = `${slug}|${colorName || ""}|${opts}`;
+        const delivery = deliveryMethod || "delivery";
+        const key = `${slug}|${colorName || ""}|${opts}|${delivery}`;
         return itemKey(item) !== key;
       })
     );
+  };
+
+  const updateDeliveryMethod = (slug, colorName, selectedOptions, oldDeliveryMethod, newDeliveryMethod) => {
+    setItems((current) => {
+      const opts = selectedOptions ? JSON.stringify(selectedOptions.map((o) => o.option_id)) : "";
+      const oldKey = `${slug}|${colorName || ""}|${opts}|${oldDeliveryMethod}`;
+      const itemIndex = current.findIndex((item) => itemKey(item) === oldKey);
+      if (itemIndex === -1) return current;
+      const item = current[itemIndex];
+      // Create new item with updated deliveryMethod (which changes its key)
+      const newItem = { ...item, deliveryMethod: newDeliveryMethod };
+      // Remove old item and add new one
+      return [...current.slice(0, itemIndex), ...current.slice(itemIndex + 1), newItem];
+    });
   };
 
   const clearCart = () => setItems([]);
@@ -99,6 +118,7 @@ export function CartProvider({ children }) {
         color_name: item.colorName || "",
         color_hex: item.colorHex || "",
         selected_options: item.selectedOptions || [],
+        delivery_method: item.deliveryMethod || "delivery",
       }));
     const applyResult = (data) => {
       const validItems = data.valid_items ?? [];
@@ -115,6 +135,7 @@ export function CartProvider({ children }) {
           colorHex: item.color_hex || "",
           selectedOptions: item.selected_options || [],
           quantity: item.quantity,
+          deliveryMethod: item.delivery_method || "delivery",
         }));
         return cartsEqual(next, current) ? current : next;
       });
@@ -163,6 +184,7 @@ export function CartProvider({ children }) {
     addItem,
     updateQuantity,
     removeItem,
+    updateDeliveryMethod,
     clearCart,
     reconcileCart,
     itemCount,
