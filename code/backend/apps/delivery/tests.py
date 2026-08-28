@@ -26,6 +26,10 @@ class DeliveryApiTests(APITestCase):
         self.order = OrderFactory(
             full_name="Client", phone="+2290190000000", email="client@example.com", address="Akpakpa", total_xof=1000
         )
+        # Order must have at least one item requiring delivery for DeliverySerializer validation
+        from apps.core.factories import OrderItemFactory, ProductFactory
+        product = ProductFactory()
+        OrderItemFactory(order=self.order, product=product, quantity=1, unit_price_xof=product.price_xof, delivery_method="delivery")
         self.staff_user = UserFactory(username="admin", is_staff=True)
 
     def test_zones_and_slots_are_publicly_readable(self):

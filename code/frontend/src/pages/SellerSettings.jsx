@@ -283,7 +283,7 @@ export default function SellerSettings() {
                 <p className="font-semibold text-sm text-[#C99F08]">
                   {seller.plan === "FREE" ? "Passer au plan payant" : "Gérer mon abonnement"}
                 </p>
-                <p className="text-xs text-[#9CA3AF] mt-0.5">Produits illimités, commission réduite</p>
+                <p className="text-xs text-[#9CA3AF] mt-0.5">Produits illimités, sans commission sur vos ventes</p>
               </div>
               <ChevronRightIcon size={15} className="text-[#9CA3AF] flex-shrink-0" />
             </div>

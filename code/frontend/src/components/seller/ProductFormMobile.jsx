@@ -195,14 +195,15 @@ function PhotoGallery({ slug, colors }) {
     setUploading(true);
     setError(null);
     try {
-      for (const file of files) {
-        const fd = new FormData();
-        fd.append("image", file);
-        fd.append("order", String(images.length));
-        await createSellerProductImage(slug, fd);
-      }
-      const data = await getSellerProductImages(slug);
-      setImages(data.results ?? data);
+      const newImages = await Promise.all(
+        files.map((file, index) => {
+          const fd = new FormData();
+          fd.append("image", file);
+          fd.append("order", String(images.length + index));
+          return createSellerProductImage(slug, fd);
+        })
+      );
+      setImages((prev) => [...prev, ...newImages]);
     } catch {
       setError("Erreur lors de l\u2019ajout des images.");
     } finally {
@@ -384,6 +385,7 @@ export default function ProductFormMobile({
   const [error, setError] = useState(null);
   const [published, setPublished] = useState(false);
   const [savedProduct, setSavedProduct] = useState(product ?? null);
+  const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
 
   const editingSlug = savedProduct?.slug ?? null;
 
@@ -447,6 +449,21 @@ export default function ProductFormMobile({
       const saved = editingSlug
         ? await updateSellerProduct(editingSlug, payload)
         : await createSellerProduct(payload);
+      if (pendingGalleryFiles.length > 0) {
+        try {
+          await Promise.all(
+            pendingGalleryFiles.map((file, index) => {
+              const fd = new FormData();
+              fd.append("image", file);
+              fd.append("order", String(index));
+              return createSellerProductImage(saved.slug, fd);
+            })
+          );
+        } catch (uploadErr) {
+          setError(extractErrorMessage(uploadErr) || "Erreur lors de l'ajout des images.");
+        }
+        setPendingGalleryFiles([]);
+      }
       setSavedProduct(saved);
       setPublished(true);
       setForm((current) => ({
@@ -518,8 +535,54 @@ export default function ProductFormMobile({
         </p>
       </div>
 
-      {isEditing && savedProduct && (
+      {savedProduct?.slug ? (
         <PhotoGallery slug={savedProduct.slug} colors={form.colors} />
+      ) : (
+        <div className="rounded-[16px] border border-black/[0.05] bg-white p-5">
+          <h3 className="text-base font-bold" style={{ color: "#111827" }}>
+            Images supplémentaires
+          </h3>
+          <p className="mt-1 text-sm" style={{ color: "#9CA3AF" }}>
+            Ajoutez des photos supplémentaires. Elles seront envoyées après l&apos;enregistrement du produit.
+          </p>
+          {pendingGalleryFiles.length > 0 && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {pendingGalleryFiles.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="group relative overflow-hidden rounded-[10px] border border-black/10 bg-[#F3F4F6]"
+                >
+                  <div className="aspect-square">
+                    <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingGalleryFiles((prev) => prev.filter((_, i) => i !== index))}
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-red-600 shadow transition hover:bg-white"
+                  >
+                    <TrashIcon size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-2 border-dashed border-[#C99F08]/30 bg-[#FEF9E7] px-4 py-5 text-sm font-medium transition hover:border-[#C99F08] hover:bg-[#FEF9E7]/80">
+            <UploadIcon size={16} style={{ color: "#C99F08" }} />
+            <span style={{ color: "#C99F08" }}>Ajouter des images</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                if (files.length === 0) return;
+                setPendingGalleryFiles((prev) => [...prev, ...files]);
+                event.target.value = "";
+              }}
+              className="sr-only"
+            />
+          </label>
+        </div>
       )}
     </div>
   );
@@ -573,10 +636,6 @@ export default function ProductFormMobile({
   );
 
   const renderStepPriceStock = () => {
-    const price = parseFloat(form.price_xof) || 0;
-    const commission = Math.round(price * 0.02);
-    const netRevenue = price - commission;
-
     return (
       <div className="flex flex-col gap-4">
         <div>
@@ -744,45 +803,6 @@ export default function ProductFormMobile({
           </div>
         </div>
 
-        {price > 0 && (
-          <div
-            className="rounded-[16px] border border-black/[0.05] bg-white p-4"
-          >
-            <h4 className="text-sm font-bold" style={{ color: "#111827" }}>
-              Aperçu financier
-            </h4>
-            <div className="mt-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: "#6B7280" }}>
-                  Prix de vente
-                </span>
-                <span className="text-sm font-bold" style={{ color: "#111827" }}>
-                  {price.toLocaleString("fr-FR")} XOF
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: "#6B7280" }}>
-                  Commission ANIF (2%)
-                </span>
-                <span className="text-sm font-semibold" style={{ color: "#EF4444" }}>
-                  -{commission.toLocaleString("fr-FR")} XOF
-                </span>
-              </div>
-              <div
-                className="my-1 border-t"
-                style={{ borderColor: "rgba(0,0,0,0.06)" }}
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold" style={{ color: "#111827" }}>
-                  Revenu net
-                </span>
-                <span className="text-sm font-bold" style={{ color: "#16A34A" }}>
-                  {netRevenue.toLocaleString("fr-FR")} XOF
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
