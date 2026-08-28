@@ -5,11 +5,8 @@ import { getAddresses } from "../api/addresses.js";
 import { fetchNotificationSettings } from "../api/notifications.js";
 import { getOrders } from "../api/orders.js";
 import { fetchWishlist } from "../api/wishlist.js";
-import { OrderStatusBadge } from "../components/account/common.jsx";
-import { formatDate, orderRef } from "../components/account/orderHelpers.js";
 import {
   ArrowRightIcon,
-  ChevronRightIcon,
   HeartIcon,
   LockIcon,
   MapPinIcon,
@@ -17,9 +14,12 @@ import {
 } from "../components/icons.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { extractErrorMessage } from "../utils/apiError.js";
-import { formatXof } from "../utils/format.js";
-import ProductImage from "../components/ProductImage.jsx";
 import Seo from "../components/Seo.jsx";
+import StatCard from "../components/account/StatCard.jsx";
+import OrderRow from "../components/account/OrderRow.jsx";
+import AuthFormField from "../components/account/AuthFormField.jsx";
+import LoadingState from "../components/common/LoadingState.jsx";
+import ErrorState from "../components/common/ErrorState.jsx";
 
 const emptyRegisterForm = {
   username: "",
@@ -104,10 +104,7 @@ function AccountHub({ user, logout }) {
       {/* Statistiques rapides */}
       <div className="mb-8 grid grid-cols-3 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-black/10 bg-white p-4 text-center">
-            <p className="text-2xl font-bold text-ink">{stat.value}</p>
-            <p className="mt-0.5 text-xs text-muted">{stat.label}</p>
-          </div>
+          <StatCard key={stat.label} label={stat.label} value={stat.value} />
         ))}
       </div>
 
@@ -177,43 +174,9 @@ function AccountHub({ user, logout }) {
         )}
 
         <div className="flex flex-col gap-3">
-          {recentOrders.map((order) => {
-            const firstItem = order.items?.[0];
-            return (
-              <Link
-                key={order.id}
-                to={`/compte/commandes/${order.id}`}
-                className="flex items-center gap-4 rounded-xl border border-black/10 bg-white p-4 transition hover:shadow-md"
-              >
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-brand-pale">
-                  {firstItem?.product_image && (
-                    <ProductImage
-                      src={firstItem.product_image}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-muted">
-                    {orderRef(order.id)} · {formatDate(order.created_at)}
-                  </p>
-                  <p className="mt-0.5 truncate text-sm font-semibold text-ink">
-                    {firstItem?.product_name ?? "—"}
-                    {order.items?.length > 1 ? ` +${order.items.length - 1}` : ""}
-                  </p>
-                  <div className="mt-1">
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-bold text-ink">{formatXof(order.total_xof)}</p>
-                  <ChevronRightIcon size={16} className="ml-auto mt-1 text-muted" />
-                </div>
-              </Link>
-            );
-          })}
+          {recentOrders.map((order) => (
+            <OrderRow key={order.id} order={order} />
+          ))}
         </div>
       </div>
     </div>
@@ -250,7 +213,7 @@ export default function Account() {
       .catch(() => {});
   }, []);
 
-  if (loading) return <p className="px-4 py-10 text-center text-muted">Chargement…</p>;
+  if (loading) return <LoadingState message="Chargement…" className="px-4 py-10 text-center text-muted" />;
 
   if (isAuthenticated) return <AccountHub user={user} logout={logout} />;
 
@@ -372,39 +335,31 @@ export default function Account() {
           </p>
         )}
         {error && (
-          <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-            {error}
-          </p>
+          <ErrorState message={error} />
         )}
 
         {mode === "reset" ? (
           <form onSubmit={handleResetSubmit} className="flex flex-col gap-3">
             <p className="text-sm text-muted">Choisissez un nouveau mot de passe pour votre compte.</p>
-            <label htmlFor="reset-password" className="text-sm font-semibold text-ink">
-              Nouveau mot de passe
-            </label>
-            <input
-              id="reset-password"
+            <AuthFormField
+              label="Nouveau mot de passe"
               type="password"
+              id="reset-password"
               placeholder="Nouveau mot de passe"
               autoComplete="new-password"
               required
               value={resetForm.password}
               onChange={(e) => setResetForm({ ...resetForm, password: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label htmlFor="reset-password2" className="text-sm font-semibold text-ink">
-              Confirmer le nouveau mot de passe
-            </label>
-            <input
-              id="reset-password2"
+            <AuthFormField
+              label="Confirmer le nouveau mot de passe"
               type="password"
+              id="reset-password2"
               placeholder="Confirmer le nouveau mot de passe"
               autoComplete="new-password"
               required
               value={resetForm.password2}
               onChange={(e) => setResetForm({ ...resetForm, password2: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
@@ -419,18 +374,15 @@ export default function Account() {
             <p className="text-sm text-muted">
               Entrez l'email de votre compte. Si un compte actif existe, vous recevrez un lien sécurisé.
             </p>
-            <label htmlFor="reset-email" className="text-sm font-semibold text-ink">
-              Email
-            </label>
-            <input
-              id="reset-email"
+            <AuthFormField
+              label="Email"
               type="email"
+              id="reset-email"
               placeholder="vous@exemple.com"
               autoComplete="email"
               required
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
@@ -453,31 +405,25 @@ export default function Account() {
           </form>
         ) : mode === "login" ? (
           <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3">
-            <label htmlFor="login-username" className="text-sm font-semibold text-ink">
-              Email ou numéro de téléphone
-            </label>
-            <input
-              id="login-username"
+            <AuthFormField
+              label="Email ou numéro de téléphone"
               type="text"
+              id="login-username"
               placeholder="vous@exemple.com ou +229 01 23 45 67"
               autoComplete="username"
               required
               value={loginForm.username}
               onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label htmlFor="login-password" className="text-sm font-semibold text-ink">
-              Mot de passe
-            </label>
-            <input
-              id="login-password"
+            <AuthFormField
+              label="Mot de passe"
               type="password"
+              id="login-password"
               placeholder="Mot de passe"
               autoComplete="current-password"
               required
               value={loginForm.password}
               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"
@@ -501,83 +447,68 @@ export default function Account() {
           </form>
         ) : (
           <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-3">
-            <label htmlFor="register-username" className="text-sm font-semibold text-ink">
-              Nom d'utilisateur
-            </label>
-            <input
-              id="register-username"
+            <AuthFormField
+              label="Nom d'utilisateur"
               type="text"
+              id="register-username"
               placeholder="Nom d'utilisateur"
               autoComplete="username"
               required
               value={registerForm.username}
               onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label htmlFor="register-email" className="text-sm font-semibold text-ink">
-              Email
-            </label>
-            <input
-              id="register-email"
+            <AuthFormField
+              label="Email"
               type="email"
+              id="register-email"
               placeholder="vous@exemple.com"
               autoComplete="email"
               value={registerForm.email}
               onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label htmlFor="register-phone" className="text-sm font-semibold text-ink">
-              Téléphone
-            </label>
-            <input
-              id="register-phone"
+            <AuthFormField
+              label="Téléphone"
               type="tel"
+              id="register-phone"
               placeholder="+229 01 XX XX XX XX"
               autoComplete="tel"
               value={registerForm.phone}
               onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <label htmlFor="register-channel" className="text-sm font-semibold text-ink">
               Recevoir mes notifications par
-            </label>
-            <select
-              id="register-channel"
-              value={registerForm.notification_channel}
-              onChange={(e) =>
-                setRegisterForm({ ...registerForm, notification_channel: e.target.value })
-              }
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
-            >
+              <select
+                id="register-channel"
+                value={registerForm.notification_channel}
+                onChange={(e) =>
+                  setRegisterForm({ ...registerForm, notification_channel: e.target.value })
+                }
+                className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
+              >
                 <option value="email">Email</option>
                 {notificationSettings.whatsapp_enabled && <option value="whatsapp">WhatsApp</option>}
                 {notificationSettings.sms_enabled && <option value="sms">SMS</option>}
               </select>
-            <label htmlFor="register-password" className="text-sm font-semibold text-ink">
-              Mot de passe
             </label>
-            <input
-              id="register-password"
+            <AuthFormField
+              label="Mot de passe"
               type="password"
+              id="register-password"
               placeholder="Mot de passe"
               autoComplete="new-password"
               required
               value={registerForm.password}
               onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-            <label htmlFor="register-password2" className="text-sm font-semibold text-ink">
-              Confirmer le mot de passe
-            </label>
-            <input
-              id="register-password2"
+            <AuthFormField
+              label="Confirmer le mot de passe"
               type="password"
+              id="register-password2"
               placeholder="Confirmer le mot de passe"
               autoComplete="new-password"
               required
               value={registerForm.password2}
               onChange={(e) => setRegisterForm({ ...registerForm, password2: e.target.value })}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <button
               type="submit"

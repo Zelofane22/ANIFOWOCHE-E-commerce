@@ -170,7 +170,8 @@ describe("Checkout", () => {
   });
 
   it("soumet la commande avec le bon payload (items avec delivery_method) et redirige vers la confirmation", async () => {
-    renderCheckout();
+    const cart = createCartValue();
+    renderCheckout(cart);
     await goToPaymentStep();
     await submitOrder();
 
@@ -191,7 +192,7 @@ describe("Checkout", () => {
     // createDelivery should be called only for delivery items
     expect(createDelivery).toHaveBeenCalledWith({ order_id: 42, zone_id: 1, slot_id: 1 });
     expect(initiatePayment).toHaveBeenCalledWith({ order_id: 42, method: "cash_on_delivery" });
-    expect(cartValue.clearCart).toHaveBeenCalled();
+    expect(cart.clearCart).toHaveBeenCalled();
 
     expect(await screen.findByText("Confirmation affichée")).toBeInTheDocument();
   });
@@ -215,14 +216,14 @@ describe("Checkout", () => {
     // Should show "Informations de commande" instead of "Adresse de livraison"
     expect(screen.getByRole("heading", { name: "Informations de commande" })).toBeInTheDocument();
     
-    // Zone selector should not be required
+    // Zone selector should not be present for pickup-only orders
     const zoneLabel = screen.queryByLabelText(/Quartier/);
-    expect(zoneLabel).toBeInTheDocument();
-    expect(zoneLabel).not.toBeRequired();
+    expect(zoneLabel).not.toBeInTheDocument();
 
-    // Fill form without address
     fireEvent.change(screen.getByLabelText("Nom complet"), { target: { value: "Fofo" } });
     fireEvent.change(screen.getByLabelText(/Téléphone/), { target: { value: "+229 01 00 00 00" } });
+    // Wait for delivery options to load (even for pickup, component waits)
+    await waitFor(() => expect(screen.getByRole("button", { name: "Continuer vers le paiement" })).not.toBeDisabled());
     
     fireEvent.click(screen.getByRole("button", { name: "Continuer vers le paiement" }));
     await submitOrder();

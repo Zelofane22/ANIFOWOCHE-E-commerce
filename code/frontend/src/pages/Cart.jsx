@@ -40,7 +40,9 @@ export default function Cart() {
     );
   }
 
+  // eslint-disable-next-line no-unused-vars
   const deliveryItems = items.filter((item) => item.deliveryMethod === "delivery");
+  // eslint-disable-next-line no-unused-vars
   const pickupItems = items.filter((item) => item.deliveryMethod === "pickup");
 
   const getItemKey = (item) => `${item.slug}-${item.colorName || ""}-${item.deliveryMethod || "delivery"}`;
