@@ -519,7 +519,7 @@ export default function ProductFormMobile({
         </p>
       </div>
 
-      {isEditing && savedProduct && (
+      {savedProduct?.slug && (
         <PhotoGallery slug={savedProduct.slug} colors={form.colors} />
       )}
     </div>
