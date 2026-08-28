@@ -385,6 +385,7 @@ export default function ProductFormMobile({
   const [error, setError] = useState(null);
   const [published, setPublished] = useState(false);
   const [savedProduct, setSavedProduct] = useState(product ?? null);
+  const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
 
   const editingSlug = savedProduct?.slug ?? null;
 
@@ -448,6 +449,21 @@ export default function ProductFormMobile({
       const saved = editingSlug
         ? await updateSellerProduct(editingSlug, payload)
         : await createSellerProduct(payload);
+      if (pendingGalleryFiles.length > 0) {
+        try {
+          await Promise.all(
+            pendingGalleryFiles.map((file, index) => {
+              const fd = new FormData();
+              fd.append("image", file);
+              fd.append("order", String(index));
+              return createSellerProductImage(saved.slug, fd);
+            })
+          );
+        } catch (uploadErr) {
+          setError(extractErrorMessage(uploadErr) || "Erreur lors de l'ajout des images.");
+        }
+        setPendingGalleryFiles([]);
+      }
       setSavedProduct(saved);
       setPublished(true);
       setForm((current) => ({
@@ -519,8 +535,54 @@ export default function ProductFormMobile({
         </p>
       </div>
 
-      {savedProduct?.slug && (
+      {savedProduct?.slug ? (
         <PhotoGallery slug={savedProduct.slug} colors={form.colors} />
+      ) : (
+        <div className="rounded-[16px] border border-black/[0.05] bg-white p-5">
+          <h3 className="text-base font-bold" style={{ color: "#111827" }}>
+            Images supplémentaires
+          </h3>
+          <p className="mt-1 text-sm" style={{ color: "#9CA3AF" }}>
+            Ajoutez des photos supplémentaires. Elles seront envoyées après l&apos;enregistrement du produit.
+          </p>
+          {pendingGalleryFiles.length > 0 && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {pendingGalleryFiles.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="group relative overflow-hidden rounded-[10px] border border-black/10 bg-[#F3F4F6]"
+                >
+                  <div className="aspect-square">
+                    <img src={URL.createObjectURL(file)} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingGalleryFiles((prev) => prev.filter((_, i) => i !== index))}
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-red-600 shadow transition hover:bg-white"
+                  >
+                    <TrashIcon size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border-2 border-dashed border-[#C99F08]/30 bg-[#FEF9E7] px-4 py-5 text-sm font-medium transition hover:border-[#C99F08] hover:bg-[#FEF9E7]/80">
+            <UploadIcon size={16} style={{ color: "#C99F08" }} />
+            <span style={{ color: "#C99F08" }}>Ajouter des images</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                if (files.length === 0) return;
+                setPendingGalleryFiles((prev) => [...prev, ...files]);
+                event.target.value = "";
+              }}
+              className="sr-only"
+            />
+          </label>
+        </div>
       )}
     </div>
   );
