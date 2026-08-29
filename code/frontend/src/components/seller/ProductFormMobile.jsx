@@ -176,7 +176,7 @@ function AddColorForm({ onAdd }) {
   );
 }
 
-function PhotoGallery({ slug, colors }) {
+function PhotoGallery({ slug, colors, maintenanceMode = false }) {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -542,7 +542,7 @@ export default function ProductFormMobile({
       </div>
 
       {savedProduct?.slug ? (
-        <PhotoGallery slug={savedProduct.slug} colors={form.colors} />
+        <PhotoGallery slug={savedProduct.slug} colors={form.colors} maintenanceMode={maintenanceMode} />
       ) : (
         <div className="rounded-[16px] border border-black/[0.05] bg-white p-5">
           <h3 className="text-base font-bold" style={{ color: "#111827" }}>
