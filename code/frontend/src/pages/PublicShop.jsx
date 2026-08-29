@@ -186,9 +186,6 @@ export default function PublicShop() {
                         <p className="text-base font-bold text-ink">{formatXof(product.price_xof)}</p>
                       )}
                     </div>
-                    <span className="mt-3 inline-flex items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-bold text-white transition group-hover:bg-brand-medium">
-                      Voir le produit
-                    </span>
                   </div>
                 </Link>
                 );
