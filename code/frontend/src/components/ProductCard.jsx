@@ -74,9 +74,6 @@ export default function ProductCard({ product }) {
           ) : (
             <p className="text-base font-bold text-ink">{formatXof(product.price_xof)}</p>
           )}
-          <span className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white transition group-hover:bg-brand-medium">
-            Voir le produit
-          </span>
         </div>
       </div>
     </Link>
