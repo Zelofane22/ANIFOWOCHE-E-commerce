@@ -62,6 +62,7 @@ Après chaque restauration d'un dump prod en local, relancer toujours :
 ```
 docker compose -f code/docker-compose.yml exec backend python manage.py migrate
 ```
+
 ## Option : backups managés Render (plan payant)
 
 Si le projet passe la base sur un plan payant Render, les sauvegardes quotidiennes managées et la
@@ -77,3 +78,17 @@ hébergeur que la base ne protège pas d'un incident de compte ou de facturation
   apparaît, prévoir un upload complémentaire vers un stockage objet (Cloudinary raw, S3, etc.).
 - Les bases free Render **expirent et sont supprimées après la période d'essai** indiquée sur le
   dashboard — les sauvegardes de ce workflow sont alors le seul filet de sécurité.
+
+## Créer un nouveau db sur render après expiration du précedent
+1. Re-dump juste avant coupure (par sécurité) :
+```
+docker run --rm -e DATABASE_URL="$RENDER_DATABASE_URL" -v "$PWD":/work -w /work postgres:18 pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges --file="anifowoche-db-$(date -u +%F).dump"
+```
+2. Dashboard Render → Postgres → Delete anifowoche-db-v2 (après validation du dump).
+3. Create Database → anifowoche-db-v3, oregon, Postgres 18, free.
+4. Restaure (depuis ta machine avec NEW_DATABASE_URL = External Database URL du v3) :
+NEW_DATABASE_URL="postgres://anifowoche_db_v3_user:xxx@dpg-xxx.oregon-postgres.render.com/anifowoche_db_v3"
+docker run --rm -v "$PWD":/work -w /work postgres:18 pg_restore --no-owner --no-privileges --verbose -d "$NEW_DATABASE_URL" anifowoche-db.dump
+# si DB déjà vide avec schéma public : ajouter --clean --if-exists
+5. Mettre à jour anifowoche-backend (srv-d92gjqq8qa3s73dcea6g) : Dashboard → Environment → DATABASE_URL = Internal Database URL du v3 (ou render_update_environment_variables via MCP). Redéploy automatique (autoDeploy: yes).
+6. Vérifier : render_query_render_postgres sur v3 + https://anifowoche-backend.onrender.com/api/... + logs render_list_logs:1 level: ["error"].
