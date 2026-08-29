@@ -18,6 +18,7 @@ import PaymentMethodSelector from "../components/checkout/PaymentMethodSelector.
 import CheckoutSummary from "../components/checkout/CheckoutSummary.jsx";
 
 const DEFAULT_STORE_STATUS = {
+  maintenance_mode: false,
   online_payment_enabled: true,
   payment_methods: { mtn: true, moov: true, card: true, cash_on_delivery: true },
 };
@@ -81,6 +82,8 @@ export default function Checkout() {
   const [waitingForPayment, setWaitingForPayment] = useState(false);
   const [storeStatus, setStoreStatus] = useState(null);
   const [error, setError] = useState(null);
+
+  const isMaintenanceMode = storeStatus?.maintenance_mode === true;
 
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -149,12 +152,14 @@ export default function Checkout() {
   const isSelectedMethodOffline = effectivePaymentMethod?.type === "offline";
 
   const canContinueToPayment =
+    !isMaintenanceMode &&
     fullName.trim() !== "" &&
     phone.trim() !== "" &&
     (!hasDeliveryItems || (zoneId != null && slotId != null)) &&
     !loadingDeliveryOptions;
 
   const canPay =
+    !isMaintenanceMode &&
     canContinueToPayment &&
     !!effectivePaymentMethod &&
     !submitting &&
@@ -241,6 +246,7 @@ export default function Checkout() {
   };
 
   const getSubmitLabel = () => {
+    if (isMaintenanceMode) return "Boutique en maintenance";
     if (waitingForPayment) return "En attente du paiement…";
     if (submitting) return "Traitement…";
     return isSelectedMethodOffline ? `Commander ${formatXof(total)}` : `Payer ${formatXof(total)}`;
@@ -268,6 +274,20 @@ export default function Checkout() {
     <form onSubmit={handlePay} className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
       <Seo title="Commande" path="/commande" type="website" />
       <CheckoutSteps currentStep={step} />
+
+      {isMaintenanceMode && (
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+          </svg>
+          <span>
+            Boutique temporairement en maintenance — aucune nouvelle commande ne peut être passée pour le moment. Merci de revenir plus tard.
+          </span>
+        </div>
+      )}
 
       {cartAdjustmentNotice && (
         <p role="alert" className="mb-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">

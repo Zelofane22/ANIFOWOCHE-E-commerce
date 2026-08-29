@@ -8,6 +8,8 @@ import Navbar from "./components/Navbar.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import { SiteConfigProvider } from "./context/SiteConfigContext.jsx";
+import { StoreStatusProvider } from "./context/StoreStatusContext.jsx";
+import MaintenanceBanner from "./components/MaintenanceBanner.jsx";
 import { useAuth } from "./context/useAuth.js";
 import Home from "./pages/Home.jsx";
 import ShopRedirect from "./pages/ShopRedirect.jsx";
@@ -84,11 +86,13 @@ export default function App() {
 
   if (isSellerSubdomain) {
     return (
-      <AuthProvider>
-        <CartProvider>
-          <div className="min-h-screen bg-white text-ink">
-            <ScrollToTop />
-            <main>
+      <StoreStatusProvider>
+        <AuthProvider>
+          <CartProvider>
+            <div className="min-h-screen bg-white text-ink">
+              <MaintenanceBanner />
+              <ScrollToTop />
+              <main>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="/" element={<SellerHome />} />
@@ -116,18 +120,21 @@ export default function App() {
               </Suspense>
             </main>
           </div>
-        </CartProvider>
-      </AuthProvider>
+          </CartProvider>
+        </AuthProvider>
+      </StoreStatusProvider>
     );
   }
 
   return (
-    <SiteConfigProvider>
-      <AuthProvider>
-        <CartProvider>
+    <StoreStatusProvider>
+      <SiteConfigProvider>
+        <AuthProvider>
+          <CartProvider>
           <div className="min-h-screen bg-white text-ink">
             <PageViewTracker />
             <ScrollToTop />
+            <MaintenanceBanner />
             {!isSellerSurface && <Navbar />}
             <main className="pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] md:pb-0">
               <div key={location.pathname} className="animate-page">
@@ -152,8 +159,9 @@ export default function App() {
             {!isSellerSurface && <Footer />}
             {!isSellerSurface && <MobileTabBar />}
           </div>
-        </CartProvider>
-      </AuthProvider>
-    </SiteConfigProvider>
+          </CartProvider>
+        </AuthProvider>
+      </SiteConfigProvider>
+    </StoreStatusProvider>
   );
 }

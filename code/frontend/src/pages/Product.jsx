@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useStoreStatus } from "../context/useStoreStatus.js";
 import { fetchProductBySlug } from "../api/products.js";
 import { addToWishlist, fetchWishlistStatus, removeFromWishlist } from "../api/wishlist.js";
 import Seo from "../components/Seo.jsx";
@@ -21,6 +22,7 @@ function ProductView({ slug }) {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { isAuthenticated } = useAuth();
+  const { maintenanceMode } = useStoreStatus();
   const [product, setProduct] = useState(null);
   const [error, setError] = useState(null);
   const [notFound, setNotFound] = useState(false);
@@ -98,6 +100,7 @@ function ProductView({ slug }) {
   const isRestaurantProduct = Boolean(product.made_to_order);
 
   const handleAddToCart = () => {
+    if (maintenanceMode) return false;
     if (!productInStock) return false;
 
     const nextErrors = {};
@@ -141,6 +144,7 @@ function ProductView({ slug }) {
   };
 
   const handleBuyNow = () => {
+    if (maintenanceMode) return;
     if (handleAddToCart()) navigate("/commande");
   };
 
@@ -259,6 +263,14 @@ function ProductView({ slug }) {
 
   return (
     <article className="mx-auto max-w-7xl px-4 py-6 pb-28 lg:pb-10">
+      {maintenanceMode && (
+        <div role="alert" className="mb-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+          </svg>
+          <span>Boutique en maintenance — les commandes sont temporairement suspendues. Vous pouvez naviguer mais pas ajouter au panier.</span>
+        </div>
+      )}
       <Seo
         title={seoTitle}
         description={productDescription}
@@ -313,6 +325,7 @@ function ProductView({ slug }) {
             added={added}
             shared={shared}
             outOfStock={outOfStock}
+            maintenanceMode={maintenanceMode}
             isMobile={false}
           />
         </div>
@@ -330,6 +343,7 @@ function ProductView({ slug }) {
               added={added}
               shared={shared}
               outOfStock={outOfStock}
+              maintenanceMode={maintenanceMode}
               isMobile={false}
             />
           </div>
@@ -347,6 +361,7 @@ function ProductView({ slug }) {
         added={added}
         shared={shared}
         outOfStock={outOfStock}
+        maintenanceMode={maintenanceMode}
         isMobile={true}
       />
     </article>
