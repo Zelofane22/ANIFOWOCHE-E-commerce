@@ -17,6 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.orders.models import Order, OrderItem
 from apps.orders.serializers import OrderSerializer
 from apps.payments.models import Payment
+from apps.core.maintenance import block_if_maintenance
 from apps.payments.serializers import PaymentSerializer
 from apps.notifications.services import notify_invoice
 from apps.payments.services import PaymentRelaunchError, RELAUNCHABLE_STATUSES, relaunch_payment
@@ -81,6 +82,18 @@ class SellerProfileView(generics.RetrieveUpdateAPIView):
             return self.request.user.seller_profile
         except SellerProfile.DoesNotExist:
             raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+    def patch(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().patch(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().put(request, *args, **kwargs)
 
 
 class ShopSlugAvailabilityView(APIView):
@@ -302,6 +315,18 @@ class SellerOrderViewSet(viewsets.ModelViewSet):
             raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
         return Order.objects.filter(items__product__seller=seller).prefetch_related("items__product").distinct()
 
+    def partial_update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().partial_update(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
 
 class PublicShopView(generics.RetrieveAPIView):
     serializer_class = PublicShopSerializer
@@ -325,7 +350,10 @@ class SellerPaymentRelaunchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, order_id):
-        """Relance un paiement FedaPay échoué d'une commande du vendeur (US-34)."""
+        """Relance un paiement FedaPay échoué d'une commande du vendeur (US-34).""" 
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
         # Récupération du profil vendeur de l'utilisateur connecté.
         try:
             seller = request.user.seller_profile
@@ -367,7 +395,10 @@ class SellerConfirmPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, order_id):
-        """Confirme manuellement un paiement en attente (paiement à la livraison) et prépare la commande."""
+        """Confirme manuellement un paiement en attente (paiement à la livraison) et prépare la commande.""" 
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
         # Récupération du profil vendeur de l'utilisateur connecté.
         try:
             seller = request.user.seller_profile

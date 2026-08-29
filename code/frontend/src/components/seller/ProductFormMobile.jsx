@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useStoreStatus } from "../../context/useStoreStatus.js";
 import { Link, useNavigate } from "react-router";
 import {
   createSellerProduct,
@@ -190,6 +191,7 @@ function PhotoGallery({ slug, colors }) {
   }, [slug]);
 
   const handleUpload = async (event) => {
+    if (maintenanceMode) return;
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
     setUploading(true);
@@ -213,6 +215,7 @@ function PhotoGallery({ slug, colors }) {
   };
 
   const handleDelete = async (imageId) => {
+    if (maintenanceMode) return;
     setError(null);
     try {
       await deleteSellerProductImage(slug, imageId);
@@ -238,6 +241,7 @@ function PhotoGallery({ slug, colors }) {
   };
 
   const handleReorder = async (imageId, direction) => {
+    if (maintenanceMode) return;
     const sorted = [...images].sort((a, b) => a.order - b.order);
     const index = sorted.findIndex((img) => img.id === imageId);
     if (index < 0) return;
@@ -388,6 +392,7 @@ export default function ProductFormMobile({
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
 
   const editingSlug = savedProduct?.slug ?? null;
+  const { maintenanceMode } = useStoreStatus();
 
   const productLimit = seller?.limits?.max_products ?? null;
   const createLimitReached =
@@ -437,6 +442,7 @@ export default function ProductFormMobile({
   };
 
   const handleSubmit = async () => {
+    if (maintenanceMode) return;
     setSubmitting(true);
     setError(null);
     if (!form.category_id) {
@@ -938,6 +944,15 @@ export default function ProductFormMobile({
 
   return (
     <div className="flex min-h-dvh flex-col" style={{ backgroundColor: "#F4F4F8" }}>
+      {maintenanceMode && (
+        <div role="alert" className="mx-4 mt-3 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+          </svg>
+          <span>Boutique en maintenance — la création et la modification de produits sont suspendues.</span>
+        </div>
+      )}
+
       {/* Header */}
       <div
         className="sticky top-0 z-20 border-b px-4 py-3"
@@ -1050,6 +1065,7 @@ export default function ProductFormMobile({
               }}
               disabled={
                 submitting ||
+                maintenanceMode ||
                 !canContinue() ||
                 (step === STEPS.length - 1 && createLimitReached)
               }

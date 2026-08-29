@@ -4,6 +4,7 @@ import { archiveSellerProduct, getSellerProducts, getSellerProfile } from "../ap
 import { ImageIcon, PackageIcon, PlusIcon, SearchIcon, EyeIcon, TrashIcon, MoreHorizontalIcon } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
@@ -69,6 +70,7 @@ export default function SellerProducts() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [menuOpen, setMenuOpen] = useState(null);
+  const { maintenanceMode } = useStoreStatus();
 
   useEffect(() => {
     if (loading) return;
@@ -99,6 +101,7 @@ export default function SellerProducts() {
   }, [products, search, filter]);
 
   const handleArchive = async (product) => {
+    if (maintenanceMode) return;
     try {
       await archiveSellerProduct(product.slug);
       setProducts((current) =>
@@ -129,13 +132,20 @@ export default function SellerProducts() {
               {activeCount}{productLimit != null ? ` / ${productLimit}` : ""} publié{activeCount > 1 ? "s" : ""}
             </p>
           </div>
-          <Link
-            to="/products/new"
-            className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#C99F08] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06] active:bg-[#8B6604]"
-          >
-            <PlusIcon size={15} />
-            Ajouter
-          </Link>
+          {maintenanceMode ? (
+            <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-gray-200 px-4 py-2.5 text-sm font-bold text-gray-400 cursor-not-allowed" title="Boutique en maintenance">
+              <PlusIcon size={15} />
+              Ajouter
+            </span>
+          ) : (
+            <Link
+              to="/products/new"
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#C99F08] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06] active:bg-[#8B6604]"
+            >
+              <PlusIcon size={15} />
+              Ajouter
+            </Link>
+          )}
         </div>
 
         {/* Search bar */}
@@ -168,6 +178,15 @@ export default function SellerProducts() {
           ))}
         </div>
       </div>
+
+      {maintenanceMode && (
+        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+          </svg>
+          <span>Boutique en maintenance — les actions vendeur (création, modification, archivage) sont suspendues.</span>
+        </div>
+      )}
 
       {/* Product grid */}
       <div className="px-4 pt-4 pb-24">
@@ -248,22 +267,24 @@ export default function SellerProducts() {
                         </button>
                         <button
                           type="button"
+                          disabled={maintenanceMode}
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/products/${product.slug}/edit`);
                           }}
-                          className="w-full px-3 py-2 text-left text-sm text-[#374151] hover:bg-gray-50 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm text-[#374151] hover:bg-gray-50 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Modifier
                         </button>
                         {product.is_active && (
                           <button
                             type="button"
+                            disabled={maintenanceMode}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleArchive(product);
                             }}
-                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <TrashIcon size={14} />
                             Archiver
@@ -298,13 +319,23 @@ export default function SellerProducts() {
       )}
 
       {/* FAB */}
-      <Link
-        to="/products/new"
-        className="fixed bottom-20 right-5 z-30 w-14 h-14 rounded-full bg-[#C99F08] text-white flex items-center justify-center shadow-lg shadow-[#C99F08]/30 hover:bg-[#A67C06] transition-colors lg:hidden"
-        style={{ bottom: "calc(var(--tabbar-h) + var(--tabbar-safe) + 1.5rem)" }}
-      >
-        <PlusIcon size={24} />
-      </Link>
+      {maintenanceMode ? (
+        <span
+          className="fixed bottom-20 right-5 z-30 w-14 h-14 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center shadow-lg cursor-not-allowed lg:hidden"
+          style={{ bottom: "calc(var(--tabbar-h) + var(--tabbar-safe) + 1.5rem)" }}
+          title="Boutique en maintenance"
+        >
+          <PlusIcon size={24} />
+        </span>
+      ) : (
+        <Link
+          to="/products/new"
+          className="fixed bottom-20 right-5 z-30 w-14 h-14 rounded-full bg-[#C99F08] text-white flex items-center justify-center shadow-lg shadow-[#C99F08]/30 hover:bg-[#A67C06] transition-colors lg:hidden"
+          style={{ bottom: "calc(var(--tabbar-h) + var(--tabbar-safe) + 1.5rem)" }}
+        >
+          <PlusIcon size={24} />
+        </Link>
+      )}
     </SellerShell>
   );
 }

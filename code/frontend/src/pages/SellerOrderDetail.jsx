@@ -5,6 +5,7 @@ import { formatDate, ORDER_STATUS } from "../components/account/orderHelpers.js"
 import { AlertCircleIcon, CheckIcon, ChevronLeftIcon, ClockIcon, CreditCardIcon, ExternalLinkIcon, MapPinIcon, MessageSquareIcon, PackageIcon, PhoneIcon, RefreshCwIcon, SendIcon, TruckIcon } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 
@@ -61,6 +62,7 @@ export default function SellerOrderDetail() {
   const [relaunchResult, setRelaunchResult] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmResult, setConfirmResult] = useState(null);
+  const { maintenanceMode } = useStoreStatus();
 
   useEffect(() => {
     if (loading) return;
@@ -77,6 +79,7 @@ export default function SellerOrderDetail() {
   }, [id, isAuthenticated, loading, navigate]);
 
   const handleUpdateStatus = async (reason = "") => {
+    if (maintenanceMode) return;
     if (!order || (statusSelection === order.status && !reason)) return;
     setSaving(true); setStatusError("");
     try {
@@ -91,6 +94,7 @@ export default function SellerOrderDetail() {
   const handleCancelConfirm = async () => { setShowCancelModal(false); await handleUpdateStatus(cancelReason); setCancelReason(""); };
 
   const handleRelaunchPayment = async () => {
+    if (maintenanceMode) return;
     setRelaunching(true); setRelaunchResult(null);
     try { const result = await relaunchSellerPayment(order.id); setRelaunchResult({ success: true, payment_url: result.payment_url }); }
     catch (error) { setRelaunchResult({ success: false, message: extractErrorMessage(error) }); }
@@ -98,6 +102,7 @@ export default function SellerOrderDetail() {
   };
 
   const handleConfirmPayment = async () => {
+    if (maintenanceMode) return;
     setConfirming(true); setConfirmResult(null);
     try { const result = await confirmSellerPayment(order.id); setConfirmResult({ success: true });
       setOrder((prev) => prev ? { ...prev, payment_info: result, status: "prepared" } : prev); setStatusSelection("prepared"); }
@@ -114,6 +119,14 @@ export default function SellerOrderDetail() {
 
   return (
     <SellerShell seller={seller}>
+      {maintenanceMode && (
+        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+          </svg>
+          <span>Boutique en maintenance — les actions (changement de statut, confirmation et relance paiement) sont suspendues.</span>
+        </div>
+      )}
       <div className="mx-auto max-w-2xl pb-8">
         <div className="bg-white px-5 pt-6 pb-0 border-b border-black/5">
           <div className="flex items-center gap-3 mb-5">
@@ -179,10 +192,10 @@ export default function SellerOrderDetail() {
           <div className="rounded-2xl border border-black/[0.05] bg-white p-5 shadow-sm">
             <p className="text-sm font-bold text-[#111827] mb-3 flex items-center gap-2"><TruckIcon size={15} className="text-[#C99F08]" />Statut et actions</p>
             <div className="space-y-3">
-              <select value={statusSelection} onChange={(e) => setStatusSelection(e.target.value)} className="min-h-11 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#111827] outline-none transition focus:border-[#C99F08] focus:ring-2 focus:ring-[#C99F08]/20">
+              <select value={statusSelection} disabled={maintenanceMode} onChange={(e) => setStatusSelection(e.target.value)} className="min-h-11 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#111827] outline-none transition focus:border-[#C99F08] focus:ring-2 focus:ring-[#C99F08]/20 disabled:opacity-50 disabled:cursor-not-allowed">
                 {Object.entries(ORDER_STATUS).map(([st, cfg]) => <option key={st} value={st}>{cfg.label}</option>)}
               </select>
-              <button type="button" onClick={() => { if (statusSelection === "cancelled" && statusSelection !== order.status) { setShowCancelModal(true); } else { handleUpdateStatus(); } }} disabled={saving || statusSelection === order.status} className="min-h-11 w-full rounded-lg bg-[#C99F08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b38a00] disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => { if (maintenanceMode) return; if (statusSelection === "cancelled" && statusSelection !== order.status) { setShowCancelModal(true); } else { handleUpdateStatus(); } }} disabled={saving || maintenanceMode || statusSelection === order.status} className="min-h-11 w-full rounded-lg bg-[#C99F08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b38a00] disabled:cursor-not-allowed disabled:opacity-50">
                 {saving ? "Enregistrement..." : "Mettre a jour"}
               </button>
               {statusError ? <p role="alert" className="text-sm text-red-600">{statusError}</p> : null}
@@ -197,7 +210,7 @@ export default function SellerOrderDetail() {
                 <div className="flex items-center justify-between rounded-xl bg-[#F3F4F6] px-3 py-2"><span className="text-[#6B7280]">Mode</span><span className="font-semibold text-[#111827]">{PAYMENT_METHOD_LABEL[order.payment_info.method] ?? order.payment_info.method}</span></div>
                 {order.payment_info.status === "pending" ? (
                   <div className="mt-3 space-y-2">
-                    <button type="button" onClick={handleConfirmPayment} disabled={confirming} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <button type="button" onClick={handleConfirmPayment} disabled={confirming || maintenanceMode} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
                       {confirming ? "Confirmation en cours..." : "Confirmer le paiement recu"}
                     </button>
                     {confirmResult ? (confirmResult.success ? <p role="status" className="text-sm text-green-700">Paiement confirme.</p> : <p role="alert" className="text-sm text-red-600">{confirmResult.message || "Echec."}</p>) : null}
@@ -206,7 +219,7 @@ export default function SellerOrderDetail() {
                 ) : null}
                 {(order.payment_info.status === "failed" || order.payment_info.status === "declined" || order.payment_info.status === "canceled") ? (
                   <div className="mt-3 space-y-2">
-                    <button type="button" onClick={handleRelaunchPayment} disabled={relaunching} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <button type="button" onClick={handleRelaunchPayment} disabled={relaunching || maintenanceMode} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50">
                       <RefreshCwIcon size={15} />{relaunching ? "Relance en cours..." : "Relancer le paiement"}
                     </button>
                     {relaunchResult ? (relaunchResult.success && relaunchResult.payment_url ? <a href={relaunchResult.payment_url} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"><ExternalLinkIcon size={15} />Nouveau lien de paiement</a> : <p role="alert" className="text-sm text-red-600">{relaunchResult.message || "Echec."}</p>) : null}
