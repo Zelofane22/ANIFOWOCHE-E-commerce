@@ -13,7 +13,8 @@ import {
   GlobeIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
-import { useAuth } from "../context/useAuth.js"; 
+import { useAuth } from "../context/useAuth.js";
+import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 
 const inputClass =
@@ -48,14 +49,17 @@ function SettingsRow({ icon: Icon, label, desc, onClick, gold, badge }) {
     </button>
   );
 }
-function ToggleSwitch({ enabled, onChange }) {
+function ToggleSwitch({ enabled, onChange, disabled }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={enabled}
-      onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#C99F08]/30 focus:ring-offset-2 ${
+      disabled={disabled}
+      onClick={() => { if (disabled) return; onChange(!enabled); }}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#C99F08]/30 focus:ring-offset-2 ${
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+      } ${
         enabled ? "bg-[#C99F08]" : "bg-[#D1D5DB]"
       }`}
     >
@@ -82,6 +86,7 @@ export default function SellerShopPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const { maintenanceMode } = useStoreStatus();
 
   useEffect(() => {
     if (loading) return;
@@ -132,6 +137,7 @@ export default function SellerShopPage() {
   };
   
   const handleFullSave = async (e) => {
+    if (maintenanceMode) return;
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -178,6 +184,14 @@ export default function SellerShopPage() {
 
   return (
     <SellerShell title="Boutique" seller={seller}>
+      {maintenanceMode && (
+        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+          </svg>
+          <span>Boutique en maintenance — les modifications de la boutique sont suspendues.</span>
+        </div>
+      )}
       {/* Dark header */}
       <div className="mx-auto max-w-2xl">
         <div className="rounded-2xl bg-[#111827] px-5 pt-8 pb-6 -mx-4 sm:mx-0 sm:rounded-2xl">
@@ -243,7 +257,7 @@ export default function SellerShopPage() {
               icon={StoreIcon}
               label="Paramètres boutique"
               desc={`${seller.shop?.name} · ${seller.shop?.slug}`}
-              onClick={() => setEditingShop(!editingShop)}
+              onClick={() => { if (maintenanceMode) return; setEditingShop(!editingShop); }}
             />
             <div className="px-4 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -257,7 +271,8 @@ export default function SellerShopPage() {
               </div>
               <ToggleSwitch
                 enabled={form.shop.is_published}
-                onChange={(val) => updateShop({ is_published: val })}
+                disabled={maintenanceMode}
+                onChange={(val) => { if (maintenanceMode) return; updateShop({ is_published: val }); }}
               />
             </div>
             <SettingsRow
@@ -372,7 +387,7 @@ export default function SellerShopPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || Boolean(slugError)}
+                  disabled={submitting || maintenanceMode || Boolean(slugError)}
                   className="flex-1 rounded-[10px] bg-[#C99F08] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A67C06] disabled:opacity-60"
                 >
                   {submitting ? "Enregistrement..." : "Enregistrer"}

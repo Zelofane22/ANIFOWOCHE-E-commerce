@@ -7,23 +7,26 @@ export default function ProductActions({
   added,
   shared,
   outOfStock,
+  maintenanceMode = false,
   isMobile = false
 }) {
+  const disabled = outOfStock || maintenanceMode;
+  const buyLabel = maintenanceMode ? "Maintenance" : outOfStock ? "Rupture de stock" : "Acheter";
   if (isMobile) {
     return (
       <div className="fixed inset-x-0 bottom-[calc(var(--tabbar-h)+var(--tabbar-safe))] z-20 flex gap-3 border-t border-black/10 bg-white p-4 md:bottom-0 lg:hidden">
         <button
           type="button"
           onClick={handleBuyNow}
-          disabled={outOfStock}
+          disabled={disabled}
           className="min-w-0 flex-[3_1_0%] rounded-lg bg-ink px-6 py-3.5 font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300"
         >
-          {outOfStock ? "Rupture de stock" : "Acheter"}
+          {buyLabel}
         </button>
         <button
           type="button"
           onClick={handleAddToCart}
-          disabled={outOfStock}
+          disabled={disabled}
           className="min-w-0 flex-[1_1_0%] rounded-lg border border-brand bg-white px-3 py-3.5 font-semibold text-brand-dark disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400"
         >
           {added ? "✓ Ajouté !" : "Panier"}
@@ -66,15 +69,15 @@ export default function ProductActions({
       <button
         type="button"
         onClick={handleBuyNow}
-        disabled={outOfStock}
+        disabled={disabled}
         className="min-w-0 flex-[3_1_0%] rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:hover:bg-gray-300"
       >
-        {outOfStock ? "Rupture de stock" : "Acheter"}
+        {buyLabel}
       </button>
       <button
         type="button"
         onClick={handleAddToCart}
-        disabled={outOfStock}
+        disabled={disabled}
         className="min-w-0 flex-[1_1_0%] rounded-lg border border-brand px-4 py-3 text-sm font-semibold text-brand-dark transition hover:bg-brand-light active:bg-brand-medium/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 disabled:hover:bg-transparent"
       >
         {added ? "✓ Ajouté !" : "Panier"}

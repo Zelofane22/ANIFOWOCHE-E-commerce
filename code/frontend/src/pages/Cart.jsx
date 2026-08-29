@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router";
+import { useStoreStatus } from "../context/useStoreStatus.js";
 import QuantityStepper from "../components/QuantityStepper.jsx";
 import { useCart } from "../context/useCart.js";
 import { formatXof } from "../utils/format.js";
@@ -9,6 +10,7 @@ import DeliveryMethodSelector from "../components/DeliveryMethodSelector.jsx";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, updateDeliveryMethod, subtotal, reconcileCart } = useCart();
+  const { maintenanceMode } = useStoreStatus();
 
   // Réconcilie le panier localStorage avec le catalogue live au montage
   // (retire les produits supprimés, met à jour prix/id) — cf. issue JAVASCRIPT-REACT-S.
@@ -57,6 +59,15 @@ export default function Cart() {
             ({itemCount} article{itemCount > 1 ? "s" : ""})
           </span>
         </h1>
+
+        {maintenanceMode && (
+          <div role="alert" className="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+            </svg>
+            <span>Boutique en maintenance — les commandes sont temporairement suspendues. Vous pouvez parcourir le catalogue et reviendrez plus tard pour commander.</span>
+          </div>
+        )}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
           <ul className="flex flex-col gap-4">
@@ -153,9 +164,10 @@ export default function Cart() {
               <button
                 type="button"
                 onClick={goToCheckout}
-                className="mt-5 w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium"
+                disabled={maintenanceMode}
+                className="mt-5 w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white transition hover:bg-brand-medium disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
               >
-                Passer la commande
+                {maintenanceMode ? "Boutique en maintenance" : "Passer la commande"}
               </button>
               <Link
                 to="/catalogue"
@@ -181,9 +193,10 @@ export default function Cart() {
           <button
             type="button"
             onClick={goToCheckout}
-            className="w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white"
+            disabled={maintenanceMode}
+            className="w-full rounded-lg bg-brand px-6 py-3.5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
           >
-            Passer la commande
+            {maintenanceMode ? "Boutique en maintenance" : "Passer la commande"}
           </button>
         </div>
       </div>

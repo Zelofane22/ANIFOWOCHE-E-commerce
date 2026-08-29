@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useStoreStatus } from "../context/useStoreStatus.js";
 import { formatXof } from "../utils/format.js";
 import {
   AlertCircleIcon,
@@ -96,6 +97,7 @@ export default function SellerOrders() {
   const [savingOrderIds, setSavingOrderIds] = useState([]);
   const [statusErrors, setStatusErrors] = useState({});
   const [cancelModal, setCancelModal] = useState(null);
+  const { maintenanceMode } = useStoreStatus();
 
   useEffect(() => {
     if (loading) return;
@@ -141,6 +143,7 @@ export default function SellerOrders() {
 
 
   const handleUpdateStatus = async (order, reason = "") => {
+    if (maintenanceMode) return;
     const nextStatus = statusSelection[order.id] ?? order.status;
     if (nextStatus === order.status) return;
     setSavingOrderIds((prev) => [...prev, order.id]);
@@ -225,6 +228,15 @@ export default function SellerOrders() {
             })}
           </div>
         </div>
+
+        {maintenanceMode && (
+          <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+            </svg>
+            <span>Boutique en maintenance — la mise à jour du statut des commandes est suspendue.</span>
+          </div>
+        )}
 
         <div className="px-4 pt-4 space-y-3 pb-8">
           {orders === null ? (

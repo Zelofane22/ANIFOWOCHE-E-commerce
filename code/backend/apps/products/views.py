@@ -14,6 +14,7 @@ from rest_framework.status import HTTP_204_NO_CONTENT
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 
+from apps.core.maintenance import block_if_maintenance
 from apps.promotions.models import Promotion
 from apps.sellers.limits import can_create_product, main_store_catalog_q, plan_limits
 from apps.sellers.models import SellerProfile
@@ -187,22 +188,37 @@ class SellerProductViewSet(viewsets.ModelViewSet):
         return None
 
     def create(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
         blocked = self._blocked_by_product_limit()
         if blocked:
             return blocked
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
         blocked = self._check_reactivation()
         if blocked:
             return blocked
         return super().update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
         blocked = self._check_reactivation()
         if blocked:
             return blocked
         return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         # Associe automatiquement le produit au vendeur courant.
@@ -242,6 +258,12 @@ class ProductImageListCreateView(ListCreateAPIView):
         # Associe l'image au produit du vendeur.
         serializer.save(product=self._product())
 
+    def create(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().create(request, *args, **kwargs)
+
 
 class ProductImageDetailView(RetrieveUpdateDestroyAPIView):
     """Détail, mise à jour et suppression d'une image d'un produit du vendeur."""
@@ -274,7 +296,28 @@ class ProductImageDetailView(RetrieveUpdateDestroyAPIView):
         instance.is_active = False
         instance.save(update_fields=["is_active", "updated_at"])
 
+    def update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().destroy(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
         # Réponse 204 après la suppression douce.
         instance = self.get_object()
         self.perform_destroy(instance)
@@ -311,6 +354,30 @@ class OptionGroupViewSet(viewsets.ModelViewSet):
         # Groupes d'options du produit, avec leurs options préchargées.
         return OptionGroup.objects.filter(product=self._product()).prefetch_related("options")
 
+    def create(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().destroy(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         # Associe le groupe d'options au produit du vendeur.
         serializer.save(product=self._product())
@@ -333,6 +400,30 @@ class OptionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Options du groupe ciblé.
         return Option.objects.filter(group=self._group())
+
+    def create(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         # Associe l'option au groupe ciblé.
