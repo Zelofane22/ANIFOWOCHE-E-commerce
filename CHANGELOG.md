@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.13.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.12.0...v2.13.0) (2026-08-29)
+
+
+### Features
+
+* **seller:** permettre ajout images supplémentaires dans ProductFormMobile avant création ([625122e](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/625122e1b9a64bd2863374d1f3fd69097a883465))
+
+
+### Bug Fixes
+
+* **ci:** remove pull_request trigger from CI workflow ([ce92ce5](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/ce92ce5807713fd525bede5e1a877b1a78047e3b))
+* **delivery:** corriger test guest checkout pour requires_delivery ([65d8a46](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/65d8a46ffdaab83d4966a0115e5abcb6b8eac821))
+* **frontend:** corrige lint maintenanceMode dans PhotoGallery ([6cae515](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/6cae5158303f044cbdca8e7004642b33e7ec2ea5))
+* **frontend:** corrige lint maintenanceMode dans PhotoGallery ([1971ea3](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/1971ea3823ec6bafd62fab5249659c7d08fadeea))
+* **frontend:** mode maintenance boutique désormais visible et bloquant ([b44e67c](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/b44e67c777a6b60a3503d0771507d0504db147c4))
+* **frontend:** remove "Voir le produit" button from ProductCard and PublicShop components ([0584618](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/0584618f1349b3d805031447a4a630e53f126297))
+* **maintenance:** suspend aussi les actions vendeur ([2b00cfa](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/2b00cfac04306dfe5ecc00ed65b493a9d2581085))
+* optimize image upload process in ProductForm and ProductFormMobile ([b6a3904](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/b6a39048024f40baf2813b08a798f6d992d38a93))
+* remove seller product commission ([d099e27](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/d099e276195b6c04dbef68dac889e9c6942d86f3))
+* **seller:** rendre galerie mobile visible après création produit (correction bouton Enregistrez le produit) ([b1b27f6](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/b1b27f601eddca7a2c8471f69538233b31ca5f32))
+* simplify seller financial preview ([92a7e58](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/92a7e587d87e9b26fadb846e0d181f512a502b19))
+
 ## [2.12.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.11.0...v2.12.0) (2026-08-28)
 
 
