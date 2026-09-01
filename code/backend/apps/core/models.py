@@ -19,9 +19,36 @@ class SingletonModel(models.Model):
 
     @classmethod
     def get_solo(cls):
-        """Récupère (ou crée) la ligne unique du modèle de réglages."""
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        """Récupère (ou crée) la ligne unique du modèle de réglages.
+
+        Résilient aux doublons causés par une table sans contrainte PK
+        (ex: core_storesettings sur Render free après restauration) :
+        si plusieurs lignes existent, conserve la plus récente et nettoie
+        les doublons.
+        """
+        try:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except cls.MultipleObjectsReturned:
+            # Garde la ligne la plus récente (ctid le plus élevé) et supprime les autres
+            # via SQL brut pour éviter de déclencher la contrainte d'unicité manquante
+            from django.db import connection
+            table = cls._meta.db_table
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT ctid, id FROM {table} ORDER BY ctid DESC")
+                rows = cursor.fetchall()
+                if rows:
+                    keep_ctid = rows[0][0]
+                    cursor.execute(f"DELETE FROM {table} WHERE ctid != %s", [keep_ctid])
+            # Réessaye après nettoyage
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except Exception:
+            # Fallback ultime : retourne la première ligne disponible
+            obj = cls.objects.filter(pk=1).first() or cls.objects.first()
+            if obj:
+                return obj
+            return cls.objects.create(pk=1)
 
 
 class StoreSettings(SingletonModel):

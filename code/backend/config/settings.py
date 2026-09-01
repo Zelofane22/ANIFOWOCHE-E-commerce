@@ -35,6 +35,34 @@ def _append_origins(origins, additional_origins):
             origins.append(origin)
     return origins
 
+
+def _expand_with_www_variants(origins):
+    """Ajoute les variantes www/non-www pour anifowoche.com pour éviter
+    les erreurs CORS quand l'utilisateur accède via www.anifowoche.com
+    alors que l'origin autorisée est anifowoche.com (ou inversement).
+    Utile car Vercel sert les deux domaines vers le même déploiement."""
+    expanded = list(origins)
+    for origin in list(origins):
+        parsed = urlsplit(origin)
+        if not parsed.scheme or not parsed.netloc:
+            continue
+        host = parsed.netloc.lower()
+        # Ne traiter que les domaines anifowoche.com (apex et sous-domaines)
+        if not host.endswith("anifowoche.com"):
+            continue
+        if host == "anifowoche.com":
+            variant = f"{parsed.scheme}://www.{host}"
+        elif host == "www.anifowoche.com":
+            variant = f"{parsed.scheme}://anifowoche.com"
+        elif host == "seller.anifowoche.com":
+            # seller n'a pas de variante www, on ignore
+            continue
+        else:
+            continue
+        if variant not in expanded:
+            expanded.append(variant)
+    return expanded
+
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=not ON_RENDER, cast=bool)
 ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()))
@@ -250,11 +278,15 @@ FEDAPAY_WEBHOOK_TOLERANCE_SECONDS = config("FEDAPAY_WEBHOOK_TOLERANCE_SECONDS", 
 FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
 SELLER_FRONTEND_BASE_URL = config("SELLER_FRONTEND_BASE_URL", default=FRONTEND_BASE_URL)
 
-CORS_ALLOWED_ORIGINS = _append_origins(
-    _normalize_origins(config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())),
-    [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL],
+CORS_ALLOWED_ORIGINS = _expand_with_www_variants(
+    _append_origins(
+        _normalize_origins(config("CORS_ALLOWED_ORIGINS", default="http://localhost:5173", cast=Csv())),
+        [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL],
+    )
 )
-CSRF_TRUSTED_ORIGINS = _append_origins(CSRF_TRUSTED_ORIGINS, [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL])
+CSRF_TRUSTED_ORIGINS = _expand_with_www_variants(
+    _append_origins(CSRF_TRUSTED_ORIGINS, [FRONTEND_BASE_URL, SELLER_FRONTEND_BASE_URL])
+)
 
 # Notifications WhatsApp Business Cloud API (Meta). Valeurs placeholder tant
 # que le vrai token et le phone_number_id ne sont pas fournis — voir

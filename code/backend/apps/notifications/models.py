@@ -38,8 +38,25 @@ class NotificationSettings(models.Model):
     @classmethod
     def get_solo(cls):
         """Récupère (ou crée) la ligne unique de réglages des notifications."""
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        try:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except cls.MultipleObjectsReturned:
+            from django.db import connection
+            table = cls._meta.db_table
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT ctid FROM {table} ORDER BY ctid DESC LIMIT 1")
+                row = cursor.fetchone()
+                if row:
+                    keep_ctid = row[0]
+                    cursor.execute(f"DELETE FROM {table} WHERE ctid != %s", [keep_ctid])
+            obj, _ = cls.objects.get_or_create(pk=1)
+            return obj
+        except Exception:
+            obj = cls.objects.filter(pk=1).first() or cls.objects.first()
+            if obj:
+                return obj
+            return cls.objects.create(pk=1)
 
 
 class Notification(models.Model):

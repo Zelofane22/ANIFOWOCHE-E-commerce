@@ -4,6 +4,17 @@
   "framework": "vite",
   "redirects": [
     {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.anifowoche.com"
+        }
+      ],
+      "destination": "https://anifowoche.com/$1",
+      "permanent": true
+    },
+    {
       "source": "/shop/:slug",
       "destination": "https://seller.anifowoche.com/:slug",
       "permanent": true
