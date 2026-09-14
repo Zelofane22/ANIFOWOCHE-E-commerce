@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.1](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.13.0...v2.13.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **catalogue:** corrige accès www.anifowoche.com/catalogue et 500 store/status ([3fa6751](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/3fa675165070d033c18d42d10baf55b22eb626dd))
+
 ## [2.13.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.12.0...v2.13.0) (2026-08-29)
 
 
