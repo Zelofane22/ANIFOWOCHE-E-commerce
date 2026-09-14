@@ -42,6 +42,7 @@ if (import.meta.env.PROD && sentryDsn) {
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
     beforeSend(event) {
+      if (event?.message?.startsWith?.("ReportingObserver [deprecation]")) return null;
       const message = event?.exception?.values?.[0]?.value ?? "";
       if (
         message.includes("Failed to fetch dynamically imported module") ||
