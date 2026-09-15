@@ -97,7 +97,7 @@ Après toute tâche sur un worktree :
 
 ## Modèle et effort
 
-Avant d'exécuter une tâche, identifier le modèle IA (dans la liste des models opencode go) adapté. 
+Avant d'exécuter une tâche, identifier le modèle IA (dans la liste des models opencode go) adapté afin de réduire la consommation des tokens. 
 Go inclut les modèles ci-dessous, avec des limites généreuses et un accès fiable.
 ```
 Grok 4.5
