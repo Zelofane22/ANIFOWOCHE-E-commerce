@@ -323,9 +323,9 @@ class OrderAdminTests(TestCase):
         response = self.client.get("/admin/orders/order/")
         self.assertEqual(response.status_code, 200)
 
-    def test_order_add_form(self):
+    def test_order_add_form_is_read_only(self):
         response = self.client.get("/admin/orders/order/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_order_change_form(self):
         from apps.core.factories import OrderFactory

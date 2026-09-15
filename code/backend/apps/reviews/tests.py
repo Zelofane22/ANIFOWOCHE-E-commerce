@@ -76,9 +76,9 @@ class ReviewAdminTests(TestCase):
         response = self.client.get("/admin/reviews/review/")
         self.assertEqual(response.status_code, 200)
 
-    def test_review_add_form(self):
+    def test_review_add_form_is_read_only(self):
         response = self.client.get("/admin/reviews/review/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_non_staff_cannot_access(self):
         from apps.core.factories import UserFactory

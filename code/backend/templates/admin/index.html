@@ -44,10 +44,10 @@
     </div>
 
     <div class="anw-grid anw-action-grid anw-action-grid--2">
-        <a class="anw-card anw-card-link anw-action-card danger" href="{{ action_links.payments_failed }}">
-            <div class="anw-action-title">Paiements à relancer</div>
-            <div class="anw-action-card-number">{{ failed_payments_count }}</div>
-            <div class="anw-action-card-hint">Échoués / refusés / annulés</div>
+        <a class="anw-card anw-card-link anw-action-card warn" href="{{ action_links.subscriptions_pending }}">
+            <div class="anw-action-title">Abonnements en attente</div>
+            <div class="anw-action-card-number">{{ pending_subscriptions_count }}</div>
+            <div class="anw-action-card-hint">Paiement non finalisé</div>
         </a>
         <a class="anw-card anw-card-link anw-action-card warn" href="{{ action_links.settings_pending }}">
             <div class="anw-action-title">Réglages en attente</div>
@@ -134,20 +134,29 @@
     <div class="anw-grid anw-bottom-grid anw-bottom-grid--single">
         <div class="anw-card">
             <div class="anw-card-head">
-                <div class="anw-card-title">Paiements récents</div>
-                <a class="anw-see-all" href="{{ action_links.payments_failed }}">À relancer →</a>
+                <div class="anw-card-title">Transactions SAAS récentes</div>
+                <a class="anw-see-all" href="{{ action_links.subscriptions }}">Tout voir →</a>
             </div>
             <div class="anw-table-wrap">
                 <table class="anw-table">
+                    <thead>
+                        <tr>
+                            <th>Vendeur</th>
+                            <th>Plan</th>
+                            <th style="text-align:right;">Montant</th>
+                            <th style="text-align:right;">Statut</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        {% for payment in recent_payments %}
+                        {% for sub in recent_subscriptions %}
                             <tr>
-                                <td><a href="{{ action_links.payments }}">{{ payment.get_method_display }}</a></td>
-                                <td style="text-align:right;">{{ payment.amount_xof|intcomma }} FCFA</td>
-                                <td style="text-align:right;"><span class="anw-badge {{ payment.status }}">{{ payment.get_status_display }}</span></td>
+                                <td><a href="{% url 'admin:sellers_sellersubscription_change' sub.id %}">{{ sub.seller.display_name }}</a></td>
+                                <td>{{ sub.get_plan_display }}</td>
+                                <td style="text-align:right;">{{ sub.amount_xof|intcomma }} FCFA</td>
+                                <td style="text-align:right;"><span class="anw-badge {{ sub.status }}">{{ sub.get_status_display }}</span></td>
                             </tr>
                         {% empty %}
-                            <tr><td class="anw-empty">Aucun paiement pour l'instant.</td></tr>
+                            <tr><td class="anw-empty" colspan="4">Aucun abonnement pour l'instant.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

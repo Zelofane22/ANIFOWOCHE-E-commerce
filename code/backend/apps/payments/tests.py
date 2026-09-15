@@ -498,21 +498,6 @@ class PaymentRelaunchTests(APITestCase):
             BackofficeNotification.objects.filter(kind=BackofficeNotification.Kind.PAYMENT_FAILED).exists()
         )
 
-    def test_admin_action_relaunches_selected_payments(self):
-        admin_user = SuperUserFactory(username="superadmin", email="admin@example.com")
-        admin_user.set_password("pass-solide-1234")
-        admin_user.save()
-        self.client.force_login(admin_user)
-
-        with self._mocked_providers_post():
-            response = self.client.post(
-                "/admin/payments/payment/",
-                {"action": "relaunch_payments", "_selected_action": [self.failed_payment.pk]},
-            )
-
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.order.payments.count(), 2)
-        self.assertTrue(Notification.objects.filter(event=Notification.Event.PAYMENT_RETRY).exists())
 
 
 class PaymentAdminTests(TestCase):
@@ -525,9 +510,9 @@ class PaymentAdminTests(TestCase):
         response = self.client.get("/admin/payments/payment/")
         self.assertEqual(response.status_code, 200)
 
-    def test_payment_add_form(self):
+    def test_payment_add_form_is_read_only(self):
         response = self.client.get("/admin/payments/payment/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_paymentsettings_changelist_redirects(self):
         from apps.payments.models import PaymentSettings

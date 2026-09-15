@@ -2,6 +2,8 @@ from unfold.admin import ModelAdmin, TabularInline
 
 from django.contrib import admin
 
+from apps.core.admin_mixins import ReadOnlyAdminMixin
+
 from .models import Category, Option, OptionGroup, Product, ProductImage
 
 LOW_STOCK_THRESHOLD = 10
@@ -26,6 +28,9 @@ class LowStockListFilter(admin.SimpleListFilter):
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
+    """Taxonomie plateforme : seuls les administrateurs créent les catégories
+    que les vendeurs rattachent ensuite à leurs produits."""
+
     list_display = ["name", "slug", "parent", "level", "order", "is_active"]
     list_filter = ["level", "is_active", "parent"]
     prepopulated_fields = {"slug": ("name",)}
@@ -34,25 +39,29 @@ class CategoryAdmin(ModelAdmin):
 
 class ProductImageInline(TabularInline):
     model = ProductImage
-    extra = 1
+    extra = 0
 
 
 @admin.register(Product)
-class ProductAdmin(ModelAdmin):
+class ProductAdmin(ReadOnlyAdminMixin, ModelAdmin):
+    """Consultation seule : le catalogue et les stocks sont gérés par les
+    vendeurs dans leur espace seller (`/api/seller/products/`)."""
+
     list_display = ["name", "seller", "shop", "category", "price_xof", "unit", "stock", "made_to_order", "is_active"]
     list_filter = ["category", "seller", "shop", "is_active", "unit", "size", "made_to_order", LowStockListFilter]
     search_fields = ["name", "description", "seller__display_name", "shop__name"]
-    prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductImageInline]
 
 
 class OptionInline(TabularInline):
     model = Option
-    extra = 1
+    extra = 0
 
 
 @admin.register(OptionGroup)
-class OptionGroupAdmin(ModelAdmin):
+class OptionGroupAdmin(ReadOnlyAdminMixin, ModelAdmin):
+    """Consultation seule : les options produit sont gérées par les vendeurs."""
+
     list_display = ["name", "product", "is_required", "min_selections", "max_selections"]
     list_filter = ["is_required", "product__seller"]
     search_fields = ["name", "product__name"]

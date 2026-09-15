@@ -398,38 +398,60 @@ class SeedE2ECommandTests(TestCase):
 
 
 class ReportsAdminTests(TestCase):
+    """Les rapports admin ne couvrent que le SaaS ANIF Seller."""
+
     def setUp(self):
         self.superuser = SuperUserFactory(username="reports-admin")
         self.client.force_login(self.superuser)
-        self.product = ProductFactory(name="Produit rapport")
+        self.shop = ShopFactory(name="Boutique rapport", slug="boutique-rapport")
 
-    def create_order(self, days_ago, total, status=Order.Status.DELIVERED):
-        order = OrderFactory(total_xof=total, status=status)
-        created_at = timezone.now() - timedelta(days=days_ago)
-        Order.objects.filter(pk=order.pk).update(created_at=created_at)
-        OrderItemFactory(order=order, product=self.product, quantity=1, unit_price_xof=total)
-        return order
+    def create_subscription(self, days_ago, amount, status=SellerSubscription.Status.APPROVED):
+        subscription = SellerSubscription.objects.create(
+            seller=self.shop.seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=amount,
+            status=status,
+            starts_at=timezone.now() - timedelta(days=days_ago),
+            ends_at=timezone.now() + timedelta(days=30 - days_ago),
+        )
+        SellerSubscription.objects.filter(pk=subscription.pk).update(
+            created_at=timezone.now() - timedelta(days=days_ago)
+        )
+        return subscription
 
-    def test_reports_filter_period_and_show_comparison(self):
-        self.create_order(2, 2500)
-        self.create_order(10, 1000)
+    def test_reports_filter_period_and_show_saas_kpis(self):
+        self.create_subscription(2, 5000)
+        self.create_subscription(10, 9000)
         response = self.client.get("/admin/rapports/?period=7")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["revenue"], 2500)
-        self.assertEqual(len(response.context["revenue_by_month"]), 1)
+        self.assertEqual(response.context["revenue"], 5000)
+        self.assertEqual(response.context["subscriptions_approved"], 1)
         self.assertContains(response, "7 jours")
 
     def test_reports_support_custom_period_and_csv_export(self):
-        self.create_order(2, 2500)
-        response = self.client.get("/admin/rapports/?period=custom&start=2020-01-01&end=2030-01-01&export=csv")
+        self.create_subscription(2, 5000)
+        response = self.client.get(
+            "/admin/rapports/?period=custom&start=2020-01-01&end=2030-01-01&export=csv"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
-        self.assertIn("Produit rapport", response.content.decode())
-        self.assertIn("attachment; filename=rapports-20200101-20300101.csv", response["Content-Disposition"])
+        body = response.content.decode()
+        self.assertIn("Rapport SaaS ANIF Seller", body)
+        self.assertIn("CA abonnements", body)
+        self.assertIn(
+            "attachment; filename=rapports-saas-20200101-20300101.csv",
+            response["Content-Disposition"],
+        )
+
+    def test_reports_no_longer_expose_store_sales(self):
+        response = self.client.get("/admin/rapports/")
+        self.assertEqual(response.status_code, 200)
+        for removed_key in ("order_count", "top_products", "revenue_by_month", "category_breakdown"):
+            self.assertNotIn(removed_key, response.context)
 
 
 class DashboardStoreScopeTests(TestCase):
-    """Les statistiques du dashboard admin ne concernent que la boutique principale."""
+    """Le dashboard admin ne concerne que le SaaS ANIF Seller (boutiques vendeur)."""
 
     def setUp(self):
         self.superuser = SuperUserFactory(username="dashboard-admin")
@@ -521,16 +543,21 @@ class DashboardStoreScopeTests(TestCase):
         self.assertIsNotNone(context["churn_rate"])
         self.assertEqual(context["churned_vendors_count"], 1)
 
+    def test_dashboard_exposes_saas_transactions(self):
+        SellerSubscription.objects.create(
+            seller=self.other_shop.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=10000,
+            status=SellerSubscription.Status.PENDING,
+        )
+        context = dashboard_callback(mock.Mock(), {})
 
-    def test_reports_scoped_to_main_shop(self):
-        response = self.client.get(reverse("admin_reports"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["order_count"], 1)
-        self.assertEqual(response.context["revenue"], 5000)
-        self.assertEqual(response.context["total_products"], 1)
-        self.assertEqual(len(response.context["top_products"]), 1)
-        self.assertEqual(response.context["top_products"][0]["product__name"], self.main_product.name)
+        self.assertEqual(context["pending_subscriptions_count"], 1)
+        self.assertEqual(len(context["recent_subscriptions"]), 1)
+        self.assertEqual(context["recent_subscriptions"][0].plan, "PRO")
+        # Les paiements de commande ne sont plus exposés dans le dashboard.
+        self.assertNotIn("recent_payments", context)
+        self.assertNotIn("failed_payments_count", context)
 
     def test_admin_index_renders_remaining_kpis(self):
         PageView.objects.create(path="/", session_key="s1")

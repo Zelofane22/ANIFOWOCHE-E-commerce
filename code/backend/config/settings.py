@@ -427,16 +427,6 @@ UNFOLD = {
                         "icon": "warehouse",
                         "link": "/admin/products/product/?o=6",
                     },
-                    {
-                        "title": "Promotions",
-                        "icon": "sell",
-                        "link": reverse_lazy("admin:promotions_promotion_changelist"),
-                    },
-                    {
-                        "title": "Coupons",
-                        "icon": "confirmation_number",
-                        "link": reverse_lazy("admin:promotions_coupon_changelist"),
-                    },
                 ],
             },
             {

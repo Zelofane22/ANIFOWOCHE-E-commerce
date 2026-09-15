@@ -102,26 +102,20 @@ class ProductDiscountAnnotationTests(APITestCase):
 
 
 class PromotionAdminTests(TestCase):
+    """Les promotions et coupons ne sont plus exposés dans le backoffice."""
+
     def setUp(self):
         from apps.core.factories import SuperUserFactory
         self.admin = SuperUserFactory(username="promo-admin")
         self.client.force_login(self.admin)
 
-    def test_promotion_changelist(self):
+    def test_promotion_not_exposed(self):
         response = self.client.get("/admin/promotions/promotion/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
 
-    def test_promotion_add_form(self):
-        response = self.client.get("/admin/promotions/promotion/add/")
-        self.assertEqual(response.status_code, 200)
-
-    def test_coupon_changelist(self):
+    def test_coupon_not_exposed(self):
         response = self.client.get("/admin/promotions/coupon/")
-        self.assertEqual(response.status_code, 200)
-
-    def test_coupon_add_form(self):
-        response = self.client.get("/admin/promotions/coupon/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
 
     def test_non_staff_cannot_access(self):
         from apps.core.factories import UserFactory
