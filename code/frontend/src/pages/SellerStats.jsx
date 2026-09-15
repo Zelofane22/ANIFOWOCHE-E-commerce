@@ -225,7 +225,13 @@ export default function SellerStats() {
             <Link to="/dashboard" aria-label="Retour au tableau de bord" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20">
               <ChevronLeftIcon size={18} />
             </Link>
-            <h1 className="text-base font-bold">Statistiques</h1>
+            <div className="text-center">
+              <h1 className="text-base font-bold">Statistiques</h1>
+              <Link to="/reports" className="text-[11px] font-semibold text-[#C99F08] transition hover:text-[#A67C06]">
+                Rapports &amp; exports →
+              </Link>
+            </div>
+
             <div className="flex items-center gap-1 rounded-full bg-white/10 p-1" aria-label="Type de graphique">
               <button type="button" aria-label="Afficher les barres" onClick={() => setView("bar")} className={`rounded-full p-1.5 ${view === "bar" ? "bg-white/20" : "text-white/50"}`}>
                 <BarChartIcon size={15} />

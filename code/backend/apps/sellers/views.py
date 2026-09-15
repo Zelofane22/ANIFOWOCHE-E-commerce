@@ -1,7 +1,10 @@
+import csv
+import io
 import logging
 
 from datetime import date, timedelta
 
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Q
 from django.db.models.functions import TruncDate
@@ -25,7 +28,7 @@ from apps.products.models import Product
 from apps.products.serializers import ProductSerializer
 from apps.users.serializers import UserSerializer
 
-from .limits import orders_quota_reached
+from .limits import has_feature, orders_quota_reached
 from .models import SellerProfile, Shop
 from .serializers import (
     PublicShopSerializer,
@@ -112,189 +115,269 @@ class ShopSlugAvailabilityView(APIView):
         return Response({"slug": slug, "available": not queryset.exists()})
 
 
+def _seller_report_payload(seller, request):
+    """Construit les données de reporting du vendeur (dashboard + export CSV).
+
+    Retourne un tuple ``(data, error)`` : ``error`` est une Response DRF si les
+    paramètres de période sont invalides, sinon ``None``. Logique partagée par
+    ``SellerDashboardView`` et ``SellerReportExportView``.
+    """
+    # Périmètre des données : commandes et produits du vendeur (actifs).
+    seller_orders = Order.objects.filter(items__product__seller=seller).distinct()
+    seller_products = seller.products.filter(is_active=True)
+
+    # Bornes temporelles des deux périodes comparées (actuelle et précédente).
+    now = timezone.now()
+    now_bound = now
+
+    # --- Query params : period / date_from / date_to ---
+    period_raw = request.query_params.get("period")
+    date_from_raw = request.query_params.get("date_from")
+    date_to_raw = request.query_params.get("date_to")
+
+    has_date_range = date_from_raw or date_to_raw
+
+    if has_date_range:
+        # Validation : les deux dates ou aucune ne doit manquer.
+        if not date_from_raw or not date_to_raw:
+            return None, Response(
+                {"detail": "Les paramètres date_from et date_to doivent être fournis ensemble."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            period_start = date.fromisoformat(date_from_raw)
+        except (ValueError, TypeError):
+            return None, Response(
+                {"detail": "Format de date_from invalide. Utilisez le format YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            now_bound = date.fromisoformat(date_to_raw)
+        except (ValueError, TypeError):
+            return None, Response(
+                {"detail": "Format de date_to invalide. Utilisez le format YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if period_start > now_bound:
+            return None, Response(
+                {"detail": "La date_from doit être antérieure ou égale à date_to."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        duration_days = (now_bound - period_start).days
+        previous_start = period_start - timedelta(days=duration_days)
+        days_used = duration_days
+    else:
+        # Paramètre period : 7, 30 ou 90 jours.
+        if period_raw is not None:
+            try:
+                days = int(period_raw)
+            except (ValueError, TypeError):
+                return None, Response(
+                    {"detail": "Le paramètre period doit être un entier parmi 7, 30 ou 90."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if days not in VALID_PERIODS:
+                return None, Response(
+                    {"detail": "Le paramètre period doit être 7, 30 ou 90."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            days = KPI_PERIOD_DAYS
+        days_used = days
+        period_start = now - timedelta(days=days)
+        previous_start = now - timedelta(days=2 * days)
+        now_bound = now
+
+    orders_period = seller_orders.filter(created_at__gte=period_start)
+    orders_previous = seller_orders.filter(
+        created_at__gte=previous_start, created_at__lt=period_start
+    )
+
+    # KPIs de revenus et de commandes sur les deux périodes (hors annulations).
+    non_cancelled_period = orders_period.exclude(status=Order.Status.CANCELLED)
+    non_cancelled_previous = orders_previous.exclude(status=Order.Status.CANCELLED)
+    revenue_period = non_cancelled_period.aggregate(total=Sum("total_xof"))["total"] or 0
+    revenue_previous = non_cancelled_previous.aggregate(total=Sum("total_xof"))["total"] or 0
+    orders_count_period = orders_period.count()
+    orders_count_previous = orders_previous.count()
+    non_cancelled_count_period = non_cancelled_period.count()
+
+    # Statistiques avancées (#250) : panier moyen (revenu / commandes non
+    # annulées) et taux de conversion (part des commandes non annulées).
+    avg_order_value = round(revenue_period / non_cancelled_count_period) if non_cancelled_count_period else 0
+    conversion_rate = round(non_cancelled_count_period / orders_count_period * 100, 1) if orders_count_period else 0
+
+    # Série des ventes par jour pour le graphique d'évolution.
+    sales_by_day = (
+        orders_period.exclude(status=Order.Status.CANCELLED)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(total=Sum("total_xof"))
+        .order_by("day")
+    )
+
+    # Revenu total cumulé du vendeur.
+    total_revenue = seller_orders.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
+
+    # Compteurs du jour : commandes du jour et commandes en attente de préparation.
+    today = timezone.localdate()
+    orders_today = seller_orders.filter(created_at__date=today).count()
+    pending_orders = seller_orders.filter(status=Order.Status.RECEIVED).count()
+
+    # Répartition des commandes par statut.
+    status_distribution = (
+        seller_orders.values("status")
+        .annotate(count=Count("id"))
+        .order_by("status")
+    )
+
+    # Top 5 des produits par chiffre d'affaires.
+    top_products = (
+        OrderItem.objects.filter(order__in=seller_orders)
+        .exclude(order__status=Order.Status.CANCELLED)
+        .values("product__id", "product__name")
+        .annotate(total_revenue=Sum(F("quantity") * F("unit_price_xof")), total_quantity=Sum("quantity"))
+        .order_by("-total_revenue")[:5]
+    )
+
+    # Chiffre d'affaires par catégorie de produits.
+    category_breakdown = (
+        OrderItem.objects.filter(order__in=seller_orders)
+        .exclude(order__status=Order.Status.CANCELLED)
+        .values("product__category__name")
+        .annotate(total=Sum(F("quantity") * F("unit_price_xof")))
+        .order_by("-total")
+    )
+
+    # Alertes de stock faible et dernières commandes reçues.
+    low_stock = seller_products.filter(stock__lte=LOW_STOCK_THRESHOLD).exclude(made_to_order=True).order_by("stock")[:5]
+
+    recent_orders = seller_orders.prefetch_related("items__product").order_by("-created_at")[:5]
+
+    # Assemblage de la réponse complète du reporting.
+    data = {
+        "seller": SellerProfileSerializer(seller).data,
+        "metrics": {
+            "products": seller_products.count(),
+            "orders_today": orders_today,
+            "pending_orders": pending_orders,
+            "total_orders": seller_orders.count(),
+            "total_revenue": total_revenue,
+        },
+        "kpi": {
+            "revenue": revenue_period,
+            "revenue_change": _percent_change(revenue_period, revenue_previous),
+            "orders": orders_count_period,
+            "orders_change": _percent_change(orders_count_period, orders_count_previous),
+            "avg_order_value": avg_order_value,
+            "conversion_rate": conversion_rate,
+            "period_days": days_used,
+        },
+        "sales_chart": [
+            {"day": row["day"].strftime("%d/%m"), "total": row["total"]}
+            for row in sales_by_day
+        ],
+        "status_distribution": {row["status"]: row["count"] for row in status_distribution},
+        "top_products": [
+            {"id": row["product__id"], "name": row["product__name"], "revenue": row["total_revenue"], "quantity": row["total_quantity"]}
+            for row in top_products
+        ],
+        "category_breakdown": [
+            {"name": row["product__category__name"] or "Autres", "total": row["total"]}
+            for row in category_breakdown
+        ],
+        "low_stock": [
+            {"id": p.id, "name": p.name, "stock": p.stock}
+            for p in low_stock
+        ],
+        "recent_orders": OrderSerializer(recent_orders, many=True).data,
+    }
+    return data, None
+
+
 class SellerDashboardView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """Construit le tableau de bord vendeur : KPIs, ventes, répartition, alertes stock."""
-        # Récupération du profil vendeur de l'utilisateur connecté.
+        """Tableau de bord vendeur : KPIs, ventes, répartition, alertes stock."""
         try:
             seller = request.user.seller_profile
         except SellerProfile.DoesNotExist:
             raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
 
-        # Périmètre des données : commandes et produits du vendeur (actifs).
-        seller_orders = Order.objects.filter(items__product__seller=seller).distinct()
-        seller_products = seller.products.filter(is_active=True)
+        data, error = _seller_report_payload(seller, request)
+        if error:
+            return error
+        return Response(data)
 
-        # Bornes temporelles des deux périodes comparées (actuelle et précédente).
-        now = timezone.now()
-        now_bound = now
 
-        # --- Query params : period / date_from / date_to ---
-        period_raw = request.query_params.get("period")
-        date_from_raw = request.query_params.get("date_from")
-        date_to_raw = request.query_params.get("date_to")
+class SellerReportExportView(APIView):
+    """Export CSV des statistiques du vendeur (fonctionnalité ``exports``).
 
-        has_date_range = date_from_raw or date_to_raw
+    Réservé aux offres incluant l'export (PRO/BUSINESS) — la boutique officielle
+    est exemptée. Les autres plans reçoivent un 403 explicite.
+    """
 
-        if has_date_range:
-            # Validation : les deux dates ou aucune ne doit manquer.
-            if not date_from_raw or not date_to_raw:
-                return Response(
-                    {"detail": "Les paramètres date_from et date_to doivent être fournis ensemble."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            try:
-                period_start = date.fromisoformat(date_from_raw)
-            except (ValueError, TypeError):
-                return Response(
-                    {"detail": "Format de date_from invalide. Utilisez le format YYYY-MM-DD."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            try:
-                now_bound = date.fromisoformat(date_to_raw)
-            except (ValueError, TypeError):
-                return Response(
-                    {"detail": "Format de date_to invalide. Utilisez le format YYYY-MM-DD."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if period_start > now_bound:
-                return Response(
-                    {"detail": "La date_from doit être antérieure ou égale à date_to."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            duration_days = (now_bound - period_start).days
-            previous_start = period_start - timedelta(days=duration_days)
-            days_used = duration_days
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            seller = request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+        if not has_feature(seller, "exports"):
+            return Response(
+                {"detail": "L'export des statistiques est réservé aux offres Pro et Business."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        data, error = _seller_report_payload(seller, request)
+        if error:
+            return error
+
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        if date_from and date_to:
+            period_label = f"{date_from} au {date_to}"
         else:
-            # Paramètre period : 7, 30 ou 90 jours.
-            if period_raw is not None:
-                try:
-                    days = int(period_raw)
-                except (ValueError, TypeError):
-                    return Response(
-                        {"detail": "Le paramètre period doit être un entier parmi 7, 30 ou 90."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                if days not in VALID_PERIODS:
-                    return Response(
-                        {"detail": "Le paramètre period doit être 7, 30 ou 90."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-            else:
-                days = KPI_PERIOD_DAYS
-            days_used = days
-            period_start = now - timedelta(days=days)
-            previous_start = now - timedelta(days=2 * days)
-            now_bound = now
+            period_label = f"{data['kpi']['period_days']} derniers jours"
 
-        orders_period = seller_orders.filter(created_at__gte=period_start)
-        orders_previous = seller_orders.filter(
-            created_at__gte=previous_start, created_at__lt=period_start
+        shop_name = seller.shop.name if getattr(seller, "shop", None) else seller.display_name
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Rapport de ventes", shop_name])
+        writer.writerow(["Période", period_label])
+        writer.writerow([])
+        writer.writerow(["Indicateur", "Valeur"])
+        writer.writerow(["Chiffre d'affaires (FCFA)", data["kpi"]["revenue"]])
+        writer.writerow(["Commandes", data["kpi"]["orders"]])
+        writer.writerow(["Panier moyen (FCFA)", data["kpi"]["avg_order_value"]])
+        writer.writerow(["Taux de conversion (%)", data["kpi"]["conversion_rate"]])
+        writer.writerow(["Produits actifs", data["metrics"]["products"]])
+        writer.writerow(["Commandes en attente", data["metrics"]["pending_orders"]])
+        writer.writerow([])
+        writer.writerow(["Ventes par jour", "Montant (FCFA)"])
+        writer.writerows([[row["day"], row["total"]] for row in data["sales_chart"]])
+        writer.writerow([])
+        writer.writerow(["Produit", "Quantité vendue", "Chiffre d'affaires (FCFA)"])
+        writer.writerows([
+            [row["name"], row["quantity"], row["revenue"]]
+            for row in data["top_products"]
+        ])
+        writer.writerow([])
+        writer.writerow(["Catégorie", "Chiffre d'affaires (FCFA)"])
+        writer.writerows([[row["name"], row["total"]] for row in data["category_breakdown"]])
+        writer.writerow([])
+        writer.writerow(["Statut de commande", "Nombre"])
+        writer.writerows([[key, value] for key, value in data["status_distribution"].items()])
+
+        response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = (
+            f"attachment; filename=rapport-ventes-{date.today():%Y%m%d}.csv"
         )
-
-        # KPIs de revenus et de commandes sur les deux périodes (hors annulations).
-        non_cancelled_period = orders_period.exclude(status=Order.Status.CANCELLED)
-        non_cancelled_previous = orders_previous.exclude(status=Order.Status.CANCELLED)
-        revenue_period = non_cancelled_period.aggregate(total=Sum("total_xof"))["total"] or 0
-        revenue_previous = non_cancelled_previous.aggregate(total=Sum("total_xof"))["total"] or 0
-        orders_count_period = orders_period.count()
-        orders_count_previous = orders_previous.count()
-        non_cancelled_count_period = non_cancelled_period.count()
-
-        # Statistiques avancées (#250) : panier moyen (revenu / commandes non
-        # annulées) et taux de conversion (part des commandes non annulées).
-        avg_order_value = round(revenue_period / non_cancelled_count_period) if non_cancelled_count_period else 0
-        conversion_rate = round(non_cancelled_count_period / orders_count_period * 100, 1) if orders_count_period else 0
-
-        # Série des ventes par jour pour le graphique d'évolution.
-        sales_by_day = (
-            orders_period.exclude(status=Order.Status.CANCELLED)
-            .annotate(day=TruncDate("created_at"))
-            .values("day")
-            .annotate(total=Sum("total_xof"))
-            .order_by("day")
-        )
-
-        # Revenu total cumulé du vendeur.
-        total_revenue = seller_orders.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
-
-        # Compteurs du jour : commandes du jour et commandes en attente de préparation.
-        today = timezone.localdate()
-        orders_today = seller_orders.filter(created_at__date=today).count()
-        pending_orders = seller_orders.filter(status=Order.Status.RECEIVED).count()
-
-        # Répartition des commandes par statut.
-        status_distribution = (
-            seller_orders.values("status")
-            .annotate(count=Count("id"))
-            .order_by("status")
-        )
-
-        # Top 5 des produits par chiffre d'affaires.
-        top_products = (
-            OrderItem.objects.filter(order__in=seller_orders)
-            .exclude(order__status=Order.Status.CANCELLED)
-            .values("product__id", "product__name")
-            .annotate(total_revenue=Sum(F("quantity") * F("unit_price_xof")), total_quantity=Sum("quantity"))
-            .order_by("-total_revenue")[:5]
-        )
-
-        # Chiffre d'affaires par catégorie de produits.
-        category_breakdown = (
-            OrderItem.objects.filter(order__in=seller_orders)
-            .exclude(order__status=Order.Status.CANCELLED)
-            .values("product__category__name")
-            .annotate(total=Sum(F("quantity") * F("unit_price_xof")))
-            .order_by("-total")
-        )
-
-        # Alertes de stock faible et dernières commandes reçues.
-        low_stock = seller_products.filter(stock__lte=LOW_STOCK_THRESHOLD).exclude(made_to_order=True).order_by("stock")[:5]
-
-        recent_orders = seller_orders.prefetch_related("items__product").order_by("-created_at")[:5]
-
-        # Assemblage de la réponse complète du tableau de bord.
-        return Response(
-            {
-                "seller": SellerProfileSerializer(seller).data,
-                "metrics": {
-                    "products": seller_products.count(),
-                    "orders_today": orders_today,
-                    "pending_orders": pending_orders,
-                    "total_orders": seller_orders.count(),
-                    "total_revenue": total_revenue,
-                },
-                "kpi": {
-                    "revenue": revenue_period,
-                    "revenue_change": _percent_change(revenue_period, revenue_previous),
-                    "orders": orders_count_period,
-                    "orders_change": _percent_change(orders_count_period, orders_count_previous),
-                    "avg_order_value": avg_order_value,
-                    "conversion_rate": conversion_rate,
-                    "period_days": days_used,
-                },
-                "sales_chart": [
-                    {"day": row["day"].strftime("%d/%m"), "total": row["total"]}
-                    for row in sales_by_day
-                ],
-                "status_distribution": {row["status"]: row["count"] for row in status_distribution},
-                "top_products": [
-                    {"id": row["product__id"], "name": row["product__name"], "revenue": row["total_revenue"], "quantity": row["total_quantity"]}
-                    for row in top_products
-                ],
-                "category_breakdown": [
-                    {"name": row["product__category__name"] or "Autres", "total": row["total"]}
-                    for row in category_breakdown
-                ],
-                "low_stock": [
-                    {"id": p.id, "name": p.name, "stock": p.stock}
-                    for p in low_stock
-                ],
-                "recent_orders": OrderSerializer(recent_orders, many=True).data,
-            }
-        )
+        return response
 
 
 class SellerOrderViewSet(viewsets.ModelViewSet):
@@ -546,4 +629,41 @@ class SellerSubscriptionView(APIView):
                 "current_plan": seller.plan,
                 "limits": build_limits_payload(seller),
             }
+        )
+
+
+class SellerSubscriptionRelaunchView(APIView):
+    """Relance le paiement d'un abonnement vendeur échoué (le vendeur agit seul)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def post(self, request):
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+        try:
+            seller = request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+        subscription = seller.subscriptions.order_by("-created_at").first()
+        if not subscription:
+            return Response(
+                {"detail": "Aucun abonnement à relancer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .services import SubscriptionError, relaunch_subscription
+
+        try:
+            new_subscription = relaunch_subscription(subscription)
+        except SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .serializers import SellerSubscriptionSerializer
+        return Response(
+            SellerSubscriptionSerializer(new_subscription).data,
+            status=status.HTTP_201_CREATED,
         )

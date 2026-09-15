@@ -28,3 +28,10 @@ export const getSellerSubscription = () =>
  */
 export const createSellerSubscription = (plan) =>
   apiClient.post("/seller/subscription/", { plan }).then((res) => res.data);
+
+/**
+ * Relance le paiement du dernier abonnement vendeur (échoué / refusé / annulé).
+ * @returns {Promise<Subscription>}
+ */
+export const relaunchSellerSubscription = () =>
+  apiClient.post("/seller/subscription/relance-paiement/").then((res) => res.data);

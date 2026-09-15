@@ -924,3 +924,53 @@ class SellerDashboardPeriodTests(APITestCase):
         response = self.client.get("/api/seller/dashboard/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["kpi"]["period_days"], 30)
+
+
+class SellerReportExportTests(APITestCase):
+    """Export CSV des statistiques vendeur, réservé aux offres avec `exports`."""
+
+    def setUp(self):
+        self.user = UserFactory(username="report-seller")
+        self.seller = SellerProfileFactory(
+            user=self.user, display_name="Rapport Boutique", phone="+2290190000000"
+        )
+        self.shop = ShopFactory(
+            seller=self.seller, name="Rapport Wax", whatsapp_phone="+2290190000000"
+        )
+        self.category = CategoryFactory(name="Tissus")
+        self.product = ProductFactory(
+            category=self.category, shop=self.shop, seller=self.seller,
+            is_active=True, price_xof=5000,
+        )
+        order = OrderFactory(customer=UserFactory(), total_xof=5000, status=Order.Status.DELIVERED)
+        OrderItemFactory(order=order, product=self.product, quantity=1, unit_price_xof=5000)
+        self.client.force_authenticate(user=self.user)
+
+    def test_export_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/seller/reports/export/")
+        self.assertEqual(response.status_code, 401)
+
+    def test_export_forbidden_on_free_plan(self):
+        response = self.client.get("/api/seller/reports/export/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_export_returns_csv_for_pro_plan(self):
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/reports/export/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        body = response.content.decode()
+        self.assertIn("Rapport de ventes", body)
+        self.assertIn(self.product.name, body)
+
+    def test_export_allowed_for_official_shop(self):
+        self.shop.is_official = True
+        self.shop.save(update_fields=["is_official"])
+
+        response = self.client.get("/api/seller/reports/export/")
+
+        self.assertEqual(response.status_code, 200)

@@ -13,6 +13,7 @@ import {
   createSellerSubscription,
   getSellerPlans,
   getSellerSubscription,
+  relaunchSellerSubscription,
 } from "../api/seller.js";
 import { openFedapaySubscriptionCheckout } from "../utils/fedapay.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -110,6 +111,7 @@ export default function SellerPlan() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [relaunching, setRelaunching] = useState(false);
 
   const loadPlans = () =>
     getSellerPlans()
@@ -163,6 +165,25 @@ export default function SellerPlan() {
       setError(extractErrorMessage(err) || "Impossible de lancer le paiement.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const canRelaunch = ["failed", "declined", "canceled"].includes(subscription?.status);
+
+  const handleRelaunch = async () => {
+    setError("");
+    setRelaunching(true);
+    try {
+      const sub = await relaunchSellerSubscription();
+      const outcome = await openFedapaySubscriptionCheckout(sub);
+      if (outcome === "completed") {
+        await loadSubscription();
+        setShowSuccess(true);
+      }
+    } catch (err) {
+      setError(extractErrorMessage(err) || "Impossible de relancer le paiement.");
+    } finally {
+      setRelaunching(false);
     }
   };
 
@@ -251,6 +272,18 @@ export default function SellerPlan() {
               <ExternalLinkIcon size={14} className="flex-shrink-0" />
               <span className="font-semibold">Rouvrir la page de paiement</span>
             </a>
+          )}
+
+          {canRelaunch && (
+            <button
+              type="button"
+              onClick={handleRelaunch}
+              disabled={relaunching}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/15 border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/25 disabled:opacity-60"
+            >
+              <RefreshCwIcon size={14} className={relaunching ? "animate-spin" : ""} />
+              {relaunching ? "Relance en cours…" : "Relancer le paiement"}
+            </button>
           )}
         </div>
       </div>

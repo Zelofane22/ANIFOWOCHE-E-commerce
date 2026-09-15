@@ -28,6 +28,13 @@ REMINDER_MIN_INTERVAL_DAYS = 2
 # Plans souscriptibles en ligne (FREE et BUSINESS sont exclus du checkout).
 SUBSCRIPTABLE_PLANS = (SellerProfile.Plan.STARTER, SellerProfile.Plan.PRO)
 
+# Statuts d'abonnement que le vendeur peut relancer lui-même (paiement non abouti).
+RELAUNCHABLE_SUBSCRIPTION_STATUSES = (
+    SellerSubscription.Status.FAILED,
+    SellerSubscription.Status.DECLINED,
+    SellerSubscription.Status.CANCELED,
+)
+
 
 class SubscriptionError(Exception):
     """Erreur métier de souscription (plan invalide, échec FedaPay…)."""
@@ -120,7 +127,37 @@ def create_subscription(seller, plan):
     return subscription
 
 
+def relaunch_subscription(subscription):
+    """Relance le paiement d'un abonnement échoué, refusé ou annulé.
+
+    Crée un nouvel abonnement PENDING (même plan, même montant) et initie une
+    nouvelle transaction FedaPay. La ligne d'origine est conservée pour l'audit,
+    comme pour la relance d'un paiement de commande.
+    """
+    if subscription.status not in RELAUNCHABLE_SUBSCRIPTION_STATUSES:
+        raise SubscriptionError(
+            "Seuls les abonnements échoués, refusés ou annulés peuvent être relancés."
+        )
+    if subscription.plan not in SUBSCRIPTABLE_PLANS:
+        raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
+
+    new_subscription = SellerSubscription.objects.create(
+        seller=subscription.seller,
+        plan=subscription.plan,
+        amount_xof=subscription.amount_xof,
+        status=SellerSubscription.Status.PENDING,
+    )
+    try:
+        start_fedapay_subscription(new_subscription)
+    except FedaPayError as exc:
+        new_subscription.status = SellerSubscription.Status.FAILED
+        new_subscription.save(update_fields=["status", "updated_at"])
+        raise SubscriptionError(f"Échec de l'initiation du paiement : {exc}") from exc
+    return new_subscription
+
+
 def activate_subscription(subscription):
+
     """Active un abonnement approuvé : bornes temporelles + bascule du plan."""
     now = timezone.now()
     subscription.status = SellerSubscription.Status.APPROVED

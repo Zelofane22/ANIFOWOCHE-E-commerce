@@ -5,6 +5,7 @@ import {
   BarChartIcon,
   CheckIcon,
   ChevronRightIcon,
+  FileTextIcon,
   InfoIcon,
   LogOutIcon,
   MessageCircleIcon,
@@ -344,9 +345,15 @@ export default function SellerSettings() {
           />
           <SettingsRow
             icon={BarChartIcon}
-            label="Statistiques avancées"
+            label="Statistiques"
             desc="Analyse détaillée de vos ventes"
-            onClick={() => {}}
+            onClick={() => navigate("/stats")}
+          />
+          <SettingsRow
+            icon={FileTextIcon}
+            label="Rapports & exports"
+            desc="Générer et exporter vos rapports de vente"
+            onClick={() => navigate("/reports")}
           />
           <SettingsRow
             icon={ZapIcon}

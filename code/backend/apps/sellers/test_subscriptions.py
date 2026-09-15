@@ -371,3 +371,63 @@ class SellerPlansAndDashboardTests(APITestCase):
         kpi = response.data["kpi"]
         self.assertEqual(kpi["avg_order_value"], 10000)
         self.assertEqual(kpi["conversion_rate"], 50.0)
+
+
+class SellerSubscriptionRelaunchTests(APITestCase):
+    """Le vendeur relance lui-même le paiement d'un abonnement échoué."""
+
+    def setUp(self):
+        self.user = UserFactory(username="relance-vendeuse")
+        self.seller = SellerProfileFactory(
+            user=self.user, display_name="Relance Boutique", phone="+2290190000000"
+        )
+        ShopFactory(seller=self.seller, name="Relance Wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=self.user)
+
+    def _failed_subscription(self):
+        return SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.FAILED,
+        )
+
+    def test_relaunch_creates_new_pending_subscription(self):
+        self._failed_subscription()
+
+        with _fedapay_success_mock():
+            response = self.client.post("/api/seller/subscription/relance-paiement/")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["status"], SellerSubscription.Status.PENDING)
+        self.assertEqual(response.data["payment_url"], "https://sandbox-pay.fedapay.com/t/42")
+        self.assertEqual(self.seller.subscriptions.count(), 2)
+
+    def test_relaunch_rejects_pending_subscription(self):
+        SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=10000,
+            status=SellerSubscription.Status.PENDING,
+        )
+
+        response = self.client.post("/api/seller/subscription/relance-paiement/")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_relaunch_without_subscription_returns_400(self):
+        response = self.client.post("/api/seller/subscription/relance-paiement/")
+        self.assertEqual(response.status_code, 400)
+
+    def test_relaunch_marks_new_subscription_failed_on_fedapay_error(self):
+        self._failed_subscription()
+
+        with mock.patch(
+            "apps.payments.services.requests.post",
+            side_effect=requests.exceptions.ConnectionError,
+        ):
+            response = self.client.post("/api/seller/subscription/relance-paiement/")
+
+        self.assertEqual(response.status_code, 400)
+        statuses = list(self.seller.subscriptions.values_list("status", flat=True))
+        self.assertEqual(statuses.count(SellerSubscription.Status.FAILED), 2)
