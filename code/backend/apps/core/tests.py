@@ -451,21 +451,6 @@ class DashboardStoreScopeTests(TestCase):
         self.other_order = OrderFactory(customer=UserFactory(), total_xof=8000)
         OrderItemFactory(order=self.other_order, product=self.other_product, quantity=1, unit_price_xof=8000)
 
-    def test_dashboard_kpis_are_scoped_to_main_shop(self):
-        context = dashboard_callback(mock.Mock(), {})
-
-        self.assertEqual(context["kpi_orders"], 1)
-        self.assertEqual(context["kpi_revenue"], 5000)
-        self.assertEqual(context["kpi_products"], 1)
-        # Les comptes non-staff sont plateforme (pas de boutique) : les 2
-        # vendeurs des boutiques et les 2 clients des commandes comptent.
-        self.assertEqual(context["kpi_clients"], 4)
-        self.assertEqual(list(context["recent_orders"]), [self.main_order])
-        self.assertEqual(len(context["top_products"]), 1)
-        self.assertEqual(context["top_products"][0]["product__name"], self.main_product.name)
-        self.assertEqual(context["category_breakdown"][0]["name"], self.category.name)
-        self.assertEqual(context["category_breakdown"][0]["total"], 5000)
-
     def test_dashboard_platform_kpis_exclude_official_shop_and_group_by_plan(self):
         context = dashboard_callback(mock.Mock(), {})
 
@@ -537,15 +522,6 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(context["churned_vendors_count"], 1)
 
 
-    def test_dashboard_low_stock_scoped_to_main_shop(self):
-        ProductFactory(
-            category=self.category, shop=self.other_shop, is_active=True, price_xof=1000, stock=3
-        )
-        context = dashboard_callback(mock.Mock(), {})
-
-        self.assertEqual(context["low_stock_count"], 0)
-        self.assertEqual(len(context["low_stock_products"]), 0)
-
     def test_reports_scoped_to_main_shop(self):
         response = self.client.get(reverse("admin_reports"))
 
@@ -556,20 +532,22 @@ class DashboardStoreScopeTests(TestCase):
         self.assertEqual(len(response.context["top_products"]), 1)
         self.assertEqual(response.context["top_products"][0]["product__name"], self.main_product.name)
 
-    def test_admin_index_renders_scoped_kpis(self):
+    def test_admin_index_renders_remaining_kpis(self):
         PageView.objects.create(path="/", session_key="s1")
         PageView.objects.create(path="/shop/les-douceurs-de-tinouke/", session_key="s2")
 
         response = self.client.get("/admin/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["kpi_revenue"], 5000)
-        self.assertEqual(response.context["kpi_orders"], 1)
-        self.assertEqual(response.context["kpi_products"], 1)
         self.assertEqual(response.context["kpi_clients"], 4)
         self.assertEqual(response.context["kpi_visits"], 1)
+        # Les statistiques dupliquées dans l'espace seller ne sont plus exposées.
+        for removed_kpi in ("kpi_revenue", "kpi_orders", "kpi_products", "recent_orders", "top_products"):
+            self.assertNotIn(removed_kpi, response.context)
 
-    def test_main_shop_slug_is_configurable(self):
+    def test_main_shop_official_flag_scopes_visits(self):
+        PageView.objects.create(path="/", session_key="s1")
+        PageView.objects.create(path="/shop/ets-anifowoche/", session_key="s2")
         # Basculer l'officialité sur la deuxième boutique pour vérifier
         # que le dashboard suit bien le flag is_official.
         self.main_shop.is_official = False
@@ -578,9 +556,9 @@ class DashboardStoreScopeTests(TestCase):
         self.other_shop.save()
         context = dashboard_callback(mock.Mock(), {})
 
-        self.assertEqual(context["kpi_orders"], 1)
-        self.assertEqual(context["kpi_revenue"], 8000)
-        self.assertEqual(context["kpi_products"], 1)
+        # Seules les visites de la vitrine officielle sont conservées : celles
+        # de l'ex-boutique principale sont désormais exclues.
+        self.assertEqual(context["kpi_visits"], 1)
         # Les comptes clients sont plateforme (pas de boutique) : les 2
         # vendeurs des boutiques et les 2 clients des commandes comptent.
         self.assertEqual(context["kpi_clients"], 4)

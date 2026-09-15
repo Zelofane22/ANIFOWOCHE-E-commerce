@@ -7,26 +7,11 @@
     {% include "unfold/helpers/site_branding.html" %}
 {% endblock %}
 
-
-
-{% block extrahead %}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-{% endblock %}
-
 {% block content %}
     <p class="anw-greeting">Bonjour, Admin 👋</p>
-    <p class="anw-subgreeting">Voici un aperçu de votre boutique sur les {{ period_days }} derniers jours.</p>
+    <p class="anw-subgreeting">Voici un aperçu de la plateforme ANIF Seller sur les {{ period_days }} derniers jours.</p>
 
-    <div class="anw-grid anw-kpi-grid">
-        <a class="anw-card anw-card-link" href="{{ action_links.orders }}">
-            <div class="anw-kpi-label">Chiffre d'affaires</div>
-            <div class="anw-kpi-value">{{ kpi_revenue|intcomma }} FCFA</div>
-            {% if kpi_revenue_change is not None %}
-                <div class="anw-kpi-change {% if kpi_revenue_change > 0 %}up{% elif kpi_revenue_change < 0 %}down{% else %}flat{% endif %}">
-                    {% if kpi_revenue_change > 0 %}↗{% elif kpi_revenue_change < 0 %}↘{% endif %} {{ kpi_revenue_change }}% vs période précédente
-                </div>
-            {% endif %}
-        </a>
+    <div class="anw-grid anw-kpi-grid anw-kpi-grid--3">
         <a class="anw-card anw-card-link" href="{{ action_links.seller_subscriptions }}">
             <div class="anw-kpi-label">CA Abonnements ANIF Seller</div>
             <div class="anw-kpi-value">{{ kpi_seller_revenue|intcomma }} FCFA</div>
@@ -36,30 +21,12 @@
                 </div>
             {% endif %}
         </a>
-        <a class="anw-card anw-card-link" href="{{ action_links.orders }}">
-            <div class="anw-kpi-label">Commandes</div>
-            <div class="anw-kpi-value">{{ kpi_orders|intcomma }}</div>
-            {% if kpi_orders_change is not None %}
-                <div class="anw-kpi-change {% if kpi_orders_change > 0 %}up{% elif kpi_orders_change < 0 %}down{% else %}flat{% endif %}">
-                    {% if kpi_orders_change > 0 %}↗{% elif kpi_orders_change < 0 %}↘{% endif %} {{ kpi_orders_change }}% vs période précédente
-                </div>
-            {% endif %}
-        </a>
         <a class="anw-card anw-card-link" href="{{ action_links.clients }}">
             <div class="anw-kpi-label">Clients</div>
             <div class="anw-kpi-value">{{ kpi_clients|intcomma }}</div>
             {% if kpi_clients_change is not None %}
                 <div class="anw-kpi-change {% if kpi_clients_change > 0 %}up{% elif kpi_clients_change < 0 %}down{% else %}flat{% endif %}">
                     {% if kpi_clients_change > 0 %}↗{% elif kpi_clients_change < 0 %}↘{% endif %} {{ kpi_clients_change }}% vs période précédente
-                </div>
-            {% endif %}
-        </a>
-        <a class="anw-card anw-card-link" href="{{ action_links.products }}">
-            <div class="anw-kpi-label">Produits</div>
-            <div class="anw-kpi-value">{{ kpi_products|intcomma }}</div>
-            {% if kpi_products_change is not None %}
-                <div class="anw-kpi-change {% if kpi_products_change > 0 %}up{% elif kpi_products_change < 0 %}down{% else %}flat{% endif %}">
-                    {% if kpi_products_change > 0 %}↗{% elif kpi_products_change < 0 %}↘{% endif %} {{ kpi_products_change }}% vs période précédente
                 </div>
             {% endif %}
         </a>
@@ -76,21 +43,11 @@
         </a>
     </div>
 
-    <div class="anw-grid anw-action-grid">
-        <a class="anw-card anw-card-link anw-action-card warn" href="{{ action_links.orders_pending }}">
-            <div class="anw-action-title">Commandes à traiter</div>
-            <div class="anw-action-card-number">{{ pending_orders_count }}</div>
-            <div class="anw-action-card-hint">Reçues / préparées</div>
-        </a>
+    <div class="anw-grid anw-action-grid anw-action-grid--2">
         <a class="anw-card anw-card-link anw-action-card danger" href="{{ action_links.payments_failed }}">
             <div class="anw-action-title">Paiements à relancer</div>
             <div class="anw-action-card-number">{{ failed_payments_count }}</div>
             <div class="anw-action-card-hint">Échoués / refusés / annulés</div>
-        </a>
-        <a class="anw-card anw-card-link anw-action-card info" href="{{ action_links.products_low_stock }}">
-            <div class="anw-action-title">Produits en stock faible</div>
-            <div class="anw-action-card-number">{{ low_stock_count }}</div>
-            <div class="anw-action-card-hint">Sous le seuil ({{ low_stock_threshold }})</div>
         </a>
         <a class="anw-card anw-card-link anw-action-card warn" href="{{ action_links.settings_pending }}">
             <div class="anw-action-title">Réglages en attente</div>
@@ -174,79 +131,7 @@
         </a>
     </div>
 
-    <div class="anw-grid anw-main-grid">
-        <div class="anw-card">
-            <div class="anw-card-title">Évolution des ventes</div>
-            <canvas id="anw-sales-chart" height="90"></canvas>
-        </div>
-        <div class="anw-card">
-            <div class="anw-card-title">Répartition des ventes</div>
-            <canvas id="anw-category-chart" height="140"></canvas>
-        </div>
-        <div class="anw-card">
-            <div class="anw-card-head">
-                <div class="anw-card-title">Commandes récentes</div>
-                <a class="anw-see-all" href="{{ action_links.orders_pending }}">Voir les commandes →</a>
-            </div>
-            {% for order in recent_orders %}
-                <a class="anw-order-row {% if not forloop.last %}anw-order-row--divider{% endif %}" href="{% url 'admin:orders_order_change' order.id %}">
-                    <div>
-                        <div class="anw-order-id">ANW-{{ order.id }}</div>
-                        <div class="anw-order-date">{{ order.created_at|date:"d M Y • H:i" }}</div>
-                    </div>
-                    <div class="anw-order-amount-wrap">
-                        <span class="anw-badge {{ order.status }}">{{ order.get_status_display }}</span>
-                        <div class="anw-order-amount">{{ order.total_xof|intcomma }} FCFA</div>
-                    </div>
-                </a>
-            {% empty %}
-                <p class="anw-empty">Aucune commande pour l'instant.</p>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="anw-grid anw-bottom-grid">
-        <div class="anw-card">
-            <div class="anw-card-head">
-                <div class="anw-card-title">Top produits</div>
-                <a class="anw-see-all" href="{{ action_links.products }}">Voir le catalogue →</a>
-            </div>
-            <div class="anw-table-wrap">
-                <table class="anw-table">
-                    <tbody>
-                        {% for product in top_products %}
-                            <tr>
-                                <td><a href="{{ action_links.products }}">{{ product.product__name }}</a></td>
-                                <td>{{ product.total_quantity }} ventes</td>
-                                <td style="text-align:right; font-weight:600;">{{ product.total_revenue|intcomma }} FCFA</td>
-                            </tr>
-                        {% empty %}
-                            <tr><td class="anw-empty">Aucune vente sur la période.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="anw-card">
-            <div class="anw-card-head">
-                <div class="anw-card-title">Stock faible</div>
-                <a class="anw-see-all" href="{{ action_links.products_low_stock }}">Tout voir →</a>
-            </div>
-            <div class="anw-table-wrap">
-                <table class="anw-table">
-                    <tbody>
-                        {% for product in low_stock_products %}
-                            <tr>
-                                <td><a href="{{ action_links.products_low_stock }}">{{ product.name }}</a></td>
-                                <td style="text-align:right;"><span class="anw-stock-badge">Stock : {{ product.stock }}</span></td>
-                            </tr>
-                        {% empty %}
-                            <tr><td class="anw-empty">Aucun produit en stock faible.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <div class="anw-grid anw-bottom-grid anw-bottom-grid--single">
         <div class="anw-card">
             <div class="anw-card-head">
                 <div class="anw-card-title">Paiements récents</div>
@@ -269,73 +154,4 @@
             </div>
         </div>
     </div>
-
-    <script>
-        window.addEventListener("DOMContentLoaded", function () {
-            let salesChart = null;
-            let categoryChart = null;
-
-            function adminTokens() {
-                const styles = getComputedStyle(document.documentElement);
-                return {
-                    accent: styles.getPropertyValue("--anw-accent").trim() || "#b8a60f",
-                    muted: styles.getPropertyValue("--anw-text-muted").trim() || "#6b6b6b",
-                    border: styles.getPropertyValue("--anw-divider").trim()
-                        || "rgba(0,0,0,0.06)",
-                };
-            }
-
-            function applyThemeColors() {
-                const tokens = adminTokens();
-                Chart.defaults.color = tokens.muted;
-                Chart.defaults.borderColor = tokens.border;
-                if (salesChart) {
-                    salesChart.update();
-                }
-                if (categoryChart) {
-                    categoryChart.update();
-                }
-            }
-
-            applyThemeColors();
-
-            const salesCtx = document.getElementById("anw-sales-chart");
-            if (salesCtx) {
-                salesChart = new Chart(salesCtx, {
-                    type: "line",
-                    data: {
-                        labels: {{ sales_chart_labels_json|safe }},
-                        datasets: [{
-                            label: "Ventes (FCFA)",
-                            data: {{ sales_chart_values_json|safe }},
-                            borderColor: adminTokens().accent,
-                            backgroundColor: "rgba(169, 129, 17, 0.15)",
-                            tension: 0.35,
-                            fill: true,
-                        }],
-                    },
-                    options: { plugins: { legend: { display: false } } },
-                });
-            }
-            const categoryCtx = document.getElementById("anw-category-chart");
-            if (categoryCtx) {
-                categoryChart = new Chart(categoryCtx, {
-                    type: "doughnut",
-                    data: {
-                        labels: {{ category_breakdown_labels_json|safe }},
-                        datasets: [{
-                            data: {{ category_breakdown_values_json|safe }},
-                            backgroundColor: ["#e6d315", "#b8a60f", "#faf6c9", "#6b6b6b", "#52525b"],
-                        }],
-                    },
-                    options: { plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } } },
-                });
-            }
-
-            new MutationObserver(applyThemeColors).observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ["class"],
-            });
-        });
-    </script>
 {% endblock %}
