@@ -30,6 +30,13 @@ export const createSellerSubscription = (plan) =>
   apiClient.post("/seller/subscription/", { plan }).then((res) => res.data);
 
 /**
+ * Devis d'un changement de plan (prorata d'upgrade ANIF Seller).
+ * @returns {Promise<{plan: string, full_price_xof: number, credit_xof: number, amount_xof: number, remaining_days: number, ends_at: string|null, is_upgrade: boolean}>}
+ */
+export const getSellerSubscriptionQuote = (plan) =>
+  apiClient.get("/seller/subscription/quote/", { params: { plan } }).then((res) => res.data);
+
+/**
  * Relance le paiement du dernier abonnement vendeur (échoué / refusé / annulé).
  * @returns {Promise<Subscription>}
  */

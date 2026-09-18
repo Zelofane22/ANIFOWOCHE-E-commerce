@@ -648,3 +648,148 @@ class SellerSubscriptionCancelTests(APITestCase):
         self.assertEqual(downgraded, 1)
         self.seller.refresh_from_db()
         self.assertEqual(self.seller.plan, SellerProfile.Plan.FREE)
+
+
+class SellerUpgradeProrataTests(APITestCase):
+    """Upgrade au prorata (ANIF Seller) : devis, création, activation, relance."""
+
+    def setUp(self):
+        self.user = UserFactory(username="prorata-vendeuse")
+        self.seller = SellerProfileFactory(
+            user=self.user, display_name="Prorata Boutique", phone="+2290190000000"
+        )
+        ShopFactory(seller=self.seller, name="Prorata Wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=self.user)
+
+    def _active_starter(self, days=15):
+        self.seller.plan = SellerProfile.Plan.STARTER
+        self.seller.save(update_fields=["plan"])
+        return SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=timezone.now() - timedelta(days=15),
+            ends_at=timezone.now() + timedelta(days=days),
+        )
+
+    def test_quote_upgrade_prorata(self):
+        sub = self._active_starter(days=15)
+
+        from .services import compute_quote
+
+        quote = compute_quote(self.seller, SellerProfile.Plan.PRO)
+
+        self.assertTrue(quote["is_upgrade"])
+        self.assertEqual(quote["amount_xof"], 2500)
+        self.assertEqual(quote["full_price_xof"], 10000)
+        self.assertEqual(quote["credit_xof"], 5000)
+        self.assertEqual(quote["ends_at"], sub.ends_at)
+
+    def test_quote_endpoint_returns_prorata(self):
+        self._active_starter(days=15)
+
+        response = self.client.get("/api/seller/subscription/quote/?plan=PRO")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["is_upgrade"])
+        self.assertEqual(response.data["amount_xof"], 2500)
+        self.assertIsNotNone(response.data["ends_at"])
+
+    def test_post_creates_upgrade_subscription(self):
+        sub = self._active_starter(days=15)
+
+        with _fedapay_success_mock():
+            response = self.client.post(
+                "/api/seller/subscription/", {"plan": "PRO"}, format="json"
+            )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["is_upgrade"])
+        self.assertEqual(response.data["amount_xof"], 2500)
+        created = SellerSubscription.objects.get(id=response.data["id"])
+        self.assertEqual(created.ends_at, sub.ends_at)
+
+    def test_activation_preserves_ends_at_and_switches_plan(self):
+        sub = self._active_starter(days=15)
+        upgrade = SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=2500,
+            is_upgrade=True,
+            ends_at=sub.ends_at,
+            status=SellerSubscription.Status.PENDING,
+        )
+
+        from .services import apply_subscription_status
+
+        apply_subscription_status(upgrade, SellerSubscription.Status.APPROVED)
+
+        self.seller.refresh_from_db()
+        self.assertEqual(self.seller.plan, SellerProfile.Plan.PRO)
+        upgrade.refresh_from_db()
+        self.assertEqual(upgrade.ends_at, sub.ends_at)
+        self.assertIsNotNone(upgrade.starts_at)
+
+    def test_downgrade_returns_400(self):
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+        SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=10000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=timezone.now() - timedelta(days=15),
+            ends_at=timezone.now() + timedelta(days=15),
+        )
+
+        response = self.client.get("/api/seller/subscription/quote/?plan=STARTER")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_free_to_pro_charges_full_price(self):
+        response = self.client.get("/api/seller/subscription/quote/?plan=PRO")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["is_upgrade"])
+        self.assertEqual(response.data["amount_xof"], 10000)
+        self.assertIsNone(response.data["ends_at"])
+
+    def test_expired_subscription_charges_full_price(self):
+        self.seller.plan = SellerProfile.Plan.STARTER
+        self.seller.save(update_fields=["plan"])
+        SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.STARTER,
+            amount_xof=5000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=timezone.now() - timedelta(days=45),
+            ends_at=timezone.now() - timedelta(days=15),
+        )
+
+        response = self.client.get("/api/seller/subscription/quote/?plan=PRO")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["is_upgrade"])
+        self.assertEqual(response.data["amount_xof"], 10000)
+
+    def test_relaunch_failed_upgrade_recomputes_quote(self):
+        sub = self._active_starter(days=15)
+        SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=2500,
+            is_upgrade=True,
+            ends_at=sub.ends_at,
+            status=SellerSubscription.Status.FAILED,
+        )
+
+        with _fedapay_success_mock():
+            response = self.client.post("/api/seller/subscription/relance-paiement/")
+
+        self.assertEqual(response.status_code, 201)
+        new_sub = SellerSubscription.objects.get(id=response.data["id"])
+        self.assertTrue(new_sub.is_upgrade)
+        self.assertEqual(new_sub.amount_xof, 2500)
+        self.assertEqual(new_sub.ends_at, sub.ends_at)
+

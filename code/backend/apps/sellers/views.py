@@ -653,6 +653,33 @@ class SellerSubscriptionView(APIView):
         )
 
 
+class SellerSubscriptionQuoteView(APIView):
+    """Devis d'un changement de plan (prorata d'upgrade ANIF Seller)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def _get_seller(self):
+        try:
+            return self.request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+    def get(self, request):
+        from .services import SubscriptionError, compute_quote
+
+        seller = self._get_seller()
+        plan = request.query_params.get("plan", "").upper()
+        try:
+            quote = compute_quote(seller, plan)
+        except SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        data = dict(quote)
+        data["ends_at"] = quote["ends_at"].isoformat() if quote["ends_at"] else None
+        return Response(data)
+
+
 class SellerSubscriptionRelaunchView(APIView):
     """Relance le paiement d'un abonnement vendeur échoué (le vendeur agit seul)."""
 

@@ -302,6 +302,7 @@ class SellerSubscriptionSerializer(serializers.ModelSerializer):
             "payment_url",
             "starts_at",
             "ends_at",
+            "is_upgrade",
             "cancel_requested_at",
             "lost_features",
             "created_at",

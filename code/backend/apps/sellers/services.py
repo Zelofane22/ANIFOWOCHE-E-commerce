@@ -6,6 +6,7 @@ Le flux est conçu pour être idempotent : le webhook et le polling de confirmat
 peuvent se croiser sans déclencher deux fois la bascule de plan.
 """
 import logging
+import math
 
 from datetime import timedelta
 
@@ -14,7 +15,7 @@ from django.utils import timezone
 
 from apps.payments.services import FedaPayClient, FedaPayError
 
-from .limits import PLAN_LIMITS
+from .limits import PLAN_LIMITS, PLAN_ORDER
 from .models import SellerProfile, SellerSubscription
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,8 @@ REMINDER_MIN_INTERVAL_DAYS = 2
 
 # Plans souscriptibles en ligne (FREE et BUSINESS sont exclus du checkout).
 SUBSCRIPTABLE_PLANS = (SellerProfile.Plan.STARTER, SellerProfile.Plan.PRO)
+
+MIN_UPGRADE_AMOUNT_XOF = 100  # TODO: vérifier le minimum FedaPay
 
 # Statuts d'abonnement que le vendeur peut relancer lui-même (paiement non abouti).
 RELAUNCHABLE_SUBSCRIPTION_STATUSES = (
@@ -99,6 +102,74 @@ def plan_price_for(seller, plan):
     return limits["price_xof"]
 
 
+def get_active_subscription(seller):
+    """Dernier abonnement APPROVED non expiré dont le plan == seller.plan, sinon None."""
+    return (
+        SellerSubscription.objects.filter(
+            seller=seller,
+            status=SellerSubscription.Status.APPROVED,
+            ends_at__gt=timezone.now(),
+            plan=seller.plan,
+        )
+        .order_by("-ends_at")
+        .first()
+    )
+
+
+def compute_quote(seller, plan):
+    """Devis d'un changement de plan (prorata d'upgrade ANIF Seller).
+
+    Retourne dict {plan, full_price_xof, credit_xof, amount_xof, remaining_days,
+    ends_at, is_upgrade}. Lève SubscriptionError si le plan n'est pas
+    souscriptible ou en cas de rétrogradation.
+    """
+    if plan not in SUBSCRIPTABLE_PLANS:
+        raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
+    now = timezone.now()
+    active = get_active_subscription(seller)
+    if active is None or seller.plan == SellerProfile.Plan.FREE:
+        amount = plan_price_for(seller, plan)
+        return {
+            "plan": plan,
+            "full_price_xof": amount,
+            "credit_xof": 0,
+            "amount_xof": amount,
+            "remaining_days": 0,
+            "ends_at": None,
+            "is_upgrade": False,
+        }
+    if PLAN_ORDER.index(plan) < PLAN_ORDER.index(seller.plan):
+        raise SubscriptionError(
+            "La rétrogradation s'effectue à l'expiration de votre abonnement."
+        )
+    if plan == seller.plan:
+        amount = plan_price_for(seller, plan)
+        return {
+            "plan": plan,
+            "full_price_xof": amount,
+            "credit_xof": 0,
+            "amount_xof": amount,
+            "remaining_days": 0,
+            "ends_at": None,
+            "is_upgrade": False,
+        }
+    remaining = active.ends_at - now
+    ratio = remaining.total_seconds() / (SUBSCRIPTION_DURATION_DAYS * 86400)
+    ratio = min(max(ratio, 0.0), 1.0)
+    full = PLAN_LIMITS[plan]["price_xof"]
+    credit = active.amount_xof
+    amount = max(math.ceil((full - credit) * ratio), MIN_UPGRADE_AMOUNT_XOF)
+    return {
+        "plan": plan,
+        "full_price_xof": full,
+        "credit_xof": credit,
+        "amount_xof": amount,
+        "remaining_days": remaining.days,
+        "ends_at": active.ends_at,
+        "is_upgrade": True,
+    }
+
+
 def create_subscription(seller, plan):
     """Crée un abonnement PENDING pour un plan souscriptible et initie FedaPay.
 
@@ -107,15 +178,14 @@ def create_subscription(seller, plan):
     """
     if plan not in SUBSCRIPTABLE_PLANS:
         raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
-    limits = PLAN_LIMITS.get(plan)
-    price_xof = plan_price_for(seller, plan)
-    if not limits["price_xof"] and not price_xof:
-        raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
+    quote = compute_quote(seller, plan)
 
     subscription = SellerSubscription.objects.create(
         seller=seller,
         plan=plan,
-        amount_xof=price_xof,
+        amount_xof=quote["amount_xof"],
+        is_upgrade=quote["is_upgrade"],
+        ends_at=quote["ends_at"],
         status=SellerSubscription.Status.PENDING,
     )
     try:
@@ -141,10 +211,22 @@ def relaunch_subscription(subscription):
     if subscription.plan not in SUBSCRIPTABLE_PLANS:
         raise SubscriptionError("Ce plan n'est pas souscriptible en ligne.")
 
+    if subscription.is_upgrade:
+        quote = compute_quote(subscription.seller, subscription.plan)
+        amount_xof = quote["amount_xof"]
+        is_upgrade = quote["is_upgrade"]
+        ends_at = quote["ends_at"]
+    else:
+        amount_xof = subscription.amount_xof
+        is_upgrade = False
+        ends_at = None
+
     new_subscription = SellerSubscription.objects.create(
         seller=subscription.seller,
         plan=subscription.plan,
-        amount_xof=subscription.amount_xof,
+        amount_xof=amount_xof,
+        is_upgrade=is_upgrade,
+        ends_at=ends_at,
         status=SellerSubscription.Status.PENDING,
     )
     try:
@@ -161,9 +243,13 @@ def activate_subscription(subscription):
     """Active un abonnement approuvé : bornes temporelles + bascule du plan."""
     now = timezone.now()
     subscription.status = SellerSubscription.Status.APPROVED
-    subscription.starts_at = now
-    subscription.ends_at = now + timedelta(days=SUBSCRIPTION_DURATION_DAYS)
-    subscription.save(update_fields=["status", "starts_at", "ends_at", "updated_at"])
+    if subscription.is_upgrade and subscription.ends_at and subscription.ends_at > now:
+        subscription.starts_at = now
+        subscription.save(update_fields=["status", "starts_at", "updated_at"])
+    else:
+        subscription.starts_at = now
+        subscription.ends_at = now + timedelta(days=SUBSCRIPTION_DURATION_DAYS)
+        subscription.save(update_fields=["status", "starts_at", "ends_at", "updated_at"])
 
     # Bascule du plan du vendeur (no-op si déjà sur ce plan : idempotent).
     seller = subscription.seller

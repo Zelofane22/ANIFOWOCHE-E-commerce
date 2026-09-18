@@ -14,6 +14,7 @@ import {
   createSellerSubscription,
   getSellerPlans,
   getSellerSubscription,
+  getSellerSubscriptionQuote,
   reactivateSellerSubscription,
   relaunchSellerSubscription,
 } from "../api/seller.js";
@@ -111,6 +112,7 @@ export default function SellerPlan() {
   const [selected, setSelected] = useState("STARTER");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [quote, setQuote] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [relaunching, setRelaunching] = useState(false);
   const [canceling, setCanceling] = useState(false);
@@ -135,6 +137,19 @@ export default function SellerPlan() {
     loadPlans();
     loadSubscription();
   }, [isAuthenticated, loading, navigate]);
+
+  useEffect(() => {
+    if (!data) return;
+    const payable = ["STARTER", "PRO"].includes(selected);
+    const current = data.current_plan;
+    const eligible = current !== "FREE" && payable && selected !== current;
+    (eligible ? getSellerSubscriptionQuote(selected) : Promise.resolve(null))
+      .then(setQuote)
+      .catch((e) => {
+        setQuote(null);
+        setError(extractErrorMessage(e));
+      });
+  }, [selected, data]);
 
   if (loading || !data) {
     return (
@@ -218,6 +233,7 @@ export default function SellerPlan() {
   const isCurrentPlan = (code) => data.current_plan === code;
 
   const isPayable = (code) => ["STARTER", "PRO"].includes(code);
+  const isDowngrade = PLAN_ORDER.indexOf(selected) < PLAN_ORDER.indexOf(data.current_plan);
   const getFeatureLabel = (feature) => FEATURE_LABELS[feature] || feature;
 
   return (
@@ -509,6 +525,26 @@ export default function SellerPlan() {
           </p>
         )}
 
+        {quote?.is_upgrade && (
+          <div className="mt-4 rounded-[16px] bg-amber-50 border border-amber-200 p-4">
+            <p className="text-sm text-amber-900">
+              Passage au plan {PLAN_META[selected]?.label} :{" "}
+              <strong>{formatPrice(quote.amount_xof)}</strong> aujourd'hui
+              (prorata sur {quote.remaining_days} jours restants, crédit{" "}
+              {formatPrice(quote.credit_xof)}). Ensuite{" "}
+              {formatPrice(quote.full_price_xof)}/mois à partir du{" "}
+              {quote.ends_at
+                ? new Date(quote.ends_at).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "l'échéance"}
+              .
+            </p>
+          </div>
+        )}
+
         <div className="mt-5 bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-5">
           {isFree ? (
             <button
@@ -530,24 +566,39 @@ export default function SellerPlan() {
               )}
             </button>
           ) : isPayable(selected) && !isCurrentPlan(selected) ? (
-            <button
-              type="button"
-              onClick={handleSubscribe}
-              disabled={submitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <RefreshCwIcon size={15} className="animate-spin" />
-                  Lancement du paiement…
-                </>
-              ) : (
-                <>
-                  Changer pour le plan {PLAN_META[selected]?.label}
-                  <ChevronRightIcon size={16} />
-                </>
-              )}
-            </button>
+            isDowngrade ? (
+              <button
+                type="button"
+                disabled
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed"
+              >
+                Rétrogradation à l'expiration
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={submitting || !quote}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <RefreshCwIcon size={15} className="animate-spin" />
+                    Lancement du paiement…
+                  </>
+                ) : quote?.is_upgrade ? (
+                  <>
+                    Passer au plan {PLAN_META[selected]?.label} — {formatPrice(quote.amount_xof)}
+                    <ChevronRightIcon size={16} />
+                  </>
+                ) : (
+                  <>
+                    Changer pour le plan {PLAN_META[selected]?.label}
+                    <ChevronRightIcon size={16} />
+                  </>
+                )}
+              </button>
+            )
           ) : (
             <button
               type="button"
