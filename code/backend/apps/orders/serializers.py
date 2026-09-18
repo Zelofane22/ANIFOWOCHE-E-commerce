@@ -257,4 +257,27 @@ class OrderSerializer(serializers.ModelSerializer):
         # Notification email aux vendeurs concernés.
         notify_seller_new_order(order)
 
+        # Marque le panier abandonné correspondant comme converti (aucune relance).
+        from .services import mark_abandoned_cart_converted
+
+        mark_abandoned_cart_converted(email=order.email, customer=customer)
+
         return order
+
+
+class AbandonedCartSerializer(serializers.Serializer):
+    """Valide l'entrée de la synchronisation d'un panier abandonné (email + articles).
+
+    La logique métier (résolution des produits, rattachement utilisateur/boutique,
+    déduplication) vit dans ``apps.orders.services.sync_abandoned_cart``.
+    """
+
+    email = serializers.EmailField()
+    items = serializers.ListField(child=serializers.DictField(), allow_empty=False)
+
+    def validate_items(self, value):
+        # Le panier doit contenir au moins un article (les doublons/invalides
+        # sont ensuite filtrés par le service).
+        if not value:
+            raise serializers.ValidationError("Le panier est vide.")
+        return value

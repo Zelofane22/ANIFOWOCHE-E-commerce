@@ -1,3 +1,4 @@
+import secrets
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -122,3 +123,64 @@ class OrderItem(models.Model):
         base = self.quantity * self.unit_price_xof
         options_total = sum(opt.get("price_xof", 0) for opt in self.selected_options) * self.quantity
         return base + options_total
+
+
+class AbandonedCart(models.Model):
+    """Panier abandonné : snapshot des articles d'un client qui n'a pas finalisé
+    sa commande, conservé pour relancer par email (US relance panier).
+
+    Le panier est rattaché à une adresse email (et optionnellement au compte
+    client s'il est authentifié) et à une boutique pour isoler les paniers
+    ANIF Seller par boutique. Le token permet de restaurer le panier sans
+    exposer d'email ni de données personnelles dans l'URL.
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Actif"
+        CONVERTED = "converted", "Converti"
+        EXPIRED = "expired", "Expiré"
+
+    email = models.EmailField(db_index=True)
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="abandoned_carts",
+        null=True,
+        blank=True,
+    )
+    shop = models.ForeignKey(
+        "sellers.Shop",
+        on_delete=models.SET_NULL,
+        related_name="abandoned_carts",
+        null=True,
+        blank=True,
+        help_text="Boutique concernée (isole les paniers ANIF Seller par boutique).",
+    )
+    items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='[{"id":1,"slug":"pagne","name":"Pagne","image":"/media/...","price_xof":2000,'
+                  '"quantity":2,"color_name":"Rouge","color_hex":"#FF0000",'
+                  '"selected_options":[...],"delivery_method":"delivery"}, ...]',
+    )
+    token = models.CharField(max_length=64, unique=True, editable=False)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    abandoned_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["status", "abandoned_at"], name="abandoned_status_aband_idx"),
+        ]
+
+    def __str__(self):
+        return f"Panier abandonné #{self.pk} — {self.email} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        # Token aléatoire sécurisé (impossible à deviner) généré une seule fois.
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)

@@ -180,8 +180,12 @@ def _send_whatsapp(*, event, recipient_phone, message):
     return notification
 
 
-def _send_email(*, event, recipient_email, subject, message, title, cta_label="", cta_url=""):
-    """Envoie un email transactionnel (HTML) et trace le résultat dans la table Notification."""
+def _send_email(*, event, recipient_email, subject, message, title, cta_label="", cta_url="", html=None):
+    """Envoie un email transactionnel (HTML) et trace le résultat dans la table Notification.
+
+    ``html`` permet de passer un rendu HTML dédié (ex. panier abandonné) ;
+    à défaut, le gabarit commun ``base_email.html`` est utilisé.
+    """
     if not recipient_email:
         return None
     # Création de la trace de notification email.
@@ -193,7 +197,8 @@ def _send_email(*, event, recipient_email, subject, message, title, cta_label=""
     )
     try:
         # Rendu du HTML puis envoi via Resend ; succès → statut Envoyée.
-        html = _render_email_html(title=title, message=message, cta_label=cta_label, cta_url=cta_url)
+        if html is None:
+            html = _render_email_html(title=title, message=message, cta_label=cta_label, cta_url=cta_url)
         message_id = ResendClient().send_email(to_email=recipient_email, subject=subject, html=html)
         notification.status = Notification.Status.SENT
         notification.provider_message_id = message_id
@@ -651,3 +656,53 @@ def notify_sensitive_action(*, action, obj, actor=None):
         if notification:
             sent.append(notification)
     return sent
+
+
+def notify_abandoned_cart(cart):
+    """Relance par email un client dont le panier n'a pas été finalisé.
+
+    N'envoie rien si une relance a déjà été envoyée, si l'email ou les articles
+    sont absents. Utilise un gabarit HTML dédié (liste des produits, montant
+    estimé, CTA de récupération) et retourne True uniquement si Resend a
+    confirmé l'envoi (le statut de la Notification vaut SENT).
+    """
+    if cart.reminder_sent_at is not None:
+        return False
+    if not cart.email or not cart.items:
+        return False
+
+    from apps.orders.services import estimated_total_xof  # Import local : évite le cycle notifications ↔ orders.
+
+    shop_name = cart.shop.name if cart.shop else "ANIFOWOCHE"
+    items = cart.items
+    total = estimated_total_xof(items)
+    recover_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/panier?token={cart.token}"
+
+    message = (
+        f"Vous avez laissé des articles dans votre panier chez {shop_name}. "
+        f"Montant estimé : {total} FCFA. Reprenez votre panier via le lien sécurisé."
+    )
+    html = render_to_string(
+        "emails/abandoned_cart.html",
+        {
+            "shop_name": shop_name,
+            "items": items,
+            "estimated_total": total,
+            "cta_url": recover_url,
+            "logo_url": f"{settings.FRONTEND_BASE_URL}/anifowoche-logo.png",
+        },
+    )
+
+    notification = _send_email(
+        event=Notification.Event.ABANDONED_CART,
+        recipient_email=cart.email,
+        subject=f"Votre panier vous attend chez {shop_name}",
+        message=message,
+        title=f"Votre panier vous attend chez {shop_name}",
+        cta_label="Reprendre mon panier",
+        cta_url=recover_url,
+        html=html,
+    )
+    if notification is None:
+        return False
+    return notification.status == Notification.Status.SENT

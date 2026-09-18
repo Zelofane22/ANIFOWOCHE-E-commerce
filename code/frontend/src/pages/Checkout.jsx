@@ -44,7 +44,7 @@ const cartItemSignature = (item) =>
   ]);
 
 export default function Checkout() {
-  const { items, subtotal, clearCart, reconcileCart } = useCart();
+  const { items, subtotal, clearCart, reconcileCart, syncAbandonedCart } = useCart();
   const initialCartRef = useRef(items);
 
   useEffect(() => {
@@ -61,6 +61,14 @@ export default function Checkout() {
   }, [items]);
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Synchronise le panier abandonné dès qu'un email utilisateur est disponible.
+  // (Pour les visiteurs anonymes, aucun email n'est transmis tant qu'ils n'en
+  // ont pas fourni un.)
+  useEffect(() => {
+    if (authLoading || !user?.email) return;
+    syncAbandonedCart(user.email);
+  }, [authLoading, user?.email, syncAbandonedCart]);
 
   const [zones, setZones] = useState([]);
   const [slots, setSlots] = useState([]);

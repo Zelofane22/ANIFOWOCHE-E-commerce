@@ -78,6 +78,7 @@ class Notification(models.Model):
         SUBSCRIPTION_DOWNGRADED = "subscription_downgraded", "Abonnement expiré (plan FREE)"
         SUBSCRIPTION_CANCELED = "subscription_canceled", "Abonnement résilié"
         SENSITIVE_ACTION = "sensitive_action", "Action sensible"
+        ABANDONED_CART = "abandoned_cart", "Panier abandonné"
 
     class Status(models.TextChoices):
         PENDING = "pending", "En attente"

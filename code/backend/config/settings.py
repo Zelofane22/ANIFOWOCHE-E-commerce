@@ -303,6 +303,11 @@ RESEND_API_BASE_URL = config("RESEND_API_BASE_URL", default="https://api.resend.
 RESEND_API_KEY = config("RESEND_API_KEY", default="re_placeholder")
 RESEND_FROM_EMAIL = config("RESEND_FROM_EMAIL", default="ANIFOWOCHE <onboarding@resend.dev>")
 
+# Relance des paniers abandonnés : délai (en heures) après la dernière activité
+# du panier avant qu'il soit considéré comme abandonné et relancé par email
+# (voir apps.orders.services.send_abandoned_cart_reminders).
+ABANDONED_CART_DELAY_HOURS = config("ABANDONED_CART_DELAY_HOURS", default=2, cast=int)
+
 # Tunnel ngrok (dev uniquement) pour tester en local les webhooks externes
 # (FedaPay...) qui ne peuvent pas atteindre localhost. Vide par défaut : la
 # commande `manage.py start_ngrok` refuse de démarrer sans token — voir
