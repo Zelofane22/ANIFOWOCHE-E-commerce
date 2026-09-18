@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: ["**"]
+  pull_request:
+    branches: ["**"]
 
 jobs:
   backend:
@@ -47,7 +49,7 @@ jobs:
         working-directory: code/backend
         run: |
           pip install pytest pytest-django pytest-cov pytest-xdist
-          pytest -n auto --cov=apps --cov-report=term-missing --cov-fail-under=80
+          pytest -n auto --cov=apps --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=80
 
       - name: Audit Python dependencies (pip-audit)
         working-directory: code/backend
@@ -100,13 +102,43 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   sonarqube:
-    name: SonarQube
+    name: SonarQube Cloud Analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
+
+      - name: SonarQube Cloud Scan (Backend)
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.projectKey=zelofane_under-contruction
+            -Dsonar.organization=zelofane
+            -Dsonar.projectName=ANIFOWOCHE E-commerce
+            -Dsonar.projectVersion=1.0
+            -Dsonar.sources=code/backend
+            -Dsonar.inclusions=code/backend/**/*.py
+            -Dsonar.exclusions=**/migrations/**,**/__pycache__/**,**/venv/**,**/.venv/**
+            -Dsonar.python.coverage.reportPaths=code/backend/coverage.xml
+            -Dsonar.python.xunit.reportPath=code/backend/test-results.xml
+
+      - name: SonarQube Cloud Scan (Frontend)
+        uses: SonarSource/sonarqube-scan-action@v8.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.projectKey=zelofane_under-contruction
+            -Dsonar.organization=zelofane
+            -Dsonar.projectName=ANIFOWOCHE E-commerce Frontend
+            -Dsonar.projectVersion=1.0
+            -Dsonar.sources=code/frontend/src
+            -Dsonar.inclusions=code/frontend/src/**/*.ts,code/frontend/src/**/*.tsx,code/frontend/src/**/*.js,code/frontend/src/**/*.jsx
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.d.ts
+            -Dsonar.typescript.lcov.reportPaths=code/frontend/coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=code/frontend/coverage/lcov.info
