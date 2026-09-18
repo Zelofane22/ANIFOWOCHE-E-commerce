@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -122,3 +123,21 @@ class SellerSubscription(models.Model):
 
     def __str__(self):
         return f"Abonnement #{self.pk} — {self.seller.display_name} ({self.status})"
+
+    @property
+    def is_currently_active(self):
+        """Vrai si l'abonnement est actuellement actif.
+
+        Définition du « vendeur actif » : abonnement approuvé (APPROVED), sans
+        demande de résiliation, dont les bornes temporelles couvrent l'instant
+        présent (non expiré).
+        """
+        now = timezone.now()
+        return (
+            self.status == self.Status.APPROVED
+            and self.cancel_requested_at is None
+            and self.starts_at is not None
+            and self.ends_at is not None
+            and self.starts_at <= now
+            and self.ends_at >= now
+        )

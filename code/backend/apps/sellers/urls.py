@@ -6,6 +6,7 @@ from apps.products.views import (OptionGroupViewSet, OptionViewSet,
                                  ProductImageListCreateView,
                                  SellerProductViewSet)
 from .views import (
+    SellerAnalyticsActiveView,
     PublicShopProductDetailView,
     PublicShopView,
     SellerConfirmPaymentView,
@@ -43,6 +44,7 @@ urlpatterns = [
     path("seller/products/<slug:product_slug>/option-groups/<int:group_pk>/options/<int:pk>/", option_detail, name="seller-option-detail"),
     path("seller/register/", SellerRegisterView.as_view(), name="seller-register"),
     path("seller/profile/", SellerProfileView.as_view(), name="seller-profile"),
+    path("sellers/analytics/active/", SellerAnalyticsActiveView.as_view(), name="sellers-analytics-active"),
     path("seller/shop/slug-availability/", ShopSlugAvailabilityView.as_view(), name="seller-shop-slug-availability"),
     path("seller/dashboard/", SellerDashboardView.as_view(), name="seller-dashboard"),
     path("seller/subscription/quote/", SellerSubscriptionQuoteView.as_view(), name="seller-subscription-quote"),

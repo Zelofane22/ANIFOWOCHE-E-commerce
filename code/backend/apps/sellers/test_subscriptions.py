@@ -24,6 +24,7 @@ from apps.core.factories import (
     ProductFactory,
     SellerProfileFactory,
     ShopFactory,
+    SuperUserFactory,
     UserFactory,
 )
 from apps.orders.models import Order
@@ -793,3 +794,90 @@ class SellerUpgradeProrataTests(APITestCase):
         self.assertEqual(new_sub.amount_xof, 2500)
         self.assertEqual(new_sub.ends_at, sub.ends_at)
 
+
+class SellerAnalyticsActiveTests(APITestCase):
+    """Endpoint fondateur : suivi des vendeurs actifs (adoption du SaaS).
+
+    Un vendeur « actif » possède un abonnement APPROVED, sans résiliation
+    (cancel_requested_at vide) et non expiré (starts_at <= now <= ends_at).
+    """
+
+    def setUp(self):
+        self.admin = SuperUserFactory(username="fondatrice")
+
+    def _subscription(self, seller, **kwargs):
+        defaults = {
+            "seller": seller,
+            "plan": SellerProfile.Plan.PRO,
+            "amount_xof": 10000,
+            "status": SellerSubscription.Status.APPROVED,
+            "starts_at": timezone.now() - timedelta(days=5),
+            "ends_at": timezone.now() + timedelta(days=25),
+        }
+        defaults.update(kwargs)
+        return SellerSubscription.objects.create(**defaults)
+
+    def test_active_seller_with_active_subscription_is_counted(self):
+        seller = SellerProfileFactory()
+        self._subscription(seller)
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/sellers/analytics/active/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["active_sellers"], 1)
+        self.assertEqual(response.data["total_sellers"], 1)
+        self.assertEqual(response.data["activation_rate"], 100.0)
+
+    def test_canceled_subscription_not_counted(self):
+        resiliation_seller = SellerProfileFactory()
+        self._subscription(resiliation_seller, cancel_requested_at=timezone.now())
+        canceled_seller = SellerProfileFactory()
+        self._subscription(canceled_seller, status=SellerSubscription.Status.CANCELED)
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/sellers/analytics/active/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["active_sellers"], 0)
+        self.assertEqual(response.data["total_sellers"], 2)
+        self.assertEqual(response.data["activation_rate"], 0.0)
+
+    def test_expired_subscription_not_counted(self):
+        seller = SellerProfileFactory()
+        self._subscription(
+            seller,
+            starts_at=timezone.now() - timedelta(days=60),
+            ends_at=timezone.now() - timedelta(days=30),
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/sellers/analytics/active/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["active_sellers"], 0)
+        self.assertEqual(response.data["total_sellers"], 1)
+        self.assertEqual(response.data["activation_rate"], 0.0)
+
+    def test_non_admin_access_denied(self):
+        user = UserFactory(username="vendeuse-lambda")
+
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/sellers/analytics/active/")
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_activation_rate_is_correct(self):
+        active_a = SellerProfileFactory()
+        self._subscription(active_a)
+        active_b = SellerProfileFactory()
+        self._subscription(active_b)
+        inactive = SellerProfileFactory()
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/sellers/analytics/active/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["active_sellers"], 2)
+        self.assertEqual(response.data["total_sellers"], 3)
+        self.assertEqual(response.data["activation_rate"], 66.7)

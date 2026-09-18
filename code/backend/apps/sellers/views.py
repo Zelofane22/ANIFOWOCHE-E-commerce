@@ -777,3 +777,18 @@ class SellerSubscriptionReactivateView(APIView):
 
         from .serializers import SellerSubscriptionSerializer
         return Response(SellerSubscriptionSerializer(subscription).data, status=status.HTTP_200_OK)
+
+
+class SellerAnalyticsActiveView(APIView):
+    """Suivi des vendeurs actifs (adoption du SaaS) — réservé aux fondateurs/admins.
+
+    Retourne ``active_sellers``, ``total_sellers`` et ``activation_rate``
+    (pourcentage arrondi à une décimale).
+    """
+
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from .services import active_sellers_analytics
+
+        return Response(active_sellers_analytics())

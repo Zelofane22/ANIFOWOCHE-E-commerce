@@ -387,3 +387,37 @@ def reactivate_subscription(subscription):
     subscription.cancel_requested_at = None
     subscription.save(update_fields=["cancel_requested_at", "updated_at"])
     return subscription
+
+
+def active_sellers_analytics():
+    """Métrique d'adoption du SaaS : vendeurs actifs, total et taux d'activation.
+
+    Un « vendeur actif » est un profil vendeur possédant au moins un abonnement
+    actuellement actif : approuvé (APPROVED), sans demande de résiliation
+    (``cancel_requested_at`` vide) et non expiré (bornes temporelles couvrant
+    l'instant présent). Voir ``SellerSubscription.is_currently_active``.
+
+    Retourne un dict prêt à être sérialisé :
+    ``{active_sellers, total_sellers, activation_rate}``.
+    """
+    now = timezone.now()
+    active_sellers = (
+        SellerSubscription.objects.filter(
+            status=SellerSubscription.Status.APPROVED,
+            cancel_requested_at__isnull=True,
+            starts_at__lte=now,
+            ends_at__gte=now,
+        )
+        .values("seller_id")
+        .distinct()
+        .count()
+    )
+    total_sellers = SellerProfile.objects.count()
+    activation_rate = (
+        round(active_sellers / total_sellers * 100, 1) if total_sellers else 0
+    )
+    return {
+        "active_sellers": active_sellers,
+        "total_sellers": total_sellers,
+        "activation_rate": activation_rate,
+    }
