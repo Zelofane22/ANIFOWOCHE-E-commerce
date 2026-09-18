@@ -93,6 +93,27 @@ FEATURE_LABELS = {
     "marketplace_orders": "Commandes marketplace",
 }
 
+FEATURE_LABELS_FR = {
+    "essential_stats": "Statistiques essentielles",
+    "advanced_stats": "Statistiques avancées",
+    "exports": "Exports des statistiques",
+    "team": "Multi-utilisateurs",
+    "promotions": "Outils promotionnels",
+    "client_relaunch": "Relances clients",
+    "custom_domain": "Domaine personnalisé",
+    "online_payment": "Paiement Mobile Money et carte bancaire",
+    "multi_store": "Produits visibles sur la vitrine principale",
+    "priority_support": "Support prioritaire",
+    "seo_listing": "Référencement SEO des produits",
+    "delivery_service": "Livraison prise en charge",
+    "marketplace_orders": "Commandes centralisées via la marketplace",
+}
+
+
+def lost_features(plan):
+    """Fonctionnalités payantes perdues en repassant au plan FREE."""
+    return sorted(PLAN_FEATURES.get(plan, frozenset()) - PLAN_FEATURES["FREE"])
+
 
 def plan_limits(seller):
     """Limites du palier du vendeur (fallback FREE si valeur inconnue)."""

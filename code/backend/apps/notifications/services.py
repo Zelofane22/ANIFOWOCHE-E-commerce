@@ -398,26 +398,67 @@ def notify_payment_retry(payment):
     )
 
 
-def notify_subscription_expiring(subscription, days_left):
+def notify_subscription_expiring(subscription, days_left, canceled=False):
     """Prévient le vendeur que son abonnement expire bientôt (rappel 1j/2
-    durant la semaine précédant `ends_at`), avec un lien pour payer en avance."""
+    durant la semaine précédant `ends_at`), avec un lien pour payer en avance.
+    Si ``canceled``, le message indique que l'abonnement résilié prend fin et
+    liste les fonctionnalités qui seront perdues."""
     seller = subscription.seller
     seller_user = seller.user
     if not seller_user.email:
         return None
     plan_label = subscription.get_plan_display()
-    message = (
-        f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} "
-        f"expire dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
-        f"Renouvelez dès maintenant pour éviter toute coupure de votre boutique."
-    )
+    if canceled:
+        from apps.sellers.limits import FEATURE_LABELS_FR, lost_features
+
+        lost = ", ".join(FEATURE_LABELS_FR.get(f, f) for f in lost_features(subscription.plan))
+        message = (
+            f"Bonjour {seller.display_name}, votre abonnement {plan_label} résilié "
+            f"prend fin dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
+            f"Vous perdrez : {lost}. Vous pouvez le réactiver avant cette date."
+        )
+        cta_label = "Réactiver mon abonnement"
+    else:
+        message = (
+            f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} "
+            f"expire dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
+            f"Renouvelez dès maintenant pour éviter toute coupure de votre boutique."
+        )
+        cta_label = "Renouveler mon abonnement"
     return _send_email(
         event=Notification.Event.SUBSCRIPTION_EXPIRING,
         recipient_email=seller_user.email,
         subject=f"Votre abonnement {plan_label} expire dans {days_left} jour(s)",
         message=message,
         title="Votre abonnement expire bientôt",
-        cta_label="Renouveler mon abonnement",
+        cta_label=cta_label,
+        cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
+    )
+
+
+def notify_subscription_canceled(subscription):
+    """Confirme au vendeur la résiliation de son abonnement : date de fin d'accès
+    et fonctionnalités qui seront perdues."""
+    from apps.sellers.limits import FEATURE_LABELS_FR, lost_features
+
+    seller = subscription.seller
+    seller_user = seller.user
+    if not seller_user.email:
+        return None
+    plan_label = subscription.get_plan_display()
+    lost = ", ".join(FEATURE_LABELS_FR.get(f, f) for f in lost_features(subscription.plan))
+    message = (
+        f"Bonjour {seller.display_name}, votre abonnement {plan_label} a bien été résilié. "
+        f"Vous conservez l'accès à vos fonctionnalités payantes jusqu'au "
+        f"{subscription.ends_at.strftime('%d/%m/%Y')}. Vous perdrez ensuite : {lost}."
+    )
+    return _send_email(
+        event=Notification.Event.SUBSCRIPTION_CANCELED,
+        recipient_email=seller_user.email,
+        subject=f"Votre abonnement {plan_label} a été résilié",
+        message=message,
+        title="Votre abonnement a été résilié",
+        cta_label="Voir mon abonnement",
         cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
     )
 

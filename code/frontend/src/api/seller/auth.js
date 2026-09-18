@@ -35,3 +35,17 @@ export const createSellerSubscription = (plan) =>
  */
 export const relaunchSellerSubscription = () =>
   apiClient.post("/seller/subscription/relance-paiement/").then((res) => res.data);
+
+/**
+ * Résilie l'abonnement actif du vendeur (accès conservé jusqu'à l'échéance).
+ * @returns {Promise<Subscription>}
+ */
+export const cancelSellerSubscription = () =>
+  apiClient.post("/seller/subscription/cancel/").then((res) => res.data);
+
+/**
+ * Réactive un abonnement dont la résiliation a été demandée.
+ * @returns {Promise<Subscription>}
+ */
+export const reactivateSellerSubscription = () =>
+  apiClient.post("/seller/subscription/reactivate/").then((res) => res.data);

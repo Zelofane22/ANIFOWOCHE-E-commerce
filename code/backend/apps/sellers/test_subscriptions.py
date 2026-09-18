@@ -518,3 +518,133 @@ class SellerSubscriptionRelaunchTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         statuses = list(self.seller.subscriptions.values_list("status", flat=True))
         self.assertEqual(statuses.count(SellerSubscription.Status.FAILED), 2)
+
+
+class SellerSubscriptionCancelTests(APITestCase):
+    """Résiliation et réactivation d'un abonnement vendeur (US-908)."""
+
+    def setUp(self):
+        self.user = UserFactory(username="resiliation-vendeuse")
+        self.seller = SellerProfileFactory(
+            user=self.user, display_name="Résiliation Boutique", phone="+2290190000000"
+        )
+        ShopFactory(seller=self.seller, name="Résiliation Wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=self.user)
+
+    def _approved_subscription(self, **kwargs):
+        defaults = {
+            "seller": self.seller,
+            "plan": SellerProfile.Plan.PRO,
+            "amount_xof": 10000,
+            "status": SellerSubscription.Status.APPROVED,
+            "starts_at": timezone.now() - timedelta(days=5),
+            "ends_at": timezone.now() + timedelta(days=25),
+        }
+        defaults.update(kwargs)
+        return SellerSubscription.objects.create(**defaults)
+
+    def _mock_email(self, mock_resend_cls):
+        mock_client = mock.Mock()
+        mock_client.send_email.return_value = "msg_123"
+        mock_resend_cls.return_value = mock_client
+        self.user.email = "vendeuse@test.com"
+        self.user.save(update_fields=["email"])
+
+    @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
+    @mock.patch("apps.notifications.services.ResendClient")
+    def test_cancel_sets_cancel_requested_at_keeps_plan_and_sends_email(self, mock_resend_cls, _mock_html):
+        self._mock_email(mock_resend_cls)
+        subscription = self._approved_subscription()
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        from apps.notifications.models import Notification
+
+        response = self.client.post("/api/seller/subscription/cancel/")
+
+        self.assertEqual(response.status_code, 200)
+        subscription.refresh_from_db()
+        self.assertIsNotNone(subscription.cancel_requested_at)
+        self.assertEqual(subscription.status, SellerSubscription.Status.APPROVED)
+        self.seller.refresh_from_db()
+        self.assertEqual(self.seller.plan, SellerProfile.Plan.PRO)
+        self.assertEqual(
+            Notification.objects.filter(event=Notification.Event.SUBSCRIPTION_CANCELED).count(), 1
+        )
+
+    def test_cancel_without_active_subscription_returns_400(self):
+        response = self.client.post("/api/seller/subscription/cancel/")
+        self.assertEqual(response.status_code, 400)
+
+    @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
+    @mock.patch("apps.notifications.services.ResendClient")
+    def test_double_cancel_returns_400(self, mock_resend_cls, _mock_html):
+        self._mock_email(mock_resend_cls)
+        self._approved_subscription()
+
+        first = self.client.post("/api/seller/subscription/cancel/")
+        second = self.client.post("/api/seller/subscription/cancel/")
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 400)
+
+    @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
+    @mock.patch("apps.notifications.services.ResendClient")
+    def test_reactivate_clears_cancel_requested_at(self, mock_resend_cls, _mock_html):
+        self._mock_email(mock_resend_cls)
+        subscription = self._approved_subscription()
+
+        cancel = self.client.post("/api/seller/subscription/cancel/")
+        self.assertEqual(cancel.status_code, 200)
+
+        response = self.client.post("/api/seller/subscription/reactivate/")
+
+        self.assertEqual(response.status_code, 200)
+        subscription.refresh_from_db()
+        self.assertIsNone(subscription.cancel_requested_at)
+
+    def test_reactivate_without_cancellation_returns_400(self):
+        self._approved_subscription()
+
+        response = self.client.post("/api/seller/subscription/reactivate/")
+
+        self.assertEqual(response.status_code, 400)
+
+    @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
+    @mock.patch("apps.notifications.services.ResendClient")
+    def test_remind_canceled_subscription_mentions_lost_features(self, mock_resend_cls, _mock_html):
+        self._mock_email(mock_resend_cls)
+        self._approved_subscription(
+            starts_at=timezone.now() - timedelta(days=27),
+            ends_at=timezone.now() + timedelta(days=3),
+            cancel_requested_at=timezone.now(),
+        )
+
+        from apps.notifications.models import Notification
+        from .services import remind_expiring_subscriptions
+
+        sent = remind_expiring_subscriptions()
+
+        self.assertEqual(sent, 1)
+        notification = Notification.objects.filter(
+            event=Notification.Event.SUBSCRIPTION_EXPIRING
+        ).first()
+        self.assertIsNotNone(notification)
+        self.assertIn("perdrez", notification.message)
+
+    def test_expire_subscriptions_downgrades_canceled_subscription(self):
+        self._approved_subscription(
+            starts_at=timezone.now() - timedelta(days=60),
+            ends_at=timezone.now() - timedelta(days=1),
+            cancel_requested_at=timezone.now() - timedelta(days=10),
+        )
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        from .services import expire_subscriptions
+
+        downgraded = expire_subscriptions()
+
+        self.assertEqual(downgraded, 1)
+        self.seller.refresh_from_db()
+        self.assertEqual(self.seller.plan, SellerProfile.Plan.FREE)

@@ -16,7 +16,9 @@ from .views import (
     SellerRegisterView,
     SellerReportExportView,
     SellerOrderViewSet,
+    SellerSubscriptionCancelView,
     SellerSubscriptionRelaunchView,
+    SellerSubscriptionReactivateView,
     SellerSubscriptionView,
     ShopSlugAvailabilityView,
 )
@@ -45,6 +47,8 @@ urlpatterns = [
     path("seller/reports/export/", SellerReportExportView.as_view(), name="seller-report-export"),
     path("seller/subscription/", SellerSubscriptionView.as_view(), name="seller-subscription"),
     path("seller/subscription/relance-paiement/", SellerSubscriptionRelaunchView.as_view(), name="seller-subscription-relaunch"),
+    path("seller/subscription/cancel/", SellerSubscriptionCancelView.as_view(), name="seller-subscription-cancel"),
+    path("seller/subscription/reactivate/", SellerSubscriptionReactivateView.as_view(), name="seller-subscription-reactivate"),
     path("public/plans/", SellerPlansView.as_view(), name="public-plans"),
     path("seller/orders/<int:order_id>/relance-paiement/", SellerPaymentRelaunchView.as_view(), name="seller-payment-relaunch"),
     path("seller/orders/<int:order_id>/confirmer-paiement/", SellerConfirmPaymentView.as_view(), name="seller-confirm-payment"),

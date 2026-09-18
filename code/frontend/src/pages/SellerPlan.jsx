@@ -10,9 +10,11 @@ import {
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import {
+  cancelSellerSubscription,
   createSellerSubscription,
   getSellerPlans,
   getSellerSubscription,
+  reactivateSellerSubscription,
   relaunchSellerSubscription,
 } from "../api/seller.js";
 import { openFedapaySubscriptionCheckout } from "../utils/fedapay.js";
@@ -111,6 +113,8 @@ export default function SellerPlan() {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [relaunching, setRelaunching] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const loadPlans = () =>
     getSellerPlans()
@@ -148,6 +152,7 @@ export default function SellerPlan() {
   const isPending = subscription?.status === "pending";
   const isApproved = subscription?.status === "approved";
   const isFree = data.current_plan === "FREE";
+  const isCancelRequested = isApproved && !!subscription?.cancel_requested_at;
   const currentPlanMeta = PLAN_META[data.current_plan];
 
   const handleSubscribe = async () => {
@@ -183,6 +188,30 @@ export default function SellerPlan() {
       setError(extractErrorMessage(err) || "Impossible de relancer le paiement.");
     } finally {
       setRelaunching(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setError("");
+    setCanceling(true);
+    try {
+      await cancelSellerSubscription();
+      setShowCancelConfirm(false);
+      await loadSubscription();
+    } catch (err) {
+      setError(extractErrorMessage(err) || "Impossible de résilier l'abonnement.");
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setError("");
+    try {
+      await reactivateSellerSubscription();
+      await loadSubscription();
+    } catch (err) {
+      setError(extractErrorMessage(err) || "Impossible de réactiver l'abonnement.");
     }
   };
 
@@ -233,7 +262,33 @@ export default function SellerPlan() {
             )}
           </div>
 
-          {isApproved && subscription?.ends_at && (
+          {isCancelRequested && subscription?.ends_at && (
+            <div className="mt-3 space-y-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400">
+                Résilié — accès jusqu'au{" "}
+                {new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+              {subscription.lost_features?.length > 0 && (
+                <p className="text-white/40 text-xs">
+                  Vous perdrez :{" "}
+                  {subscription.lost_features.map(getFeatureLabel).join(", ")}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleReactivate}
+                className="inline-flex items-center gap-2 rounded-xl bg-green-500/15 border border-green-400/20 px-4 py-2 text-sm font-semibold text-green-300 transition hover:bg-green-500/25"
+              >
+                Réactiver
+              </button>
+            </div>
+          )}
+
+          {isApproved && !isCancelRequested && subscription?.ends_at && (
             <p className="text-white/40 text-xs">
               Expire le{" "}
               {new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
@@ -242,6 +297,59 @@ export default function SellerPlan() {
                 year: "numeric",
               })}
             </p>
+          )}
+
+          {isApproved && !isCancelRequested && (
+            <button
+              type="button"
+              onClick={() => setShowCancelConfirm(true)}
+              className="mt-3 text-xs font-medium text-white/40 underline decoration-white/20 underline-offset-2 transition hover:text-white/70"
+            >
+              Résilier mon abonnement
+            </button>
+          )}
+
+          {showCancelConfirm && (
+            <div className="mt-3 rounded-xl bg-white/5 border border-white/10 p-4">
+              <p className="text-sm text-white/80">
+                Votre abonnement restera actif jusqu'au{" "}
+                {subscription?.ends_at
+                  ? new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "l'échéance"}
+                . Vous perdrez alors :
+              </p>
+              {subscription?.lost_features?.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {subscription.lost_features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-white/60">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
+                      {getFeatureLabel(f)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={canceling}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-60"
+                >
+                  {canceling ? "Résiliation…" : "Confirmer la résiliation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/15"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
           )}
 
           {isFree && limits && (

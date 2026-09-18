@@ -285,6 +285,7 @@ class SellerSubscriptionSerializer(serializers.ModelSerializer):
 
     plan_name = serializers.CharField(source="get_plan_display", read_only=True)
     status_name = serializers.CharField(source="get_status_display", read_only=True)
+    lost_features = serializers.SerializerMethodField()
 
     class Meta:
         model = SellerSubscription
@@ -301,10 +302,17 @@ class SellerSubscriptionSerializer(serializers.ModelSerializer):
             "payment_url",
             "starts_at",
             "ends_at",
+            "cancel_requested_at",
+            "lost_features",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+    def get_lost_features(self, obj):
+        from .limits import lost_features
+
+        return lost_features(obj.plan)
 
 
 class SellerPlanSerializer(serializers.Serializer):

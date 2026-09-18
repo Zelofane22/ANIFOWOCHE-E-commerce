@@ -249,8 +249,55 @@ def remind_expiring_subscriptions():
         ):
             continue
         days_left = max((subscription.ends_at - now).days, 0)
-        notify_subscription_expiring(subscription, days_left)
+        if subscription.cancel_requested_at:
+            notify_subscription_expiring(subscription, days_left, canceled=True)
+        else:
+            notify_subscription_expiring(subscription, days_left)
         subscription.last_expiry_reminder_at = now
         subscription.save(update_fields=["last_expiry_reminder_at"])
         sent += 1
     return sent
+
+
+def cancel_subscription(subscription):
+    """Résilie un abonnement approuvé (accès conservé jusqu'à l'échéance).
+
+    Lève SubscriptionError si l'abonnement n'est pas approuvé, s'il est déjà
+    expiré, ou si une résiliation est déjà en cours. Ne touche ni au plan du
+    vendeur ni au statut de l'abonnement.
+    """
+    now = timezone.now()
+    if subscription.status != SellerSubscription.Status.APPROVED:
+        raise SubscriptionError("Seul un abonnement actif peut être résilié.")
+    if subscription.ends_at and subscription.ends_at <= now:
+        raise SubscriptionError("Cet abonnement est déjà expiré.")
+    if subscription.cancel_requested_at is not None:
+        raise SubscriptionError("Cet abonnement est déjà en cours de résiliation.")
+
+    subscription.cancel_requested_at = now
+    subscription.save(update_fields=["cancel_requested_at", "updated_at"])
+
+    from apps.notifications.services import notify_subscription_canceled
+
+    try:
+        notify_subscription_canceled(subscription)
+    except Exception:
+        logger.exception("Email de résiliation non envoyé (abonnement #%s).", subscription.pk)
+    return subscription
+
+
+def reactivate_subscription(subscription):
+    """Annule une demande de résiliation (réactive l'abonnement).
+
+    Lève SubscriptionError si aucune résiliation n'est en cours ou si
+    l'abonnement a déjà expiré.
+    """
+    now = timezone.now()
+    if subscription.cancel_requested_at is None:
+        raise SubscriptionError("Aucune résiliation n'est en cours pour cet abonnement.")
+    if subscription.ends_at and subscription.ends_at <= now:
+        raise SubscriptionError("Cet abonnement a déjà expiré, il ne peut pas être réactivé.")
+
+    subscription.cancel_requested_at = None
+    subscription.save(update_fields=["cancel_requested_at", "updated_at"])
+    return subscription

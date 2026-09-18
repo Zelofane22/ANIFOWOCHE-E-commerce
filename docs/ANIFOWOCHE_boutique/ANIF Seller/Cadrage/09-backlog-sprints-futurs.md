@@ -31,7 +31,7 @@ L'inventaire de référence : backend `apps/sellers/` (endpoints, `limits.py`,
 | US-905 | En tant que vendeur, mon plan revient automatiquement à Gratuit à l'expiration (sans impacter mes données) | P1 | 3 | Pas de mécanisme d'expiration/rétrogradation |
 | US-906 | En tant que vendeur, je passe à un plan supérieur ou inférieur en self-service avec facturation au prorata | P2 | 5 | `plan` est read-only côté API (`sellers/serializers.py:107`) |
 | US-907 | En tant que vendeur, je m'abonne à l'offre Business « sur devis » (formulaire de contact) | P2 | 3 | Offre Business absente de la landing (3 cartes seulement) |
-| US-908 | En tant que vendeur, je résilie mon abonnement et j'en suis averti (échéance à venir, perte des features payantes) | P2 | 3 | Aucun flux de résiliation |
+| US-908 | En tant que vendeur, je résilie mon abonnement et j'en suis averti (échéance à venir, perte des features payantes) | P2 | 3 | Fait : POST /seller/subscription/cancel|reactivate/ |
 
 ## E10 — Exposer le plan au vendeur et payer les modules (paywall)
 

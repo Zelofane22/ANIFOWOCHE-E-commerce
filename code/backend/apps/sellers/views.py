@@ -688,3 +688,65 @@ class SellerSubscriptionRelaunchView(APIView):
             SellerSubscriptionSerializer(new_subscription).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class SellerSubscriptionCancelView(APIView):
+    """Résilie l'abonnement actif du vendeur (accès conservé jusqu'à l'échéance)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def post(self, request):
+        try:
+            seller = request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+        subscription = seller.subscriptions.filter(status="approved").order_by("-created_at").first()
+        if not subscription:
+            return Response(
+                {"detail": "Aucun abonnement actif."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .services import SubscriptionError, cancel_subscription
+
+        try:
+            subscription = cancel_subscription(subscription)
+        except SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .serializers import SellerSubscriptionSerializer
+        return Response(SellerSubscriptionSerializer(subscription).data, status=status.HTTP_200_OK)
+
+
+class SellerSubscriptionReactivateView(APIView):
+    """Réactive un abonnement dont la résiliation a été demandée."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "payments"
+
+    def post(self, request):
+        try:
+            seller = request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+        subscription = seller.subscriptions.filter(status="approved").order_by("-created_at").first()
+        if not subscription:
+            return Response(
+                {"detail": "Aucun abonnement actif."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .services import SubscriptionError, reactivate_subscription
+
+        try:
+            subscription = reactivate_subscription(subscription)
+        except SubscriptionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .serializers import SellerSubscriptionSerializer
+        return Response(SellerSubscriptionSerializer(subscription).data, status=status.HTTP_200_OK)
