@@ -55,12 +55,11 @@ const FALLBACK_FEATURES = {
   ],
   STARTER: [
     "100 produits et commandes par mois",
-    "Commandes illimitées",
     "Statistiques essentielles",
   ],
   PRO: [
     "Produits et commandes illimités",
-    "Statistiques avancées",
+    "Statistiques avancées",  
     "Exports des statistiques",
     "Multi-utilisateurs",
     "Outils promotionnels",

@@ -202,6 +202,8 @@ def expire_subscriptions():
     de l'abonnement expiré (il peut avoir souscrit à un nouveau plan entre-temps).
     Retourne le nombre de vendeurs rétrogradés.
     """
+    from apps.notifications.services import notify_subscription_downgraded
+
     now = timezone.now()
     expired = (
         SellerSubscription.objects
@@ -216,6 +218,10 @@ def expire_subscriptions():
             seller.save(update_fields=["plan", "updated_at"])
             downgraded += 1
             logger.info("Vendeur #%s rétrogradé au plan FREE (abonnement #%s expiré).", seller.pk, subscription.pk)
+            try:
+                notify_subscription_downgraded(subscription)
+            except Exception:
+                logger.exception("Email de rétrogradation non envoyé (abonnement #%s).", subscription.pk)
     return downgraded
 
 

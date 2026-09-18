@@ -189,6 +189,12 @@ export default function SellerStats() {
     ? chartData.reduce((sum, point) => sum + point.value, 0) / chartData.length
     : 0;
   const maxProductRevenue = Math.max(...productData.map((product) => Number(product.revenue) || 0), 1);
+  const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+  const DAY_FULL = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+  const activity = data?.activity;
+  const weekdayData = (activity?.by_weekday || []).map((value, i) => ({ label: DAY_LABELS[i], value, peak: i === activity.peak_weekday }));
+  const hourData = (activity?.by_hour || []).map((value, h) => ({ label: `${h}h`, value, peak: h === activity.peak_hour }));
+  const hasActivity = activity && activity.peak_hour !== null;
 
   const plan = data?.seller?.plan ?? "FREE";
   const hasAdvancedStats = plan === "PRO" || plan === "BUSINESS";
@@ -295,6 +301,29 @@ export default function SellerStats() {
               </section>
             </ProGate>
           )}
+
+          <ProGate locked={!hasAdvancedStats}>
+            <section className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-sm sm:p-5">
+              <h2 className="text-sm font-bold text-gray-900">Heures et jours de forte activité</h2>
+              <p className="mt-1 mb-4 text-xs text-gray-400">
+                {hasActivity ? `Pic : ${DAY_FULL[activity.peak_weekday]} vers ${activity.peak_hour}h` : "Pas assez de commandes sur cette période."}
+              </p>
+              {hasActivity && (<>
+                <div className="h-32"><ResponsiveContainer width="100%" height="100%"><BarChart data={weekdayData} margin={{ top: 4, right: 4, bottom: 0, left: -28 }}>
+                  <XAxis dataKey="label" tick={{ fill: "#9CA3AF", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fill: "#9CA3AF", fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => [`${v} commande(s)`, ""]} cursor={{ fill: "rgba(201,159,8,0.08)" }} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>{weekdayData.map((d) => <Cell key={d.label} fill={d.peak ? "#C99F08" : "#E5D9A8"} />)}</Bar>
+                </BarChart></ResponsiveContainer></div>
+                <div className="mt-4 h-32"><ResponsiveContainer width="100%" height="100%"><BarChart data={hourData} margin={{ top: 4, right: 4, bottom: 0, left: -28 }}>
+                  <XAxis dataKey="label" interval={3} tick={{ fill: "#9CA3AF", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fill: "#9CA3AF", fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => [`${v} commande(s)`, ""]} cursor={{ fill: "rgba(201,159,8,0.08)" }} />
+                  <Bar dataKey="value" radius={[3, 3, 0, 0]}>{hourData.map((d) => <Cell key={d.label} fill={d.peak ? "#C99F08" : "#E5D9A8"} />)}</Bar>
+                </BarChart></ResponsiveContainer></div>
+              </>)}
+            </section>
+          </ProGate>
 
           <ProGate locked={!hasAdvancedStats}>
             <section className="rounded-2xl border border-black/[0.05] bg-white shadow-sm">

@@ -422,6 +422,29 @@ def notify_subscription_expiring(subscription, days_left):
     )
 
 
+def notify_subscription_downgraded(subscription):
+    """Prévient le vendeur que son abonnement a expiré et qu'il est repassé au plan Gratuit."""
+    seller = subscription.seller
+    seller_user = seller.user
+    if not seller_user.email:
+        return None
+    plan_label = subscription.get_plan_display()
+    message = (
+        f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} a expiré le "
+        f"{subscription.ends_at.strftime('%d/%m/%Y')}. Votre boutique est repassée au plan Gratuit. "
+        f"Reprenez un abonnement pour retrouver toutes vos fonctionnalités."
+    )
+    return _send_email(
+        event=Notification.Event.SUBSCRIPTION_DOWNGRADED,
+        recipient_email=seller_user.email,
+        subject=f"Votre abonnement {plan_label} a expiré",
+        message=message,
+        title="Votre abonnement a expiré",
+        cta_label="Reprendre un abonnement",
+        cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
+    )
+
+
 def notify_invoice(payment):
     """Envoie la facture du paiement au client, avec le détail des articles."""
     order = payment.order

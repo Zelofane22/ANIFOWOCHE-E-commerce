@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Q
-from django.db.models.functions import TruncDate
+from django.db.models.functions import ExtractHour, ExtractIsoWeekDay, TruncDate
 from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework import generics, permissions, status, viewsets
@@ -28,7 +28,7 @@ from apps.products.models import Product
 from apps.products.serializers import ProductSerializer
 from apps.users.serializers import UserSerializer
 
-from .limits import has_feature, orders_quota_reached
+from .limits import has_feature, orders_quota_reached, require_feature
 from .models import SellerProfile, Shop
 from .serializers import (
     PublicShopSerializer,
@@ -216,6 +216,30 @@ def _seller_report_payload(seller, request):
         .order_by("day")
     )
 
+    # Heures / jours de forte activité (fonctionnalité Pro `advanced_stats`).
+    # Count distinct : seller_orders est joint sur items (évite le double comptage).
+    activity = None
+    if has_feature(seller, "advanced_stats"):
+        by_hour = [0] * 24
+        for row in (
+            orders_period.order_by().annotate(h=ExtractHour("created_at"))
+            .values("h").annotate(c=Count("id", distinct=True))
+        ):
+            by_hour[row["h"]] = row["c"]
+        by_weekday = [0] * 7  # index 0 = lundi ... 6 = dimanche
+        for row in (
+            orders_period.order_by().annotate(d=ExtractIsoWeekDay("created_at"))
+            .values("d").annotate(c=Count("id", distinct=True))
+        ):
+            by_weekday[row["d"] - 1] = row["c"]
+        has_data = any(by_hour)
+        activity = {
+            "by_hour": by_hour,
+            "by_weekday": by_weekday,
+            "peak_hour": by_hour.index(max(by_hour)) if has_data else None,
+            "peak_weekday": by_weekday.index(max(by_weekday)) if has_data else None,
+        }
+
     # Revenu total cumulé du vendeur.
     total_revenue = seller_orders.exclude(status=Order.Status.CANCELLED).aggregate(total=Sum("total_xof"))["total"] or 0
 
@@ -277,6 +301,7 @@ def _seller_report_payload(seller, request):
             {"day": row["day"].strftime("%d/%m"), "total": row["total"]}
             for row in sales_by_day
         ],
+        "activity": activity,
         "status_distribution": {row["status"]: row["count"] for row in status_distribution},
         "top_products": [
             {"id": row["product__id"], "name": row["product__name"], "revenue": row["total_revenue"], "quantity": row["total_quantity"]}
@@ -315,7 +340,7 @@ class SellerReportExportView(APIView):
     """Export CSV des statistiques du vendeur (fonctionnalité ``exports``).
 
     Réservé aux offres incluant l'export (PRO/BUSINESS) — la boutique officielle
-    est exemptée. Les autres plans reçoivent un 403 explicite.
+    est exemptée. Les autres plans reçoivent un 403 structuré (code feature_not_included, required_plan, current_plan).
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -326,11 +351,7 @@ class SellerReportExportView(APIView):
         except SellerProfile.DoesNotExist:
             raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
 
-        if not has_feature(seller, "exports"):
-            return Response(
-                {"detail": "L'export des statistiques est réservé aux offres Pro et Business."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        require_feature(seller, "exports")
 
         data, error = _seller_report_payload(seller, request)
         if error:

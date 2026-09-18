@@ -75,6 +75,7 @@ class Notification(models.Model):
         SETTING_CHANGE_REQUESTED = "setting_change_requested", "Demande de changement de réglage"
         PAYMENT_RETRY = "payment_retry", "Relance de paiement"
         SUBSCRIPTION_EXPIRING = "subscription_expiring", "Abonnement bientôt expiré"
+        SUBSCRIPTION_DOWNGRADED = "subscription_downgraded", "Abonnement expiré (plan FREE)"
         SENSITIVE_ACTION = "sensitive_action", "Action sensible"
 
     class Status(models.TextChoices):

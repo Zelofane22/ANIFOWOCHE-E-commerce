@@ -282,6 +282,43 @@ class SellerSubscriptionFlowTests(APITestCase):
 
     @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
     @mock.patch("apps.notifications.services.ResendClient")
+    def test_expire_subscriptions_sends_downgrade_email_once(self, mock_resend_cls, _mock_html):
+        mock_client = mock.Mock()
+        mock_client.send_email.return_value = "msg_123"
+        mock_resend_cls.return_value = mock_client
+
+        self.user.email = "vendeuse@test.com"
+        self.user.save(update_fields=["email"])
+
+        subscription = SellerSubscription.objects.create(
+            seller=self.seller,
+            plan=SellerProfile.Plan.PRO,
+            amount_xof=10000,
+            status=SellerSubscription.Status.APPROVED,
+            starts_at=timezone.now() - timedelta(days=60),
+            ends_at=timezone.now() - timedelta(days=1),
+        )
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        from apps.notifications.models import Notification
+        from .services import expire_subscriptions
+
+        downgraded = expire_subscriptions()
+
+        self.assertEqual(downgraded, 1)
+        self.assertEqual(
+            Notification.objects.filter(event=Notification.Event.SUBSCRIPTION_DOWNGRADED).count(), 1
+        )
+
+        downgraded2 = expire_subscriptions()
+        self.assertEqual(downgraded2, 0)
+        self.assertEqual(
+            Notification.objects.filter(event=Notification.Event.SUBSCRIPTION_DOWNGRADED).count(), 1
+        )
+
+    @mock.patch("apps.notifications.services._render_email_html", return_value="<html></html>")
+    @mock.patch("apps.notifications.services.ResendClient")
     def test_remind_expiring_subscriptions_sends_and_respects_interval(self, mock_resend_cls, _mock_html):
         mock_client = mock.Mock()
         mock_client.send_email.return_value = "msg_123"
@@ -371,6 +408,56 @@ class SellerPlansAndDashboardTests(APITestCase):
         kpi = response.data["kpi"]
         self.assertEqual(kpi["avg_order_value"], 10000)
         self.assertEqual(kpi["conversion_rate"], 50.0)
+
+    def test_dashboard_activity_for_pro(self):
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        category = CategoryFactory(name="Tissus", slug="tissus-pro")
+        product = ProductFactory(
+            seller=self.seller, category=category, name="Pagne", slug="pagne-pro", price_xof=5000, stock=5
+        )
+        customer = UserFactory(username="client-pro")
+
+        order1 = OrderFactory(
+            customer=customer,
+            full_name="M. Client",
+            phone="+2290191111111",
+            email="client@example.com",
+            address="Rue des Cocotiers",
+            city="Cotonou",
+            status=Order.Status.RECEIVED,
+            total_xof=10000,
+        )
+        OrderItemFactory(order=order1, product=product, quantity=2, unit_price_xof=5000)
+
+        order2 = OrderFactory(
+            customer=customer,
+            full_name="Mme Autre",
+            phone="+2290192222222",
+            email="autre@example.com",
+            address="Rue des Palmiers",
+            city="Porto-Novo",
+            status=Order.Status.RECEIVED,
+            total_xof=5000,
+        )
+        OrderItemFactory(order=order2, product=product, quantity=1, unit_price_xof=5000)
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        activity = response.data["activity"]
+        self.assertIsNotNone(activity)
+        self.assertEqual(len(activity["by_hour"]), 24)
+        self.assertEqual(len(activity["by_weekday"]), 7)
+        self.assertEqual(sum(activity["by_hour"]), 2)
+        self.assertIsNotNone(activity["peak_hour"])
+
+    def test_dashboard_activity_hidden_for_free(self):
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["activity"])
 
 
 class SellerSubscriptionRelaunchTests(APITestCase):

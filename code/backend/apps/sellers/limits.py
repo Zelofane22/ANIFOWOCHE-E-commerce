@@ -16,6 +16,8 @@ Règles métier (cf. docs/.../04-modele-economique.md) :
 
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 
 PLAN_LIMITS = {
@@ -73,6 +75,24 @@ PLAN_FEATURES = {
     ),
 }
 
+PLAN_ORDER = ("FREE", "STARTER", "PRO", "BUSINESS")
+PLAN_LABELS = {"FREE": "Gratuit", "STARTER": "Starter", "PRO": "Pro", "BUSINESS": "Business"}
+FEATURE_LABELS = {
+    "essential_stats": "Statistiques essentielles",
+    "advanced_stats": "Statistiques avancées",
+    "exports": "Export des statistiques",
+    "team": "Gestion d'équipe",
+    "promotions": "Outils promotionnels",
+    "client_relaunch": "Relances clients",
+    "custom_domain": "Domaine personnalisé",
+    "online_payment": "Paiement en ligne",
+    "multi_store": "Multi-boutiques",
+    "priority_support": "Support prioritaire",
+    "seo_listing": "Référencement SEO",
+    "delivery_service": "Service de livraison",
+    "marketplace_orders": "Commandes marketplace",
+}
+
 
 def plan_limits(seller):
     """Limites du palier du vendeur (fallback FREE si valeur inconnue)."""
@@ -107,6 +127,39 @@ def has_feature(seller, feature):
     if _is_main_store(seller):
         return True
     return feature in plan_features(seller)
+
+
+def required_plan_for(feature):
+    """Plan le moins élevé incluant la feature (None si inconnue)."""
+    for code in PLAN_ORDER:
+        if feature in PLAN_FEATURES[code]:
+            return code
+    return None
+
+
+class FeatureNotIncluded(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_code = "feature_not_included"
+
+    def __init__(self, seller, feature):
+        required = required_plan_for(feature)
+        label = FEATURE_LABELS.get(feature, feature)
+        required_label = PLAN_LABELS.get(required, required)
+        super().__init__(
+            detail={
+                "detail": f"{label} : fonctionnalité non incluse dans votre offre. Passez à l'offre {required_label} ou supérieure.",
+                "code": "feature_not_included",
+                "feature": feature,
+                "required_plan": required,
+                "current_plan": seller.plan,
+            }
+        )
+
+
+def require_feature(seller, feature):
+    """Lève FeatureNotIncluded (403) si le vendeur n'a pas la feature."""
+    if not has_feature(seller, feature):
+        raise FeatureNotIncluded(seller, feature)
 
 
 def plan_feature_flags(seller):

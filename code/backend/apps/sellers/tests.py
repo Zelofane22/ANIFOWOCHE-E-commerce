@@ -2,7 +2,7 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APITestCase
 
 from apps.core.factories import (
@@ -19,6 +19,7 @@ from apps.orders.models import Order, OrderItem
 
 from apps.products.models import Category, Product
 
+from .limits import required_plan_for
 from .models import SellerProfile, Shop
 
 User = get_user_model()
@@ -954,6 +955,21 @@ class SellerReportExportTests(APITestCase):
     def test_export_forbidden_on_free_plan(self):
         response = self.client.get("/api/seller/reports/export/")
         self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["code"], "feature_not_included")
+        self.assertEqual(response.data["feature"], "exports")
+        self.assertEqual(response.data["required_plan"], "PRO")
+        self.assertEqual(response.data["current_plan"], "FREE")
+        self.assertIn("Pro", response.data["detail"])
+
+    def test_export_forbidden_on_starter_plan(self):
+        self.seller.plan = SellerProfile.Plan.STARTER
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/reports/export/")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["code"], "feature_not_included")
+        self.assertEqual(response.data["current_plan"], "STARTER")
 
     def test_export_returns_csv_for_pro_plan(self):
         self.seller.plan = SellerProfile.Plan.PRO
@@ -974,3 +990,11 @@ class SellerReportExportTests(APITestCase):
         response = self.client.get("/api/seller/reports/export/")
 
         self.assertEqual(response.status_code, 200)
+
+
+class RequiredPlanForTests(SimpleTestCase):
+    def test_required_plan_for(self):
+        self.assertEqual(required_plan_for("exports"), "PRO")
+        self.assertEqual(required_plan_for("online_payment"), "STARTER")
+        self.assertEqual(required_plan_for("multi_store"), "BUSINESS")
+        self.assertIsNone(required_plan_for("inconnue"))
