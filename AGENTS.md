@@ -15,6 +15,7 @@ Après toute tâche sur un worktree :
 - Toute modification du projet doit être fais dans un worktree temporaire puis commit sur la branche local develop avec un message clair
 - Pousser vers `develop` : `git push origin HEAD:develop`
 - Ne pas laisser de changements du worktree utilisé non-commités
+- Supprimer le worktree temporaire
 
 ## Environnement d'exécution
 
