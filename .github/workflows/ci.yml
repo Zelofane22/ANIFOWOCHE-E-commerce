@@ -118,7 +118,7 @@ jobs:
           args: >
             -Dsonar.projectKey=zelofane_under-contruction
             -Dsonar.organization=zelofane
-            -Dsonar.projectName=ANIFOWOCHE E-commerce
+            -Dsonar.projectName="ANIFOWOCHE E-commerce"
             -Dsonar.projectVersion=1.0
             -Dsonar.sources=code/backend
             -Dsonar.inclusions=code/backend/**/*.py
@@ -135,7 +135,7 @@ jobs:
           args: >
             -Dsonar.projectKey=zelofane_under-contruction
             -Dsonar.organization=zelofane
-            -Dsonar.projectName=ANIFOWOCHE E-commerce Frontend
+            -Dsonar.projectName="ANIFOWOCHE E-commerce Frontend"
             -Dsonar.projectVersion=1.0
             -Dsonar.sources=code/frontend/src
             -Dsonar.inclusions=code/frontend/src/**/*.ts,code/frontend/src/**/*.tsx,code/frontend/src/**/*.js,code/frontend/src/**/*.jsx
