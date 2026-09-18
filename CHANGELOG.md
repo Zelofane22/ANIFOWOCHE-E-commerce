@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.13.2](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.13.1...v2.13.2) (2026-09-18)
+
+
+### Bug Fixes
+
+* **frontend:** corrige les vulnerabilites detectees par npm audit ([3c26bfa](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/3c26bfa3c7326ee9219acd89a3c29eea7ea951d3))
+* **frontend:** filtre les deprecations ReportingObserver dans Sentry ([dd274f6](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/dd274f65f54ba864cf3d3d1025406121e4d26c44))
+* **frontend:** filtre les deprecations ReportingObserver dans Sentry ([d570cf6](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/d570cf6cd1c31a924ee18c9a426660678c27701a))
+
 ## [2.13.1](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.13.0...v2.13.1) (2026-09-01)
 
 
