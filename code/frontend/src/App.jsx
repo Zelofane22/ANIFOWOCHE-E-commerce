@@ -18,6 +18,8 @@ const hostname = window.location.hostname;
 const isSellerSubdomain = hostname === "seller.anifowoche.com" || hostname === "seller.localhost" || hostname.startsWith("seller.") || hostname.startsWith("seller.");
 
 const Account = lazy(() => import("./pages/Account.jsx"));
+const AppearanceAdmin = lazy(() => import("./pages/AppearanceAdmin.jsx"));
+const AppearancePreview = lazy(() => import("./pages/AppearancePreview.jsx"));
 const Addresses = lazy(() => import("./pages/Addresses.jsx"));
 const Cart = lazy(() => import("./pages/Cart.jsx"));
 const Catalogue = lazy(() => import("./pages/Catalogue.jsx"));
@@ -153,6 +155,8 @@ export default function App() {
                     <Route path="/compte/commandes/:id" element={<OrderDetail />} />
                     <Route path="/compte/adresses" element={<Addresses />} />
                     <Route path="/compte/favoris" element={<Wishlist />} />
+                    <Route path="/admin/apparence" element={<AppearanceAdmin />} />
+                    <Route path="/admin/apparence/preview/:id" element={<AppearancePreview />} />
                     <Route path="/shop/:slug" element={<ShopRedirect />} />
                   </Routes>
                 </Suspense>

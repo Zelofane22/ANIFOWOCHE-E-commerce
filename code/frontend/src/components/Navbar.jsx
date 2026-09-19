@@ -87,6 +87,11 @@ export default function Navbar() {
               Admin
             </a>
           )}
+          {user?.is_superuser && (
+            <Link to="/admin/apparence" className="hidden text-sm font-medium text-white/85 transition hover:text-brand md:block">
+              Apparence
+            </Link>
+          )}
 
           {/* Compte : Bonjour, {nom} / Compte et listes */}
           <Link
@@ -249,6 +254,15 @@ export default function Navbar() {
               <a href={ADMIN_URL} className="border-b border-white/10 py-3 text-white transition hover:text-brand">
                 Admin
               </a>
+            )}
+            {user?.is_superuser && (
+              <Link
+                to="/admin/apparence"
+                onClick={() => setMenuOpen(false)}
+                className="border-b border-white/10 py-3 text-white transition hover:text-brand"
+              >
+                Apparence
+              </Link>
             )}
           </div>
         </div>
