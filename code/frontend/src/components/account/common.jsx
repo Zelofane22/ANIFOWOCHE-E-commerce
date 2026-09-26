@@ -32,7 +32,10 @@ export function ReturnStatusBadge({ status }) {
 
 // Garde d'authentification pour les sous-pages de l'espace client : renvoie
 // vers /compte (formulaire de connexion) en conservant la page demandée.
-export function RequireAccount({ children }) {
+export function RequireAccount({
+  children,
+  message = "Connectez-vous pour accéder à votre espace client.",
+}) {
   const { loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
@@ -45,7 +48,7 @@ export function RequireAccount({ children }) {
         state={{
           from: location.pathname,
           authMode: "login",
-          authMessage: "Connectez-vous pour accéder à votre espace client.",
+          authMessage: message,
         }}
       />
     );

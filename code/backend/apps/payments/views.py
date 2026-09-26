@@ -48,11 +48,12 @@ class InitiatePaymentView(APIView):
     Pour le paiement à la livraison, seule une ligne Payment en attente est
     créée afin que la commande apparaisse dans le suivi backoffice.
 
-    Limité par un scope de rate limiting dédié (au lieu du seul throttle anon
-    générique) : chaque appel déclenche un appel payant à l'API FedaPay et crée
-    une ligne Payment — un abus serait coûteux, pas juste bruyant."""
+    Requiert un client authentifié (l'achat est réservé aux comptes inscrits).
+    Limité par un scope de rate limiting dédié : chaque appel déclenche un appel
+    payant à l'API FedaPay et crée une ligne Payment — un abus serait coûteux,
+    pas juste bruyant."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "payments"
 

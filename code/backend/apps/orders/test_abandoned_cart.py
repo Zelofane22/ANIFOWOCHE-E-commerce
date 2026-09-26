@@ -245,6 +245,7 @@ class AbandonedCartApiTests(APITestCase):
     def test_order_creation_marks_cart_converted(self, mock_post):
         product = make_product()
         cart = sync_abandoned_cart(email="client@example.com", items=[{"slug": product.slug}])
+        self.client.force_authenticate(user=UserFactory(username="client"))
         response = self.client.post(
             "/api/orders/",
             {

@@ -57,6 +57,7 @@ class PaymentApiTests(APITestCase):
     @mock.patch("apps.payments.services.RETRY_DELAYS", ())
     @mock.patch("apps.payments.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_initiate_payment_handles_provider_failure_gracefully(self, mock_post):
+        self.client.force_authenticate(user=self.owner)
         response = self.client.post(
             "/api/payments/initiate/", {"order_id": self.order.id, "method": "mtn"}, format="json"
         )
@@ -68,6 +69,7 @@ class PaymentApiTests(APITestCase):
         )
 
     def test_initiate_payment_succeeds_with_mocked_provider(self):
+        self.client.force_authenticate(user=self.owner)
         transaction_response = mock.Mock()
         transaction_response.json.return_value = {"v1/transaction": {"id": 42}}
         transaction_response.raise_for_status.return_value = None
@@ -87,6 +89,7 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(response.data["payment_url"], "https://sandbox-pay.fedapay.com/t/42")
 
     def test_initiate_payment_is_rate_limited(self):
+        self.client.force_authenticate(user=self.owner)
         cache.clear()
         transaction_response = mock.Mock()
         transaction_response.json.return_value = {"v1/transaction": {"id": 42}}
@@ -111,6 +114,7 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(statuses[2], 429)
 
     def test_initiate_payment_rejected_when_online_payment_disabled(self):
+        self.client.force_authenticate(user=self.owner)
         PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
         response = self.client.post(
             "/api/payments/initiate/", {"order_id": self.order.id, "method": "mtn"}, format="json"
@@ -119,6 +123,7 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(Payment.objects.count(), 0)
 
     def test_initiate_cash_on_delivery_creates_pending_payment_without_fedapay(self):
+        self.client.force_authenticate(user=self.owner)
         PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
 
         with mock.patch("apps.payments.views.start_fedapay_transaction") as start_transaction:
@@ -138,6 +143,7 @@ class PaymentApiTests(APITestCase):
         self.assertEqual(payment.payment_url, "")
 
     def test_initiate_payment_rejected_when_method_disabled(self):
+        self.client.force_authenticate(user=self.owner)
         PaymentSettings.objects.update_or_create(pk=1, defaults={"card_enabled": False})
         response = self.client.post(
             "/api/payments/initiate/", {"order_id": self.order.id, "method": "card"}, format="json"
@@ -254,6 +260,7 @@ class PaymentApiTests(APITestCase):
 
     @mock.patch("apps.payments.services.RETRY_DELAYS", ())
     def test_initiate_payment_retries_on_transient_network_error(self):
+        self.client.force_authenticate(user=self.owner)
         transaction_response = mock.Mock()
         transaction_response.json.return_value = {"v1/transaction": {"id": 43}}
         transaction_response.raise_for_status.return_value = None

@@ -19,9 +19,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
-        # Création ouverte à tous ; modifications/suppressions réservées au staff ; lecture au client connecté.
+        # La création exige un compte client (inscription obligatoire pour
+        # acheter) ; modifications/suppressions réservées au staff ; lecture au
+        # client connecté.
         if self.action == "create":
-            return [permissions.AllowAny()]
+            return [permissions.IsAuthenticated()]
         if self.action in ("update", "partial_update", "destroy"):
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]

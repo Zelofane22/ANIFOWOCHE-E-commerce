@@ -725,7 +725,8 @@ class SellerPlanLimitsTests(APITestCase):
 
     def test_order_rejected_when_seller_quota_reached(self):
         product = self._create_orders_for_seller(5)
-        self.client.force_authenticate(user=None)
+        customer = UserFactory(username="client")
+        self.client.force_authenticate(user=customer)
 
         response = self.client.post(
             "/api/orders/",

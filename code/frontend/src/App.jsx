@@ -11,6 +11,7 @@ import { SiteConfigProvider } from "./context/SiteConfigContext.jsx";
 import { StoreStatusProvider } from "./context/StoreStatusContext.jsx";
 import MaintenanceBanner from "./components/MaintenanceBanner.jsx";
 import { useAuth } from "./context/useAuth.js";
+import { RequireAccount } from "./components/account/common.jsx";
 import Home from "./pages/Home.jsx";
 import ShopRedirect from "./pages/ShopRedirect.jsx";
 
@@ -148,7 +149,7 @@ export default function App() {
                     <Route path="/catalogue" element={<Catalogue />} />
                     <Route path="/produits/:slug" element={<Product />} />
                     <Route path="/panier" element={<Cart />} />
-                    <Route path="/commande" element={<Checkout />} />
+                    <Route path="/commande" element={<RequireAccount message="Connectez-vous pour passer commande."><Checkout /></RequireAccount>} />
                     <Route path="/commande/confirmation" element={<OrderConfirmation />} />
                     <Route path="/compte" element={<Account />} />
                     <Route path="/compte/commandes" element={<Orders />} />
