@@ -24,7 +24,6 @@ ANIFOWOCHE digitalise un commerce physique de tissus et vêtements pour hommes a
 ## Contraintes
 
 - Développeur solo en alternance ingénierie de production
-- Capacité : 7 heures/semaine (principalement le weekend)
 - Budget hébergement MVP : viser 0 € côté frontend (Vercel Hobby) et limiter le coût Render au strict nécessaire pour backend + PostgreSQL
 - Phase 1 : web uniquement — application mobile React Native en phase 3
 
