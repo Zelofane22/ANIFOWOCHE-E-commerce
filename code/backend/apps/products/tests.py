@@ -67,6 +67,13 @@ class PublicProductVisibilityTests(APITestCase):
         slugs = [item["slug"] for item in response.data["results"]]
         self.assertNotIn("produit-gratuit", slugs)
 
+    def test_free_seller_product_accessible_by_direct_slug(self):
+        # L'accès direct par slug reste ouvert, même pour un vendeur FREE
+        # (ex. depuis sa boutique publique), bien qu'il soit absent du catalogue.
+        response = self.client.get("/api/products/produit-gratuit/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["slug"], "produit-gratuit")
+
     def test_paid_seller_product_visible_in_public_list(self):
         response = self.client.get("/api/products/")
         slugs = [item["slug"] for item in response.data["results"]]

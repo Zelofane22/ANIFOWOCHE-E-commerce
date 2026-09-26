@@ -93,12 +93,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     # Produits actifs de la vitrine principale, avec catégorie/vendeur, images actives,
     # note moyenne, nombre d'avis approuvés et remise promotionnelle active.
     queryset = (
-        Product.objects.filter(
-            is_active=True,
-        )
-        # Catalogue principal : produits de l'entreprise et vendeurs PAID visibles ;
-        # les vendeurs FREE tiers n'y apparaissent jamais.
-        .filter(main_store_catalog_q())
+        Product.objects.filter(is_active=True)
         .select_related("category", "seller")
         .prefetch_related(
             Prefetch(
@@ -121,6 +116,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     filterset_class = ProductFilter
     search_fields = ["name", "description"]
     ordering_fields = ["price_xof", "created_at"]
+
+    def get_queryset(self):
+        # La liste/catalogue n'expose que les produits de la vitrine principale
+        # (entreprise + vendeurs payants visibles) ; l'accès direct à un produit
+        # par slug — ex. depuis la boutique d'un vendeur FREE — reste ouvert.
+        qs = super().get_queryset()
+        if self.action != "retrieve":
+            qs = qs.filter(main_store_catalog_q())
+        return qs
 
 
 class SellerProductViewSet(viewsets.ModelViewSet):
