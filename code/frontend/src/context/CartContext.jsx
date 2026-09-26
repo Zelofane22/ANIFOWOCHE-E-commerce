@@ -53,6 +53,7 @@ export function CartProvider({ children }) {
         quantity,
         deliveryMethod,
         sellerAddress: product.sellerAddress || "",
+        sellerAllowsOnlinePayment: product.seller_allows_online_payment ?? true,
       };
       const key = itemKey(newItem);
       const existing = current.find((item) => itemKey(item) === key);
@@ -137,6 +138,7 @@ export function CartProvider({ children }) {
           selectedOptions: item.selected_options || [],
           quantity: item.quantity,
           deliveryMethod: item.delivery_method || "delivery",
+          sellerAllowsOnlinePayment: item.seller_allows_online_payment ?? true,
         }));
         return cartsEqual(next, current) ? current : next;
       });

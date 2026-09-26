@@ -128,8 +128,14 @@ export default function Checkout() {
       .catch(() => setStoreStatus(DEFAULT_STORE_STATUS));
   }, [authLoading]);
 
+  // Le paiement en ligne (MTN/Moov/carte) est réservé aux vendeurs Business :
+  // si le panier contient un article d'un vendeur STARTER/PRO/FREE, on replie
+  // sur le paiement à la livraison.
+  const allowOnlinePayment = items.every((item) => item.sellerAllowsOnlinePayment !== false);
+
   const isMethodDisabled = (method) => {
     if (!isAuthenticated && method.type !== "offline") return true;
+    if (method.type === "online" && !allowOnlinePayment) return true;
     return isPaymentMethodDisabled(method, storeStatus);
   };
 
@@ -347,6 +353,7 @@ export default function Checkout() {
             <PaymentMethodSelector
               isAuthenticated={isAuthenticated}
               storeStatus={storeStatus}
+              allowOnlinePayment={allowOnlinePayment}
               setPaymentMethod={setPaymentMethod}
               effectivePaymentMethodValue={effectivePaymentMethodValue}
               isSelectedMethodOffline={isSelectedMethodOffline}

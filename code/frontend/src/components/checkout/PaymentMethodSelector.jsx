@@ -3,6 +3,7 @@ import { PAYMENT_METHODS } from "../../constants/payments.js";
 export default function PaymentMethodSelector({
   isAuthenticated,
   storeStatus,
+  allowOnlinePayment = true,
   setPaymentMethod,
   effectivePaymentMethodValue,
   isSelectedMethodOffline,
@@ -13,6 +14,7 @@ export default function PaymentMethodSelector({
 }) {
   const isMethodDisabled = (method) => {
     if (!isAuthenticated && method.type !== "offline") return true;
+    if (method.type === "online" && !allowOnlinePayment) return true;
     if (!method || method.type === "offline") return false;
     const paymentMethodsStatus = storeStatus?.payment_methods ?? {};
     if (storeStatus?.online_payment_enabled === false) return true;
@@ -78,6 +80,23 @@ export default function PaymentMethodSelector({
           );
         })}
       </div>
+
+      {isAuthenticated && !allowOnlinePayment && (
+        <div className="flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div>
+            <p className="font-semibold">Paiement en ligne indisponible pour ce panier</p>
+            <p className="mt-1 text-xs">
+              Certains articles proviennent de vendeurs qui ne proposent pas encore le paiement en
+              ligne (réservé aux boutiques Business). Vous pouvez commander et payer à la livraison.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!isAuthenticated && (
         <div className="flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
