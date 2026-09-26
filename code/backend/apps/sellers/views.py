@@ -31,6 +31,7 @@ from apps.users.serializers import UserSerializer
 from .limits import has_feature, orders_quota_reached, require_feature
 from .models import SellerProfile, Shop
 from .serializers import (
+    PublicShopListSerializer,
     PublicShopSerializer,
     SellerOrderStatusSerializer,
     SellerProfileSerializer,
@@ -430,6 +431,18 @@ class SellerOrderViewSet(viewsets.ModelViewSet):
         if blocked:
             return blocked
         return super().update(request, *args, **kwargs)
+
+
+class PublicShopListView(generics.ListAPIView):
+    """Annuaire public des vendeurs : boutiques publiées, triées par nom."""
+
+    serializer_class = PublicShopListSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = (
+        Shop.objects.filter(is_published=True)
+        .annotate(product_count=Count("products", filter=Q(products__is_active=True)))
+        .order_by("name")
+    )
 
 
 class PublicShopView(generics.RetrieveAPIView):

@@ -142,6 +142,18 @@ def is_free(seller):
     return not _is_main_store(seller)
 
 
+def can_accept_online_payment(seller):
+    """True si le vendeur peut recevoir un paiement en ligne (MTN/Moov/carte).
+
+    Le paiement en ligne est réservé aux vendeurs BUSINESS (ou à la boutique
+    entreprise officielle, toujours exempte). Les vendeurs STARTER/PRO/FREE
+    basculent en paiement à la livraison uniquement.
+    """
+    if _is_main_store(seller):
+        return True
+    return seller.plan == seller.Plan.BUSINESS
+
+
 def has_feature(seller, feature):
     """True si le palier donne accès à la fonctionnalité (boutique entreprise
     exempte : toutes les fonctionnalités lui sont accordées)."""

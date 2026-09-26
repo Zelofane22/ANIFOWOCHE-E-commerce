@@ -80,7 +80,7 @@ class SellerApiTests(APITestCase):
 
         response = self.client.get("/api/seller/profile/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["shop"]["public_path"], "/shop/afi-wax")
+        self.assertEqual(response.data["shop"]["public_path"], "/sellers/afi-wax")
 
         patch_response = self.client.patch(
             "/api/seller/profile/",

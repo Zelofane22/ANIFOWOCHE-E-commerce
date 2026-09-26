@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.sellers.models import Shop
-from apps.sellers.limits import can_create_product, plan_limits
+from apps.sellers.limits import can_accept_online_payment, can_create_product, plan_limits
 
 from .models import (
     Category,
@@ -136,6 +136,7 @@ class ProductSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(
         source="seller.display_name", read_only=True, allow_null=True
     )
+    seller_allows_online_payment = serializers.SerializerMethodField()
     shop_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
@@ -156,6 +157,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "id",
             "seller_id",
             "seller_name",
+            "seller_allows_online_payment",
             "shop_id",
             "name",
             "slug",
@@ -209,6 +211,14 @@ class ProductSerializer(serializers.ModelSerializer):
             parts.insert(0, current.name)
             current = current.parent
         return " > ".join(parts)
+
+    def get_seller_allows_online_payment(self, product):
+        # Le paiement en ligne est réservé aux vendeurs BUSINESS (ou boutique
+        # officielle). Un produit sans vendeur (boutique entreprise) l'accepte.
+        seller = product.seller
+        if seller is None:
+            return True
+        return can_accept_online_payment(seller)
 
 
 class SellerProductSerializer(ProductSerializer):

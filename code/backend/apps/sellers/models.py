@@ -56,8 +56,9 @@ class Shop(models.Model):
 
     @property
     def public_path(self):
-        # Chemin d'accès public de la boutique sur le frontend.
-        return f"/shop/{self.slug}"
+        # Chemin d'accès public de la boutique sur le frontend (vitrine vendeur
+        # hébergée sur le domaine principal anifowoche.com).
+        return f"/sellers/{self.slug}"
 
     def save(self, *args, **kwargs):
         # Génère automatiquement un slug unique à partir du nom si absent.

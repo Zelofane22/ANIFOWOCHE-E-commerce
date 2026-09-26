@@ -16,7 +16,7 @@ from rest_framework import status
 
 from apps.core.maintenance import block_if_maintenance
 from apps.promotions.models import Promotion
-from apps.sellers.limits import can_create_product, main_store_catalog_q, plan_limits
+from apps.sellers.limits import can_accept_online_payment, can_create_product, main_store_catalog_q, plan_limits
 from apps.sellers.models import SellerProfile
 
 from .models import Category, Option, OptionGroup, Product, ProductImage
@@ -463,7 +463,7 @@ class ValidateCartView(views.APIView):
             is_active=True,
         ).filter(
             main_store_catalog_q()
-        ).select_related("category").prefetch_related("option_groups__options")
+        ).select_related("category", "seller").prefetch_related("option_groups__options")
 
         by_slug = {p.slug: p for p in products}
 
@@ -489,6 +489,9 @@ class ValidateCartView(views.APIView):
                 "color_name": item.get("color_name", ""),
                 "color_hex": item.get("color_hex", ""),
                 "selected_options": item.get("selected_options", []),
+                "seller_allows_online_payment": (
+                    product.seller is None or can_accept_online_payment(product.seller)
+                ),
             })
 
         return Response({"valid_items": valid_items, "invalid_slugs": invalid_slugs})

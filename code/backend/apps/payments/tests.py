@@ -18,6 +18,8 @@ from apps.core.factories import (
     OrderItemFactory,
     PaymentFactory,
     ProductFactory,
+    SellerProfileFactory,
+    ShopFactory,
     SuperUserFactory,
     UserFactory,
 )
@@ -149,6 +151,42 @@ class PaymentApiTests(APITestCase):
             "/api/payments/initiate/", {"order_id": self.order.id, "method": "card"}, format="json"
         )
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_initiate_online_payment_rejected_for_non_business_seller(self):
+        # Un vendeur PRO ne peut pas recevoir de paiement en ligne : repli COD.
+        seller = SellerProfileFactory(user=self.other_user, plan="PRO")
+        ShopFactory(seller=seller, name="Boutique Pro")
+        product = ProductFactory(category=self.category, seller=seller, price_xof=1000, stock=5)
+        order = OrderFactory(customer=self.owner, full_name="Client", phone="+2290190000000", total_xof=1000)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=1000)
+
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(
+            "/api/payments/initiate/", {"order_id": order.id, "method": "mtn"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Business", str(response.data))
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_initiate_online_payment_allowed_for_business_seller(self):
+        # Un vendeur BUSINESS peut recevoir un paiement en ligne.
+        seller = SellerProfileFactory(user=self.other_user, plan="BUSINESS")
+        ShopFactory(seller=seller, name="Boutique Business")
+        product = ProductFactory(category=self.category, seller=seller, price_xof=1000, stock=5)
+        order = OrderFactory(customer=self.owner, full_name="Client", phone="+2290190000000", total_xof=1000)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=1000)
+        PaymentSettings.objects.update_or_create(pk=1, defaults={"online_payment_enabled": False})
+
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(
+            "/api/payments/initiate/", {"order_id": order.id, "method": "mtn"}, format="json"
+        )
+
+        # Passe le gating Business, puis est bloqué par la bascule admin (503),
+        # ce qui prouve que la règle « Business uniquement » ne l'a pas rejeté.
+        self.assertEqual(response.status_code, 503)
         self.assertEqual(Payment.objects.count(), 0)
 
     @override_settings(FEDAPAY_WEBHOOK_SECRET="test_webhook_secret")

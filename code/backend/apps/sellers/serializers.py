@@ -60,8 +60,9 @@ class ShopSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "public_path", "public_url"]
 
     def get_public_url(self, shop):
-        # URL publique complète de la boutique (base frontend + chemin).
-        return f"{seller_frontend_base_url()}{shop.public_path}"
+        # URL publique complète de la boutique (base frontend principale + chemin).
+        base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        return f"{base}{shop.public_path}"
 
     def validate_slug(self, value):
         # Slug normalisé (minuscules, sans espaces) et unicité hors instance courante.
@@ -249,6 +250,16 @@ class SellerDashboardSerializer(serializers.Serializer):
     """Sérialise la réponse du tableau de bord vendeur."""
     seller = SellerProfileSerializer()
     metrics = serializers.DictField()
+
+
+class PublicShopListSerializer(serializers.ModelSerializer):
+    """Sérialise une boutique pour l'annuaire public des vendeurs."""
+    public_path = serializers.CharField(read_only=True)
+    product_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = Shop
+        fields = ["id", "name", "slug", "city", "description", "public_path", "product_count"]
 
 
 class PublicShopSerializer(serializers.ModelSerializer):
