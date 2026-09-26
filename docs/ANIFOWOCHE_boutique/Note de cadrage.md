@@ -27,3 +27,39 @@ ANIFOWOCHE digitalise un commerce physique de tissus et vêtements pour hommes a
 - Capacité : 7 heures/semaine (principalement le weekend)
 - Budget hébergement MVP : viser 0 € côté frontend (Vercel Hobby) et limiter le coût Render au strict nécessaire pour backend + PostgreSQL
 - Phase 1 : web uniquement — application mobile React Native en phase 3
+
+## Exigences fonctionnelles
+
+Ces exigences décrivent le périmètre cible de la plateforme (achat et vente).
+
+### Comptes et accès
+
+1. Inscription obligatoire pour acheter ou vendre
+2. Consultation libre du catalogue
+
+### Catalogue et boutiques
+
+3. Gestion des boutiques et articles
+4. Photos, descriptions, prix et frais de port
+5. Validation des articles avant leur publication
+
+### Paiement
+
+6. Paiement directement sur le site par carte bancaire
+7. Interdiction du partage d'informations personnelles permettant un paiement direct entre particuliers
+
+### Relation et réputation
+
+8. Chat entre acheteurs et vendeurs
+9. Notation des utilisateurs
+
+### Personnalisation et notifications
+
+10. Recommandations personnalisées
+11. Notifications concernant les nouveaux articles et les changements de prix
+12. Envoi possible des notifications par e-mail
+
+### Sécurité et fraude
+
+13. Gestion de la fraude et des anomalies
+14. Possibilité d'intégrer un outil externe de détection de fraude
