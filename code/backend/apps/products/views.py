@@ -94,7 +94,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     # note moyenne, nombre d'avis approuvés et remise promotionnelle active.
     queryset = (
         Product.objects.filter(is_active=True)
-        .select_related("category", "seller")
+        .select_related("category", "seller", "shop")
         .prefetch_related(
             Prefetch(
                 "images",
@@ -154,7 +154,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
         # Produits du vendeur uniquement, avec leurs données liées, triés par mise à jour.
         return (
             Product.objects.filter(seller=self._seller())
-        .select_related("category", "seller")
+        .select_related("category", "seller", "shop")
             .prefetch_related(
                 Prefetch(
                     "images",
@@ -467,7 +467,7 @@ class ValidateCartView(views.APIView):
             is_active=True,
         ).filter(
             main_store_catalog_q()
-        ).select_related("category", "seller").prefetch_related("option_groups__options")
+        ).select_related("category", "seller", "shop").prefetch_related("option_groups__options")
 
         by_slug = {p.slug: p for p in products}
 
@@ -493,9 +493,11 @@ class ValidateCartView(views.APIView):
                 "color_name": item.get("color_name", ""),
                 "color_hex": item.get("color_hex", ""),
                 "selected_options": item.get("selected_options", []),
+                "seller_name": product.seller.display_name if product.seller else "",
                 "seller_allows_online_payment": (
                     product.seller is None or can_accept_online_payment(product.seller)
                 ),
+                "seller_whatsapp_phone": product.seller_whatsapp_phone,
             })
 
         return Response({"valid_items": valid_items, "invalid_slugs": invalid_slugs})

@@ -570,7 +570,7 @@ class PublicShopProductDetailView(generics.RetrieveAPIView):
         return Product.objects.filter(
             Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
             is_active=True,
-        ).select_related("category", "seller").prefetch_related(
+        ).select_related("category", "seller", "shop").prefetch_related(
             "images", "option_groups__options"
         )
 

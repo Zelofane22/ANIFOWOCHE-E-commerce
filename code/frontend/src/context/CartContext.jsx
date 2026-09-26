@@ -53,7 +53,9 @@ export function CartProvider({ children }) {
         quantity,
         deliveryMethod,
         sellerAddress: product.sellerAddress || "",
+        sellerName: product.seller_name || "",
         sellerAllowsOnlinePayment: product.seller_allows_online_payment ?? true,
+        sellerWhatsappPhone: product.seller_whatsapp_phone || "",
       };
       const key = itemKey(newItem);
       const existing = current.find((item) => itemKey(item) === key);
@@ -138,7 +140,9 @@ export function CartProvider({ children }) {
           selectedOptions: item.selected_options || [],
           quantity: item.quantity,
           deliveryMethod: item.delivery_method || "delivery",
+          sellerName: item.seller_name || "",
           sellerAllowsOnlinePayment: item.seller_allows_online_payment ?? true,
+          sellerWhatsappPhone: item.seller_whatsapp_phone || "",
         }));
         return cartsEqual(next, current) ? current : next;
       });

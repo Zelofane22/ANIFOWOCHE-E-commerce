@@ -720,3 +720,61 @@ class ProductCategoryLevelValidationTests(APITestCase):
         )
         self.assertEqual(response.status_code, 201)
         self.assertTrue(response.data["made_to_order"])
+
+
+class SellerWhatsappContactTests(APITestCase):
+    """Le numéro WhatsApp du vendeur non Business est exposé pour le contact direct
+    hors paiement en ligne (contact client → vendeur via WhatsApp)."""
+
+    def setUp(self):
+        self.category = CategoryFactory(name="Tissus", slug="tissus-whatsapp")
+        self.pro_user = UserFactory(username="wa_vendeur")
+        self.pro_seller = SellerProfileFactory(
+            user=self.pro_user, display_name="Wa Seller", phone="+2290190000010", plan="PRO"
+        )
+        self.shop = ShopFactory(
+            seller=self.pro_seller,
+            name="Wa Boutique",
+            slug="wa-boutique",
+            whatsapp_phone="+2290190000011",
+        )
+        self.product = ProductFactory(
+            seller=self.pro_seller,
+            shop=self.shop,
+            category=self.category,
+            name="Produit WhatsApp",
+            slug="produit-whatsapp",
+            price_xof=4000,
+            stock=3,
+        )
+
+    def test_product_detail_exposes_seller_whatsapp_phone(self):
+        # Le numéro public du vendeur (boutique) est exposé, et le paiement en
+        # ligne est refusé (vendeur PRO, non Business).
+        response = self.client.get("/api/products/produit-whatsapp/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["seller_whatsapp_phone"], "+2290190000011")
+        self.assertFalse(response.data["seller_allows_online_payment"])
+
+    def test_validate_cart_exposes_seller_whatsapp_phone_and_name(self):
+        response = self.client.post(
+            "/api/products/validate-cart/",
+            {"items": [{"slug": "produit-whatsapp", "quantity": 2}]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        valid = response.data["valid_items"]
+        self.assertEqual(len(valid), 1)
+        self.assertEqual(valid[0]["seller_name"], "Wa Seller")
+        self.assertEqual(valid[0]["seller_whatsapp_phone"], "+2290190000011")
+        self.assertFalse(valid[0]["seller_allows_online_payment"])
+
+    def test_company_product_has_empty_seller_whatsapp_phone(self):
+        # Un produit de la boutique entreprise (sans vendeur) n'expose aucun
+        # numéro WhatsApp.
+        company = ProductFactory(
+            category=self.category, name="Produit société", slug="produit-societe", stock=5
+        )
+        response = self.client.get(f"/api/products/{company.slug}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["seller_whatsapp_phone"], "")

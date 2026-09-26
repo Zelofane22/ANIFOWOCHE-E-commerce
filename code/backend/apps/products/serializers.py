@@ -137,6 +137,7 @@ class ProductSerializer(serializers.ModelSerializer):
         source="seller.display_name", read_only=True, allow_null=True
     )
     seller_allows_online_payment = serializers.SerializerMethodField()
+    seller_whatsapp_phone = serializers.CharField(read_only=True)
     shop_id = serializers.IntegerField(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True
@@ -158,6 +159,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "seller_id",
             "seller_name",
             "seller_allows_online_payment",
+            "seller_whatsapp_phone",
             "shop_id",
             "name",
             "slug",

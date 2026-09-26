@@ -279,7 +279,7 @@ class PublicShopSerializer(serializers.ModelSerializer):
                 Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
                 is_active=True,
             )
-            .select_related("category")
+            .select_related("category", "seller", "shop")
             .prefetch_related(
                 Prefetch(
                     "images",

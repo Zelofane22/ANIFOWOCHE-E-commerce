@@ -11,6 +11,7 @@ import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { openFedapayCheckout } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
+import { buildWhatsappUrl } from "../utils/whatsappPhone.js";
 import Seo from "../components/Seo.jsx";
 import CheckoutSteps from "../components/checkout/CheckoutSteps.jsx";
 import ShippingForm from "../components/checkout/ShippingForm.jsx";
@@ -132,6 +133,31 @@ export default function Checkout() {
   // si le panier contient un article d'un vendeur STARTER/PRO/FREE, on replie
   // sur le paiement à la livraison.
   const allowOnlinePayment = items.every((item) => item.sellerAllowsOnlinePayment !== false);
+
+  // Vendeurs non Business (FREE/STARTER/PRO) : le paiement en ligne leur est
+  // indisponible, on propose à côté du paiement à la livraison un contact
+  // direct via WhatsApp avec un message de commande pré-rempli.
+  const whatsappSellers = Object.values(
+    items
+      .filter((item) => item.sellerAllowsOnlinePayment === false && item.sellerWhatsappPhone)
+      .reduce((acc, item) => {
+        const phone = item.sellerWhatsappPhone;
+        if (!acc[phone]) acc[phone] = { name: item.sellerName || "vendeur", phone, items: [] };
+        acc[phone].items.push(item);
+        return acc;
+      }, {})
+  ).map((seller) => {
+    const lines = seller.items.map((item) => `• ${item.name} × ${item.quantity}`);
+    const message = [
+      `Bonjour ${seller.name}, je souhaite commander :`,
+      ...lines,
+      "",
+      `Nom : ${fullName.trim()}`,
+      "Ville : Cotonou",
+      "Merci.",
+    ].join("\n");
+    return { name: seller.name, url: buildWhatsappUrl(seller.phone, message) };
+  });
 
   const isMethodDisabled = (method) => {
     if (!isAuthenticated && method.type !== "offline") return true;
@@ -361,6 +387,7 @@ export default function Checkout() {
               onBack={() => setStep(1)}
               canPay={canPay}
               getSubmitLabel={getSubmitLabel}
+              whatsappSellers={whatsappSellers}
             />
           )}
         </div>
