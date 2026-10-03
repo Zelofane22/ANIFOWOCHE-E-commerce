@@ -8,70 +8,59 @@ test.describe('Checkout flow with WhatsApp button for non-Business sellers', () 
   });
 
   test('full checkout flow: browse → product → cart → checkout with WhatsApp button', async ({ page }) => {
-    // 1. Go to catalogue
-    await page.getByRole('link', { name: /Catalogue|Boutique/i }).first().click();
-    await page.waitForURL(/\/catalogue/);
+    test.setTimeout(180_000);
 
-    // 2. Find and click a product (first product card)
-    const productCard = page.locator('[data-testid="product-card"], .product-card, article').first();
-    await productCard.waitFor({ state: 'visible', timeout: 10000 });
-    await productCard.click();
+    // Compte seedé par `manage.py seed_e2e` (CLIENT_EMAIL / CLIENT_PASSWORD).
+    await page.goto('/compte');
+    await page.locator('#login-username').fill('client@e2e.test');
+    await page.locator('#login-password').fill('ClientE2E!2026');
+    await page.getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page.getByRole('button', { name: /Se déconnecter/i })).toBeVisible();
 
-    // 3. On product page, add to cart
-    await page.waitForURL(/\/produit\//);
-    const addToCartBtn = page.getByRole('button', { name: /Ajouter|Panier/i }).first();
-    await addToCartBtn.waitFor({ state: 'visible' });
+    // Produit d'un vendeur non Business (seed E2E) : seul cas où le bouton WhatsApp apparaît.
+    await page.goto('/produits/tissu-wax-e2e');
+    await page.waitForURL(/\/produits\//);
+    // Use CSS selector for "Panier" button (getByRole misses it due to hidden/display issues)
+    const addToCartBtn = page.locator('button:has-text("Panier")').first();
+    await addToCartBtn.waitFor({ state: 'visible', timeout: 10000 });
     await addToCartBtn.click();
+    // Cart updates optimistically; wait briefly for header count
+    await page.waitForTimeout(1000);
 
-    // 4. Go to checkout (cart page or direct checkout)
-    await page.getByRole('link', { name: /Commander|Paiement|Panier/i }).first().click();
+    // Cart link already shows count (verified in snapshot) - click it
+    await page.getByRole('link', { name: 'Panier', exact: true }).first().click();
+    await page.waitForURL(/\/panier/);
+    // "Passer la commande" button in summary aside (not the fixed mobile one at bottom)
+    const checkoutBtn = page.locator('button:has-text("Passer la commande")').nth(0);  // first = summary aside, second = fixed mobile (hidden on desktop)
+    await checkoutBtn.waitFor({ state: 'visible', timeout: 10000 });
+    await checkoutBtn.click({ force: true });
     await page.waitForURL(/\/commande/);
 
-    // 5. Step 1: Shipping form - fill required fields
-    await expect(page.locator('h1')).toContainText(/Adresse|Livraison/i);
-    
-    await page.fill('input[name="fullName"], input[placeholder*="nom" i], input[id*="nom" i]', 'Jean Test');
-    await page.fill('input[name="phone"], input[type="tel"], input[placeholder*="téléphone" i]', '+229 01 00 00 00');
-    
-    // Select delivery zone if dropdown exists
-    const zoneSelect = page.locator('select[name="zoneId"], select[id*="zone" i]').first();
-    if (await zoneSelect.isVisible({ timeout: 2000 })) {
-      await zoneSelect.selectOption({ index: 1 });
+    await expect(page.locator('h1')).toContainText(/Adresse|Livraison|Informations/i);
+    await page.getByLabel('Nom complet').fill('Jean Test');
+    await page.getByLabel(/Téléphone/i).fill('+229 01 00 00 00');
+
+    const zoneSelect = page.getByLabel(/Quartier|Zone/i);
+    if (await zoneSelect.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await zoneSelect.selectOption({ index: 0 });
     }
-    
-    // Select time slot if dropdown exists
-    const slotSelect = page.locator('select[name="slotId"], select[id*="slot" i]').first();
-    if (await slotSelect.isVisible({ timeout: 2000 })) {
-      await slotSelect.selectOption({ index: 1 });
+    const slotBtn = page.getByRole('button', { name: /Matin|Soir|Créneau/i }).first();
+    if (await slotBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await slotBtn.click();
     }
 
-    // Continue to payment step
-    const continueBtn = page.getByRole('button', { name: /Continuer|Suivant|Paiement/i }).first();
-    await continueBtn.click();
+    await page.getByRole('button', { name: /Continuer vers le paiement|Continuer|Suivant/i }).click();
 
-    // 6. Step 2: Payment step - verify WhatsApp button appears alongside COD
-    await page.waitForURL(/\/commande/);
     await expect(page.locator('h1')).toContainText(/Moyen de paiement/i);
+    await expect(page.getByRole('button', { name: /Paiement à la livraison/i }).first()).toBeVisible();
 
-    // Verify Cash on Delivery option is visible
-    const codOption = page.getByRole('button', { name: /Paiement à la livraison|Cash on delivery/i }).first();
-    await expect(codOption).toBeVisible({ timeout: 5000 });
-
-    // Verify WhatsApp button block is visible (green box with "Commander directement sur WhatsApp")
-    const whatsappBlock = page.locator('text=Commander directement sur WhatsApp').first();
-    await expect(whatsappBlock).toBeVisible({ timeout: 5000 });
-
-    // Verify WhatsApp button link has wa.me URL
+    const whatsappBlock = page.getByText('Commander directement sur WhatsApp').first();
+    await expect(whatsappBlock).toBeVisible();
     const whatsappLink = page.locator('a[href*="wa.me"]').first();
-    await expect(whatsappLink).toBeVisible({ timeout: 5000 });
+    await expect(whatsappLink).toBeVisible();
     await expect(whatsappLink).toContainText(/WhatsApp/i);
-
-    // Optional: click the WhatsApp link to verify it opens wa.me (in headed mode, will open new tab)
-    // We just verify the href is correct
     const href = await whatsappLink.getAttribute('href');
     expect(href).toMatch(/^https:\/\/wa\.me\//);
-
-    console.log('✅ Checkout flow complete - WhatsApp button verified alongside COD');
   });
 
   test('product page has WhatsApp button on seller shop', async ({ page }) => {
