@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.14.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.13.2...v2.14.0) (2026-10-09)
+
+
+### Features
+
+* **appearance:** add draft/preview/publish/history/restore workflow (US-54) ([eb6be98](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/eb6be98e24e824b07971dc49b0a1789c74b2f3da))
+* **frontend:** sellers directory and shop pages on main domain ([815470d](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/815470d87af75063611c7da1c0a585dbfa99ca4f))
+* **orders,payments:** require authentication to create orders and initiate payments ([e800b62](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/e800b6264258f59d8e7a32127473484fd972bd69))
+* **products,checkout:** add WhatsApp contact option for sellers and update checkout flow ([9f95265](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/9f9526551040f7420fd8febb12a681101a243fdd))
+* **products:** allow direct access to FREE seller products by slug ([cbdb42d](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/cbdb42d6bae1bf00470286f74313e9fb4f0d6502))
+* **sellers,payments:** shops on main domain and Business-only online payment ([a9d2445](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/a9d2445c48ef5e4b91ac145b280b2fed90e7d8bc))
+
+
+### Bug Fixes
+
+* **docs:** correct product limit for free tier and remove redundant line in pricing section ([08652ac](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/08652ac4ed31f3c9ced2b59a38ad00b811bbab03))
+* **e2e:** repair checkout flow test ([66a8c65](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/66a8c65984230e1679bda7c730ee98f18f453403))
+* **e2e:** update error context for checkout flow tests and correct last run status ([1cbd431](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/1cbd431ef6fd7fa876c3c8d319d52db7228f15d0))
+* **frontend:** corrige les vulnérabilités npm audit (undici, brace-expansion, source-map-js) ([7ec0369](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/7ec03699f22dcacae0dbe2107f365026f90126b9))
+* **frontend:** régénère package-lock.json après merge conflict ([63db8e6](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/63db8e64bb066703df23304bb3caf5a96670c382))
+
 ## [2.13.2](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.13.1...v2.13.2) (2026-09-18)
 
 
