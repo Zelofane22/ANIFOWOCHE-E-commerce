@@ -50,8 +50,12 @@ export default function SellersDirectory() {
               to={`/sellers/${shop.slug}`}
               className="group flex flex-col rounded-xl border border-black/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-brand-light text-brand-dark">
-                <StoreIcon size={24} />
+              <div className="mb-3 flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-brand-light text-brand-dark">
+                {shop.image ? (
+                  <img src={shop.image} alt={shop.name} className="h-full w-full object-cover" />
+                ) : (
+                  <StoreIcon size={24} />
+                )}
               </div>
               <h2 className="font-bold text-ink group-hover:text-brand-dark">{shop.name}</h2>
               {shop.city && <p className="mt-0.5 text-xs text-muted">{shop.city}</p>}

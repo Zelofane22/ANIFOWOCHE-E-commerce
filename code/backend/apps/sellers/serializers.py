@@ -39,6 +39,7 @@ class ShopSerializer(serializers.ModelSerializer):
     )
     public_path = serializers.CharField(read_only=True)
     public_url = serializers.SerializerMethodField()
+    image = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Shop
@@ -54,10 +55,11 @@ class ShopSerializer(serializers.ModelSerializer):
             "is_published",
             "public_path",
             "public_url",
+            "image",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at", "public_path", "public_url"]
+        read_only_fields = ["created_at", "updated_at", "public_path", "public_url", "image"]
 
     def get_public_url(self, shop):
         # URL publique complète de la boutique (base frontend principale + chemin).
@@ -96,6 +98,7 @@ class ShopSerializer(serializers.ModelSerializer):
                 suffix += 1
             attrs["slug"] = slug
         return attrs
+
 
 class SellerProfileSerializer(serializers.ModelSerializer):
     """Sérialise le profil vendeur en incluant sa boutique et ses limites de plan."""
@@ -256,21 +259,23 @@ class PublicShopListSerializer(serializers.ModelSerializer):
     """Sérialise une boutique pour l'annuaire public des vendeurs."""
     public_path = serializers.CharField(read_only=True)
     product_count = serializers.IntegerField(read_only=True, default=0)
+    image = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Shop
-        fields = ["id", "name", "slug", "city", "description", "public_path", "product_count"]
+        fields = ["id", "name", "slug", "city", "description", "public_path", "product_count", "image"]
 
 
 class PublicShopSerializer(serializers.ModelSerializer):
     """Sérialise la vitrine publique d'une boutique avec ses produits."""
     delivery_zones = DeliveryZoneSerializer(many=True, read_only=True)
     public_path = serializers.CharField(read_only=True)
+    image = serializers.ImageField(read_only=True)
     products = serializers.SerializerMethodField()
 
     class Meta:
         model = Shop
-        fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "delivery_zones", "public_path", "products"]
+        fields = ["id", "name", "slug", "whatsapp_phone", "city", "description", "delivery_zones", "public_path", "image", "products"]
 
     def get_products(self, shop):
         # Produits actifs de la boutique (ou du vendeur), avec images, triés par mise à jour.

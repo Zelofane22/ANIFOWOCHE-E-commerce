@@ -2,6 +2,9 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from io import BytesIO
+from PIL import Image
 from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APITestCase
 
@@ -999,3 +1002,118 @@ class RequiredPlanForTests(SimpleTestCase):
         self.assertEqual(required_plan_for("online_payment"), "STARTER")
         self.assertEqual(required_plan_for("multi_store"), "BUSINESS")
         self.assertIsNone(required_plan_for("inconnue"))
+
+
+class SellerShopAvatarTests(APITestCase):
+    def _create_image(self, fmt="PNG", size=(100, 100), name="avatar.png"):
+        from io import BytesIO
+        from PIL import Image
+
+        image = Image.new("RGB", size, color=(255, 0, 0))
+        buffer = BytesIO()
+        image.save(buffer, format=fmt)
+        buffer.seek(0)
+        return SimpleUploadedFile(name, buffer.read(), content_type=f"image/{fmt.lower()}")
+
+    def _setup_seller(self):
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+2290190000000")
+        shop = ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+2290190000000")
+        self.client.force_authenticate(user=user)
+        return seller, shop
+
+    def test_upload_avatar_updates_shop_image(self):
+        seller, shop = self._setup_seller()
+        image = self._create_image("PNG", name="avatar.png")
+
+        response = self.client.patch("/api/seller/shop/avatar/", {"image": image}, format="multipart")
+
+        self.assertEqual(response.status_code, 200)
+        shop.refresh_from_db()
+        self.assertTrue(shop.image)
+        self.assertIn("image", response.data)
+        self.assertTrue(bool(response.data["image"]))
+
+    def test_upload_avatar_replaces_previous_file(self):
+        from django.core.files.storage import default_storage
+
+        seller, shop = self._setup_seller()
+        first = self._create_image("PNG", name="first.png")
+        self.client.patch("/api/seller/shop/avatar/", {"image": first}, format="multipart")
+        shop.refresh_from_db()
+        old_name = shop.image.name
+        self.assertTrue(default_storage.exists(old_name))
+
+        second = self._create_image("JPEG", name="second.jpg")
+        response = self.client.patch("/api/seller/shop/avatar/", {"image": second}, format="multipart")
+
+        self.assertEqual(response.status_code, 200)
+        shop.refresh_from_db()
+        self.assertNotEqual(shop.image.name, old_name)
+        self.assertFalse(default_storage.exists(old_name))
+
+    def test_upload_rejects_oversized_image(self):
+        import os
+        seller, shop = self._setup_seller()
+        # Création d'une image PNG de plus de 5 Mo (données aléatoires peu compressibles).
+        image = Image.frombytes("RGB", (2000, 2000), os.urandom(2000 * 2000 * 3))
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        buffer.seek(0)
+        image = SimpleUploadedFile("big.png", buffer.read(), content_type="image/png")
+        self.assertGreater(image.size, 5 * 1024 * 1024)
+
+        response = self.client.patch("/api/seller/shop/avatar/", {"image": image}, format="multipart")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("5 Mo", str(response.data["detail"]))
+
+    def test_upload_rejects_invalid_format(self):
+        seller, shop = self._setup_seller()
+        invalid = SimpleUploadedFile("doc.txt", b"not an image", content_type="text/plain")
+
+        response = self.client.patch("/api/seller/shop/avatar/", {"image": invalid}, format="multipart")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_delete_avatar_removes_image(self):
+        from django.core.files.storage import default_storage
+
+        seller, shop = self._setup_seller()
+        image = self._create_image("PNG", name="avatar.png")
+        self.client.patch("/api/seller/shop/avatar/", {"image": image}, format="multipart")
+        shop.refresh_from_db()
+        self.assertTrue(shop.image)
+        old_name = shop.image.name
+
+        response = self.client.delete("/api/seller/shop/avatar/")
+
+        self.assertEqual(response.status_code, 200)
+        shop.refresh_from_db()
+        self.assertFalse(shop.image)
+        self.assertFalse(default_storage.exists(old_name))
+
+    def test_delete_avatar_without_image_returns_400(self):
+        seller, shop = self._setup_seller()
+
+        response = self.client.delete("/api/seller/shop/avatar/")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_anonymous_cannot_upload_avatar(self):
+        response = self.client.patch("/api/seller/shop/avatar/", {}, format="multipart")
+        self.assertEqual(response.status_code, 401)
+
+    def test_public_shop_includes_avatar(self):
+        user = UserFactory(username="vendeuse")
+        seller = SellerProfileFactory(user=user, display_name="Afi Boutique", phone="+2290190000000")
+        shop = ShopFactory(seller=seller, name="Afi Wax", whatsapp_phone="+2290190000000")
+        image = self._create_image("PNG", name="avatar.png")
+        self.client.force_authenticate(user=user)
+        self.client.patch("/api/seller/shop/avatar/", {"image": image}, format="multipart")
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get("/api/public/shops/afi-wax/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["image"])

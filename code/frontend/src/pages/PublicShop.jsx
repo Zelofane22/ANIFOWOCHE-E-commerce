@@ -56,8 +56,12 @@ export default function PublicShop() {
       <header className="border-b border-black/10 bg-white px-4 py-5">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-light text-brand-dark">
-              <StoreIcon size={22} />
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg bg-brand-light text-brand-dark">
+              {shop.image ? (
+                <img src={shop.image} alt={shop.name} className="h-full w-full object-cover" />
+              ) : (
+                <StoreIcon size={22} />
+              )}
             </div>
             <div>
               <h1 className="text-lg font-bold text-ink">{shop.name}</h1>
