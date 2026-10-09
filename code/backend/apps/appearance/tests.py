@@ -1,6 +1,9 @@
 from django.test import TestCase
+from rest_framework.test import APITestCase
 
-from .models import FooterBlock, HomeSection, MenuItem, SiteTheme
+from apps.core.factories import StaffUserFactory, SuperUserFactory, UserFactory
+
+from .models import AppearanceVersion, FooterBlock, HomeSection, MenuItem, SiteTheme
 
 
 class SiteThemeSingletonTests(TestCase):
@@ -160,3 +163,147 @@ class SiteConfigMenuItemsTests(TestCase):
         titles = [b["title"] for b in response.data["footer_blocks"]]
         self.assertIn("Col1", titles)
         self.assertNotIn("Col2", titles)
+
+
+class AppearanceVersionPermissionTests(APITestCase):
+    """Seuls les superadmins peuvent gérer/versionner l'apparence (US-54)."""
+
+    def setUp(self):
+        self.admin = SuperUserFactory(username="appearance-superadmin")
+        self.staff = StaffUserFactory(username="appearance-staff")
+        self.user = UserFactory(username="appearance-user")
+
+    def test_non_superadmin_denied(self):
+        draft = AppearanceVersion.get_or_create_draft(user=self.admin)
+        cases = [
+            ("get", "/api/site-config/draft/"),
+            ("get", f"/api/site-config/preview/{draft.pk}/"),
+            ("get", "/api/site-config/history/"),
+            ("put", "/api/site-config/draft/"),
+            ("post", "/api/site-config/publish/"),
+            ("post", f"/api/site-config/restore/{draft.pk}/"),
+        ]
+        for method, url in cases:
+            for user in (self.staff, self.user):
+                self.client.force_authenticate(user=user)
+                response = getattr(self.client, method)(url, format="json")
+                self.assertEqual(
+                    response.status_code,
+                    403,
+                    f"{method.upper()} {url} devrait être refusé (403) pour un non-superadmin.",
+                )
+
+    def test_anonymous_denied(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/site-config/draft/")
+        self.assertEqual(response.status_code, 401)
+
+
+class AppearanceVersionWorkflowTests(APITestCase):
+    """Workflow brouillon → prévisualisation → publication → historique/restauration."""
+
+    def setUp(self):
+        self.admin = SuperUserFactory(username="appearance-workflow-admin")
+        self.client.force_authenticate(user=self.admin)
+
+    def _theme(self, **overrides):
+        theme = {
+            "site_name": "Nouveau nom",
+            "trust_arguments": ["Argument A", "Argument B"],
+            "colors": {"brand": "#112233"},
+        }
+        theme.update(overrides)
+        return theme
+
+    def _put_draft(self, **overrides):
+        return self.client.put(
+            "/api/site-config/draft/",
+            {"theme": self._theme(**overrides)},
+            format="json",
+        )
+
+    def _published_site_names(self):
+        return [
+            v.theme.get("site_name")
+            for v in AppearanceVersion.objects.filter(status=AppearanceVersion.Status.PUBLISHED)
+        ]
+
+    def test_modify_draft(self):
+        draft_resp = self.client.get("/api/site-config/draft/")
+        self.assertEqual(draft_resp.status_code, 200)
+
+        put = self._put_draft(site_name="Brouillon modifié")
+        self.assertEqual(put.status_code, 200)
+        self.assertEqual(put.data["theme"]["site_name"], "Brouillon modifié")
+        self.assertEqual(put.data["theme"]["colors"]["brand"], "#112233")
+        # Le brouillon n'impacte pas la config publiée.
+        public = self.client.get("/api/site-config/")
+        self.assertNotEqual(public.data["theme"]["site_name"], "Brouillon modifié")
+
+    def test_preview_does_not_publish(self):
+        draft = AppearanceVersion.get_or_create_draft(user=self.admin)
+        self._put_draft(site_name="Aperçu")
+
+        preview = self.client.get(f"/api/site-config/preview/{draft.pk}/")
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(preview.data["theme"]["site_name"], "Aperçu")
+        self.assertEqual(preview.data["theme"]["colors"]["brand"], "#112233")
+
+        # Ni publication ni modification de la config live.
+        self.assertEqual(
+            AppearanceVersion.objects.filter(status=AppearanceVersion.Status.PUBLISHED).count(),
+            0,
+        )
+        public = self.client.get("/api/site-config/")
+        self.assertNotEqual(public.data["theme"]["site_name"], "Aperçu")
+
+    def test_publish(self):
+        self._put_draft(site_name="Publié")
+        response = self.client.post("/api/site-config/publish/", {}, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "published")
+
+        self.assertEqual(SiteTheme.get_solo().site_name, "Publié")
+        public = self.client.get("/api/site-config/")
+        self.assertEqual(public.data["theme"]["site_name"], "Publié")
+
+    def test_publish_creates_history(self):
+        self._put_draft(site_name="V1")
+        self.client.post("/api/site-config/publish/", {}, format="json")
+
+        history = self.client.get("/api/site-config/history/")
+        self.assertEqual(history.status_code, 200)
+        published = [v for v in history.data if v["status"] == "published"]
+        self.assertEqual(len(published), 1)
+        self.assertEqual(published[0]["theme"]["site_name"], "V1")
+
+    def test_restore_creates_new_published_version(self):
+        # V1
+        self._put_draft(site_name="V1")
+        self.client.post("/api/site-config/publish/", {}, format="json")
+        # V2
+        self._put_draft(site_name="V2")
+        self.client.post("/api/site-config/publish/", {}, format="json")
+        self.assertEqual(SiteTheme.get_solo().site_name, "V2")
+
+        v1 = next(
+            v for v in AppearanceVersion.objects.filter(status=AppearanceVersion.Status.PUBLISHED)
+            if v.theme.get("site_name") == "V1"
+        )
+        count_before = AppearanceVersion.objects.count()
+
+        restore = self.client.post(f"/api/site-config/restore/{v1.pk}/", {}, format="json")
+        self.assertEqual(restore.status_code, 201)
+        self.assertEqual(restore.data["status"], "published")
+        self.assertEqual(SiteTheme.get_solo().site_name, "V1")
+
+        # Restauration = nouvelle version publiée, historique préservé.
+        self.assertEqual(AppearanceVersion.objects.count(), count_before + 1)
+        self.assertTrue(AppearanceVersion.objects.filter(pk=v1.pk).exists())
+        self.assertIn("V1", self._published_site_names())
+
+    def test_site_config_unchanged_before_publish(self):
+        initial = self.client.get("/api/site-config/").data
+        self._put_draft(site_name="Brouillon non publié")
+        after = self.client.get("/api/site-config/").data
+        self.assertEqual(initial["theme"]["site_name"], after["theme"]["site_name"])

@@ -1,66 +1,23 @@
 from unfold.admin import ModelAdmin
 
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import reverse
 
+from apps.core.admin_mixins import ReadOnlyAdminMixin
+
 from .models import Payment, PaymentSettings
-from .services import FedaPayError, PaymentRelaunchError, relaunch_payment
-
-
-@admin.action(description="Relancer le paiement (nouveau lien envoyé au client)")
-def relaunch_payments(modeladmin, request, queryset):
-    """US-34 : pour chaque paiement échoué/refusé/annulé sélectionné, crée une
-    nouvelle transaction FedaPay et envoie le nouveau lien de paiement au client."""
-    relaunched, skipped, failed = 0, 0, 0
-    for payment in queryset:
-        try:
-            relaunch_payment(payment)
-        except PaymentRelaunchError as exc:
-            skipped += 1
-            modeladmin.message_user(request, f"Paiement #{payment.pk} ignoré : {exc}", messages.WARNING)
-        except FedaPayError:
-            failed += 1
-        else:
-            relaunched += 1
-    if relaunched:
-        modeladmin.message_user(
-            request,
-            f"{relaunched} paiement(s) relancé(s) — nouveau lien envoyé au client.",
-            messages.SUCCESS,
-        )
-    if failed:
-        modeladmin.message_user(
-            request,
-            f"{failed} relance(s) en échec côté FedaPay (voir la cloche de notifications).",
-            messages.ERROR,
-        )
-
-
-class ToRelaunchListFilter(admin.SimpleListFilter):
-    """Filtre « À relancer » : paiements échoués, refusés ou annulés."""
-
-    title = "à relancer"
-    parameter_name = "relaunch"
-
-    def lookups(self, request, model_admin):
-        return (("1", "Échoués / refusés / annulés"),)
-
-    def queryset(self, request, queryset):
-        if self.value() == "1":
-            return queryset.filter(
-                status__in=[Payment.Status.FAILED, Payment.Status.DECLINED, Payment.Status.CANCELED]
-            )
-        return queryset
 
 
 @admin.register(Payment)
-class PaymentAdmin(ModelAdmin):
+class PaymentAdmin(ReadOnlyAdminMixin, ModelAdmin):
+    """Consultation seule : les paiements de commande sont suivis et relancés
+    par les vendeurs depuis leur espace seller. L'admin ne relance plus."""
+
     list_display = ["id", "order", "provider", "method", "status", "amount_xof", "created_at"]
-    list_filter = ["provider", "method", "status", ToRelaunchListFilter]
+    list_filter = ["provider", "method", "status"]
     search_fields = ["order__full_name", "fedapay_transaction_id"]
     readonly_fields = ["last_webhook_payload"]
-    actions = [relaunch_payments]
     date_hierarchy = "created_at"
     ordering = ["-created_at"]
 

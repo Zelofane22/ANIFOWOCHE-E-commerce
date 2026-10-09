@@ -89,25 +89,25 @@ class DeliveryAdminTests(TestCase):
         response = self.client.get("/admin/delivery/deliveryzone/")
         self.assertEqual(response.status_code, 200)
 
-    def test_deliveryzone_add_form(self):
+    def test_deliveryzone_add_form_is_read_only(self):
         response = self.client.get("/admin/delivery/deliveryzone/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_deliveryslot_changelist(self):
         response = self.client.get("/admin/delivery/deliveryslot/")
         self.assertEqual(response.status_code, 200)
 
-    def test_deliveryslot_add_form(self):
+    def test_deliveryslot_add_form_is_read_only(self):
         response = self.client.get("/admin/delivery/deliveryslot/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_delivery_changelist(self):
         response = self.client.get("/admin/delivery/delivery/")
         self.assertEqual(response.status_code, 200)
 
-    def test_delivery_add_form(self):
+    def test_delivery_add_form_is_read_only(self):
         response = self.client.get("/admin/delivery/delivery/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_non_staff_cannot_access(self):
         from apps.core.factories import UserFactory

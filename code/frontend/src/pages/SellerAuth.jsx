@@ -225,7 +225,7 @@ export default function SellerAuth() {
               <Field label="Lien boutique">
                 <div className="flex overflow-hidden rounded-lg border border-black/15 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
                   <span className="hidden shrink-0 bg-gray-50 px-3 py-2.5 text-sm text-muted sm:inline">
-                    /shop/
+                    /sellers/
                   </span>
                   <input
                     className="w-full bg-white px-3 py-2.5 text-sm text-ink outline-none placeholder:text-gray-500"

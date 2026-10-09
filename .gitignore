@@ -31,3 +31,4 @@ docs/amelioration_continue
 
 *.dump
 *.gpg
+.sonar-token

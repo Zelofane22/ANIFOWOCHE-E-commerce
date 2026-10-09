@@ -10,9 +10,13 @@ import {
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
 import {
+  cancelSellerSubscription,
   createSellerSubscription,
   getSellerPlans,
   getSellerSubscription,
+  getSellerSubscriptionQuote,
+  reactivateSellerSubscription,
+  relaunchSellerSubscription,
 } from "../api/seller.js";
 import { openFedapaySubscriptionCheckout } from "../utils/fedapay.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -54,12 +58,11 @@ const FALLBACK_FEATURES = {
   ],
   STARTER: [
     "100 produits et commandes par mois",
-    "Commandes illimitées",
     "Statistiques essentielles",
   ],
   PRO: [
     "Produits et commandes illimités",
-    "Statistiques avancées",
+    "Statistiques avancées",  
     "Exports des statistiques",
     "Multi-utilisateurs",
     "Outils promotionnels",
@@ -109,7 +112,11 @@ export default function SellerPlan() {
   const [selected, setSelected] = useState("STARTER");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [quote, setQuote] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [relaunching, setRelaunching] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const loadPlans = () =>
     getSellerPlans()
@@ -131,6 +138,19 @@ export default function SellerPlan() {
     loadSubscription();
   }, [isAuthenticated, loading, navigate]);
 
+  useEffect(() => {
+    if (!data) return;
+    const payable = ["STARTER", "PRO"].includes(selected);
+    const current = data.current_plan;
+    const eligible = current !== "FREE" && payable && selected !== current;
+    (eligible ? getSellerSubscriptionQuote(selected) : Promise.resolve(null))
+      .then(setQuote)
+      .catch((e) => {
+        setQuote(null);
+        setError(extractErrorMessage(e));
+      });
+  }, [selected, data]);
+
   if (loading || !data) {
     return (
       <div className="min-h-screen bg-[#F4F4F8] flex items-center justify-center">
@@ -147,6 +167,7 @@ export default function SellerPlan() {
   const isPending = subscription?.status === "pending";
   const isApproved = subscription?.status === "approved";
   const isFree = data.current_plan === "FREE";
+  const isCancelRequested = isApproved && !!subscription?.cancel_requested_at;
   const currentPlanMeta = PLAN_META[data.current_plan];
 
   const handleSubscribe = async () => {
@@ -166,9 +187,53 @@ export default function SellerPlan() {
     }
   };
 
+  const canRelaunch = ["failed", "declined", "canceled"].includes(subscription?.status);
+
+  const handleRelaunch = async () => {
+    setError("");
+    setRelaunching(true);
+    try {
+      const sub = await relaunchSellerSubscription();
+      const outcome = await openFedapaySubscriptionCheckout(sub);
+      if (outcome === "completed") {
+        await loadSubscription();
+        setShowSuccess(true);
+      }
+    } catch (err) {
+      setError(extractErrorMessage(err) || "Impossible de relancer le paiement.");
+    } finally {
+      setRelaunching(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setError("");
+    setCanceling(true);
+    try {
+      await cancelSellerSubscription();
+      setShowCancelConfirm(false);
+      await loadSubscription();
+    } catch (err) {
+      setError(extractErrorMessage(err) || "Impossible de résilier l'abonnement.");
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setError("");
+    try {
+      await reactivateSellerSubscription();
+      await loadSubscription();
+    } catch (err) {
+      setError(extractErrorMessage(err) || "Impossible de réactiver l'abonnement.");
+    }
+  };
+
   const isCurrentPlan = (code) => data.current_plan === code;
 
   const isPayable = (code) => ["STARTER", "PRO"].includes(code);
+  const isDowngrade = PLAN_ORDER.indexOf(selected) < PLAN_ORDER.indexOf(data.current_plan);
   const getFeatureLabel = (feature) => FEATURE_LABELS[feature] || feature;
 
   return (
@@ -213,7 +278,33 @@ export default function SellerPlan() {
             )}
           </div>
 
-          {isApproved && subscription?.ends_at && (
+          {isCancelRequested && subscription?.ends_at && (
+            <div className="mt-3 space-y-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400">
+                Résilié — accès jusqu'au{" "}
+                {new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+              {subscription.lost_features?.length > 0 && (
+                <p className="text-white/40 text-xs">
+                  Vous perdrez :{" "}
+                  {subscription.lost_features.map(getFeatureLabel).join(", ")}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleReactivate}
+                className="inline-flex items-center gap-2 rounded-xl bg-green-500/15 border border-green-400/20 px-4 py-2 text-sm font-semibold text-green-300 transition hover:bg-green-500/25"
+              >
+                Réactiver
+              </button>
+            </div>
+          )}
+
+          {isApproved && !isCancelRequested && subscription?.ends_at && (
             <p className="text-white/40 text-xs">
               Expire le{" "}
               {new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
@@ -222,6 +313,59 @@ export default function SellerPlan() {
                 year: "numeric",
               })}
             </p>
+          )}
+
+          {isApproved && !isCancelRequested && (
+            <button
+              type="button"
+              onClick={() => setShowCancelConfirm(true)}
+              className="mt-3 text-xs font-medium text-white/40 underline decoration-white/20 underline-offset-2 transition hover:text-white/70"
+            >
+              Résilier mon abonnement
+            </button>
+          )}
+
+          {showCancelConfirm && (
+            <div className="mt-3 rounded-xl bg-white/5 border border-white/10 p-4">
+              <p className="text-sm text-white/80">
+                Votre abonnement restera actif jusqu'au{" "}
+                {subscription?.ends_at
+                  ? new Date(subscription.ends_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "l'échéance"}
+                . Vous perdrez alors :
+              </p>
+              {subscription?.lost_features?.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {subscription.lost_features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-white/60">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
+                      {getFeatureLabel(f)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={canceling}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-60"
+                >
+                  {canceling ? "Résiliation…" : "Confirmer la résiliation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/15"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
           )}
 
           {isFree && limits && (
@@ -251,6 +395,18 @@ export default function SellerPlan() {
               <ExternalLinkIcon size={14} className="flex-shrink-0" />
               <span className="font-semibold">Rouvrir la page de paiement</span>
             </a>
+          )}
+
+          {canRelaunch && (
+            <button
+              type="button"
+              onClick={handleRelaunch}
+              disabled={relaunching}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/15 border border-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/25 disabled:opacity-60"
+            >
+              <RefreshCwIcon size={14} className={relaunching ? "animate-spin" : ""} />
+              {relaunching ? "Relance en cours…" : "Relancer le paiement"}
+            </button>
           )}
         </div>
       </div>
@@ -369,6 +525,26 @@ export default function SellerPlan() {
           </p>
         )}
 
+        {quote?.is_upgrade && (
+          <div className="mt-4 rounded-[16px] bg-amber-50 border border-amber-200 p-4">
+            <p className="text-sm text-amber-900">
+              Passage au plan {PLAN_META[selected]?.label} :{" "}
+              <strong>{formatPrice(quote.amount_xof)}</strong> aujourd'hui
+              (prorata sur {quote.remaining_days} jours restants, crédit{" "}
+              {formatPrice(quote.credit_xof)}). Ensuite{" "}
+              {formatPrice(quote.full_price_xof)}/mois à partir du{" "}
+              {quote.ends_at
+                ? new Date(quote.ends_at).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "l'échéance"}
+              .
+            </p>
+          </div>
+        )}
+
         <div className="mt-5 bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-5">
           {isFree ? (
             <button
@@ -390,24 +566,39 @@ export default function SellerPlan() {
               )}
             </button>
           ) : isPayable(selected) && !isCurrentPlan(selected) ? (
-            <button
-              type="button"
-              onClick={handleSubscribe}
-              disabled={submitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <RefreshCwIcon size={15} className="animate-spin" />
-                  Lancement du paiement…
-                </>
-              ) : (
-                <>
-                  Changer pour le plan {PLAN_META[selected]?.label}
-                  <ChevronRightIcon size={16} />
-                </>
-              )}
-            </button>
+            isDowngrade ? (
+              <button
+                type="button"
+                disabled
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed"
+              >
+                Rétrogradation à l'expiration
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={submitting || !quote}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <RefreshCwIcon size={15} className="animate-spin" />
+                    Lancement du paiement…
+                  </>
+                ) : quote?.is_upgrade ? (
+                  <>
+                    Passer au plan {PLAN_META[selected]?.label} — {formatPrice(quote.amount_xof)}
+                    <ChevronRightIcon size={16} />
+                  </>
+                ) : (
+                  <>
+                    Changer pour le plan {PLAN_META[selected]?.label}
+                    <ChevronRightIcon size={16} />
+                  </>
+                )}
+              </button>
+            )
           ) : (
             <button
               type="button"

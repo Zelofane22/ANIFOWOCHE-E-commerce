@@ -60,8 +60,9 @@ class ShopSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "public_path", "public_url"]
 
     def get_public_url(self, shop):
-        # URL publique complète de la boutique (base frontend + chemin).
-        return f"{seller_frontend_base_url()}{shop.public_path}"
+        # URL publique complète de la boutique (base frontend principale + chemin).
+        base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        return f"{base}{shop.public_path}"
 
     def validate_slug(self, value):
         # Slug normalisé (minuscules, sans espaces) et unicité hors instance courante.
@@ -251,6 +252,16 @@ class SellerDashboardSerializer(serializers.Serializer):
     metrics = serializers.DictField()
 
 
+class PublicShopListSerializer(serializers.ModelSerializer):
+    """Sérialise une boutique pour l'annuaire public des vendeurs."""
+    public_path = serializers.CharField(read_only=True)
+    product_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = Shop
+        fields = ["id", "name", "slug", "city", "description", "public_path", "product_count"]
+
+
 class PublicShopSerializer(serializers.ModelSerializer):
     """Sérialise la vitrine publique d'une boutique avec ses produits."""
     delivery_zones = DeliveryZoneSerializer(many=True, read_only=True)
@@ -268,7 +279,7 @@ class PublicShopSerializer(serializers.ModelSerializer):
                 Q(shop=shop) | Q(shop__isnull=True, seller=shop.seller),
                 is_active=True,
             )
-            .select_related("category")
+            .select_related("category", "seller", "shop")
             .prefetch_related(
                 Prefetch(
                     "images",
@@ -285,6 +296,7 @@ class SellerSubscriptionSerializer(serializers.ModelSerializer):
 
     plan_name = serializers.CharField(source="get_plan_display", read_only=True)
     status_name = serializers.CharField(source="get_status_display", read_only=True)
+    lost_features = serializers.SerializerMethodField()
 
     class Meta:
         model = SellerSubscription
@@ -301,10 +313,18 @@ class SellerSubscriptionSerializer(serializers.ModelSerializer):
             "payment_url",
             "starts_at",
             "ends_at",
+            "is_upgrade",
+            "cancel_requested_at",
+            "lost_features",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+    def get_lost_features(self, obj):
+        from .limits import lost_features
+
+        return lost_features(obj.plan)
 
 
 class SellerPlanSerializer(serializers.Serializer):

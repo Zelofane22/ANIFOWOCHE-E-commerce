@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class SiteTheme(models.Model):
@@ -148,3 +150,126 @@ class FooterBlock(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class AppearanceVersion(models.Model):
+    """Version d'apparence (US-54) : snapshot de la configuration d'apparence
+    (thème + sections d'accueil) permettant le workflow
+    brouillon → prévisualisation → publication → historique/restauration.
+
+    Tant qu'une version n'est pas publiée, le singleton SiteTheme et les
+    HomeSection restent inchangés : la vitrine publique (/api/site-config/)
+    ne reflète que la dernière version publiée."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Brouillon"
+        PUBLISHED = "published", "Publiée"
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
+    # Snapshot JSON du SiteTheme : {site_name, logo (nom relatif ou null),
+    # trust_arguments, colors:{brand, brand_dark, brand_medium, brand_light,
+    # brand_pale}}.
+    theme = models.JSONField(default=dict)
+    # Snapshot JSON des HomeSection : [{"type", "enabled", "order"}, ...].
+    sections = models.JSONField(default=list)
+    published_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="appearance_versions",
+    )
+
+    class Meta:
+        ordering = ["-published_at", "-id"]
+        verbose_name = "Version d'apparence"
+        verbose_name_plural = "Versions d'apparence"
+
+    def __str__(self):
+        return f"Apparence #{self.pk} ({self.get_status_display()})"
+
+    # --- Snapshot -----------------------------------------------------------
+
+    @staticmethod
+    def serialize_theme(theme):
+        """Sérialise le singleton SiteTheme en JSON (logo = nom de fichier relatif)."""
+        return {
+            "site_name": theme.site_name,
+            "logo": theme.logo.name if theme.logo else None,
+            "trust_arguments": theme.trust_arguments,
+            "colors": {
+                "brand": theme.color_brand,
+                "brand_dark": theme.color_brand_dark,
+                "brand_medium": theme.color_brand_medium,
+                "brand_light": theme.color_brand_light,
+                "brand_pale": theme.color_brand_pale,
+            },
+        }
+
+    @staticmethod
+    def serialize_sections():
+        """Sérialise les HomeSection en liste de {type, enabled, order}."""
+        return [
+            {"type": s.section_type, "enabled": s.is_enabled, "order": s.order}
+            for s in HomeSection.objects.all()
+        ]
+
+    @classmethod
+    def capture_live(cls, **extra):
+        """Construit (sans persister) un snapshot de la configuration live."""
+        return cls(
+            theme=cls.serialize_theme(SiteTheme.get_solo()),
+            sections=cls.serialize_sections(),
+            **extra,
+        )
+
+    def apply(self):
+        """Applique ce snapshot aux modèles live (SiteTheme + HomeSection)."""
+        theme = SiteTheme.get_solo()
+        data = self.theme or {}
+        theme.site_name = data.get("site_name", theme.site_name)
+        theme.logo = data.get("logo") or None
+        colors = data.get("colors") or {}
+        theme.color_brand = colors.get("brand", theme.color_brand)
+        theme.color_brand_dark = colors.get("brand_dark", theme.color_brand_dark)
+        theme.color_brand_medium = colors.get("brand_medium", theme.color_brand_medium)
+        theme.color_brand_light = colors.get("brand_light", theme.color_brand_light)
+        theme.color_brand_pale = colors.get("brand_pale", theme.color_brand_pale)
+        theme.trust_arguments = data.get("trust_arguments", theme.trust_arguments)
+        theme.save()
+
+        HomeSection.ensure_defaults()
+        for section in self.sections or []:
+            section_type = section.get("type")
+            if not section_type:
+                continue
+            HomeSection.objects.filter(section_type=section_type).update(
+                is_enabled=section.get("enabled", True),
+                order=section.get("order", 0),
+            )
+
+    @classmethod
+    def get_or_create_draft(cls, user=None):
+        """Retourne l'unique brouillon (créé depuis la config live si absent)."""
+        draft = cls.objects.filter(status=cls.Status.DRAFT).first()
+        if draft is None:
+            draft = cls.capture_live(status=cls.Status.DRAFT, created_by=user)
+            draft.save()
+        return draft
+
+    def publish(self, user=None):
+        """Applique le snapshot au live puis marque la version comme publiée."""
+        self.apply()
+        self.status = self.Status.PUBLISHED
+        self.published_at = timezone.now()
+        if user is not None:
+            self.created_by = user
+        self.save()
+        return self

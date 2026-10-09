@@ -16,6 +16,8 @@ Règles métier (cf. docs/.../04-modele-economique.md) :
 
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 
 PLAN_LIMITS = {
@@ -73,6 +75,45 @@ PLAN_FEATURES = {
     ),
 }
 
+PLAN_ORDER = ("FREE", "STARTER", "PRO", "BUSINESS")
+PLAN_LABELS = {"FREE": "Gratuit", "STARTER": "Starter", "PRO": "Pro", "BUSINESS": "Business"}
+FEATURE_LABELS = {
+    "essential_stats": "Statistiques essentielles",
+    "advanced_stats": "Statistiques avancées",
+    "exports": "Export des statistiques",
+    "team": "Gestion d'équipe",
+    "promotions": "Outils promotionnels",
+    "client_relaunch": "Relances clients",
+    "custom_domain": "Domaine personnalisé",
+    "online_payment": "Paiement en ligne",
+    "multi_store": "Multi-boutiques",
+    "priority_support": "Support prioritaire",
+    "seo_listing": "Référencement SEO",
+    "delivery_service": "Service de livraison",
+    "marketplace_orders": "Commandes marketplace",
+}
+
+FEATURE_LABELS_FR = {
+    "essential_stats": "Statistiques essentielles",
+    "advanced_stats": "Statistiques avancées",
+    "exports": "Exports des statistiques",
+    "team": "Multi-utilisateurs",
+    "promotions": "Outils promotionnels",
+    "client_relaunch": "Relances clients",
+    "custom_domain": "Domaine personnalisé",
+    "online_payment": "Paiement Mobile Money et carte bancaire",
+    "multi_store": "Produits visibles sur la vitrine principale",
+    "priority_support": "Support prioritaire",
+    "seo_listing": "Référencement SEO des produits",
+    "delivery_service": "Livraison prise en charge",
+    "marketplace_orders": "Commandes centralisées via la marketplace",
+}
+
+
+def lost_features(plan):
+    """Fonctionnalités payantes perdues en repassant au plan FREE."""
+    return sorted(PLAN_FEATURES.get(plan, frozenset()) - PLAN_FEATURES["FREE"])
+
 
 def plan_limits(seller):
     """Limites du palier du vendeur (fallback FREE si valeur inconnue)."""
@@ -101,12 +142,57 @@ def is_free(seller):
     return not _is_main_store(seller)
 
 
+def can_accept_online_payment(seller):
+    """True si le vendeur peut recevoir un paiement en ligne (MTN/Moov/carte).
+
+    Le paiement en ligne est réservé aux vendeurs BUSINESS (ou à la boutique
+    entreprise officielle, toujours exempte). Les vendeurs STARTER/PRO/FREE
+    basculent en paiement à la livraison uniquement.
+    """
+    if _is_main_store(seller):
+        return True
+    return seller.plan == seller.Plan.BUSINESS
+
+
 def has_feature(seller, feature):
     """True si le palier donne accès à la fonctionnalité (boutique entreprise
     exempte : toutes les fonctionnalités lui sont accordées)."""
     if _is_main_store(seller):
         return True
     return feature in plan_features(seller)
+
+
+def required_plan_for(feature):
+    """Plan le moins élevé incluant la feature (None si inconnue)."""
+    for code in PLAN_ORDER:
+        if feature in PLAN_FEATURES[code]:
+            return code
+    return None
+
+
+class FeatureNotIncluded(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_code = "feature_not_included"
+
+    def __init__(self, seller, feature):
+        required = required_plan_for(feature)
+        label = FEATURE_LABELS.get(feature, feature)
+        required_label = PLAN_LABELS.get(required, required)
+        super().__init__(
+            detail={
+                "detail": f"{label} : fonctionnalité non incluse dans votre offre. Passez à l'offre {required_label} ou supérieure.",
+                "code": "feature_not_included",
+                "feature": feature,
+                "required_plan": required,
+                "current_plan": seller.plan,
+            }
+        )
+
+
+def require_feature(seller, feature):
+    """Lève FeatureNotIncluded (403) si le vendeur n'a pas la feature."""
+    if not has_feature(seller, feature):
+        raise FeatureNotIncluded(seller, feature)
 
 
 def plan_feature_flags(seller):

@@ -76,6 +76,27 @@
       "environment": {
         "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
       }
+    },
+    "sonarqube": {
+      "type": "local",
+      "command": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "--pull=always",
+        "-e",
+        "SONARQUBE_TOKEN",
+        "-e",
+        "SONARQUBE_ORG",
+        "sonarsource/sonarqube-mcp"
+      ],
+      "environment": {
+        "SONARQUBE_TOKEN": "{file:.sonar-token}",
+        "SONARQUBE_ORG": "zelofane"
+      },
+      "enabled": true
     }
   }
 }

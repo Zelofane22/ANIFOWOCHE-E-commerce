@@ -324,7 +324,7 @@ export default function SellerShopPage() {
                   <p className="mt-1.5 text-xs text-[#9CA3AF]">
                     {slugChecking
                       ? "Vérification de la disponibilité..."
-                      : `/shop/${form.shop.slug || "..."}`}
+                      : `/sellers/${form.shop.slug || "..."}`}
                   </p>
                 )}
               </div>

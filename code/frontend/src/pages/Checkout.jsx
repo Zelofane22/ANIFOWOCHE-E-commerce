@@ -11,6 +11,7 @@ import { useCart } from "../context/useCart.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { openFedapayCheckout } from "../utils/fedapay.js";
 import { formatXof } from "../utils/format.js";
+import { buildWhatsappUrl } from "../utils/whatsappPhone.js";
 import Seo from "../components/Seo.jsx";
 import CheckoutSteps from "../components/checkout/CheckoutSteps.jsx";
 import ShippingForm from "../components/checkout/ShippingForm.jsx";
@@ -44,7 +45,7 @@ const cartItemSignature = (item) =>
   ]);
 
 export default function Checkout() {
-  const { items, subtotal, clearCart, reconcileCart } = useCart();
+  const { items, subtotal, clearCart, reconcileCart, syncAbandonedCart } = useCart();
   const initialCartRef = useRef(items);
 
   useEffect(() => {
@@ -61,6 +62,14 @@ export default function Checkout() {
   }, [items]);
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Synchronise le panier abandonné dès qu'un email utilisateur est disponible.
+  // (Pour les visiteurs anonymes, aucun email n'est transmis tant qu'ils n'en
+  // ont pas fourni un.)
+  useEffect(() => {
+    if (authLoading || !user?.email) return;
+    syncAbandonedCart(user.email);
+  }, [authLoading, user?.email, syncAbandonedCart]);
 
   const [zones, setZones] = useState([]);
   const [slots, setSlots] = useState([]);
@@ -120,8 +129,39 @@ export default function Checkout() {
       .catch(() => setStoreStatus(DEFAULT_STORE_STATUS));
   }, [authLoading]);
 
+  // Le paiement en ligne (MTN/Moov/carte) est réservé aux vendeurs Business :
+  // si le panier contient un article d'un vendeur STARTER/PRO/FREE, on replie
+  // sur le paiement à la livraison.
+  const allowOnlinePayment = items.every((item) => item.sellerAllowsOnlinePayment !== false);
+
+  // Vendeurs non Business (FREE/STARTER/PRO) : le paiement en ligne leur est
+  // indisponible, on propose à côté du paiement à la livraison un contact
+  // direct via WhatsApp avec un message de commande pré-rempli.
+  const whatsappSellers = Object.values(
+    items
+      .filter((item) => item.sellerAllowsOnlinePayment === false && item.sellerWhatsappPhone)
+      .reduce((acc, item) => {
+        const phone = item.sellerWhatsappPhone;
+        if (!acc[phone]) acc[phone] = { name: item.sellerName || "vendeur", phone, items: [] };
+        acc[phone].items.push(item);
+        return acc;
+      }, {})
+  ).map((seller) => {
+    const lines = seller.items.map((item) => `• ${item.name} × ${item.quantity}`);
+    const message = [
+      `Bonjour ${seller.name}, je souhaite commander :`,
+      ...lines,
+      "",
+      `Nom : ${fullName.trim()}`,
+      "Ville : Cotonou",
+      "Merci.",
+    ].join("\n");
+    return { name: seller.name, url: buildWhatsappUrl(seller.phone, message) };
+  });
+
   const isMethodDisabled = (method) => {
     if (!isAuthenticated && method.type !== "offline") return true;
+    if (method.type === "online" && !allowOnlinePayment) return true;
     return isPaymentMethodDisabled(method, storeStatus);
   };
 
@@ -339,6 +379,7 @@ export default function Checkout() {
             <PaymentMethodSelector
               isAuthenticated={isAuthenticated}
               storeStatus={storeStatus}
+              allowOnlinePayment={allowOnlinePayment}
               setPaymentMethod={setPaymentMethod}
               effectivePaymentMethodValue={effectivePaymentMethodValue}
               isSelectedMethodOffline={isSelectedMethodOffline}
@@ -346,6 +387,7 @@ export default function Checkout() {
               onBack={() => setStep(1)}
               canPay={canPay}
               getSubmitLabel={getSubmitLabel}
+              whatsappSellers={whatsappSellers}
             />
           )}
         </div>

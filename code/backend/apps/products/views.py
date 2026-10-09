@@ -16,7 +16,7 @@ from rest_framework import status
 
 from apps.core.maintenance import block_if_maintenance
 from apps.promotions.models import Promotion
-from apps.sellers.limits import can_create_product, main_store_catalog_q, plan_limits
+from apps.sellers.limits import can_accept_online_payment, can_create_product, main_store_catalog_q, plan_limits
 from apps.sellers.models import SellerProfile
 
 from .models import Category, Option, OptionGroup, Product, ProductImage
@@ -93,13 +93,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     # Produits actifs de la vitrine principale, avec catégorie/vendeur, images actives,
     # note moyenne, nombre d'avis approuvés et remise promotionnelle active.
     queryset = (
-        Product.objects.filter(
-            is_active=True,
-        )
-        # Catalogue principal : produits de l'entreprise et vendeurs PAID visibles ;
-        # les vendeurs FREE tiers n'y apparaissent jamais.
-        .filter(main_store_catalog_q())
-        .select_related("category", "seller")
+        Product.objects.filter(is_active=True)
+        .select_related("category", "seller", "shop")
         .prefetch_related(
             Prefetch(
                 "images",
@@ -121,6 +116,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     filterset_class = ProductFilter
     search_fields = ["name", "description"]
     ordering_fields = ["price_xof", "created_at"]
+
+    def get_queryset(self):
+        # La liste/catalogue n'expose que les produits de la vitrine principale
+        # (entreprise + vendeurs payants visibles) ; l'accès direct à un produit
+        # par slug — ex. depuis la boutique d'un vendeur FREE — reste ouvert.
+        qs = super().get_queryset()
+        if self.action != "retrieve":
+            qs = qs.filter(main_store_catalog_q())
+        return qs
 
 
 class SellerProductViewSet(viewsets.ModelViewSet):
@@ -150,7 +154,7 @@ class SellerProductViewSet(viewsets.ModelViewSet):
         # Produits du vendeur uniquement, avec leurs données liées, triés par mise à jour.
         return (
             Product.objects.filter(seller=self._seller())
-        .select_related("category", "seller")
+        .select_related("category", "seller", "shop")
             .prefetch_related(
                 Prefetch(
                     "images",
@@ -463,7 +467,7 @@ class ValidateCartView(views.APIView):
             is_active=True,
         ).filter(
             main_store_catalog_q()
-        ).select_related("category").prefetch_related("option_groups__options")
+        ).select_related("category", "seller", "shop").prefetch_related("option_groups__options")
 
         by_slug = {p.slug: p for p in products}
 
@@ -489,6 +493,11 @@ class ValidateCartView(views.APIView):
                 "color_name": item.get("color_name", ""),
                 "color_hex": item.get("color_hex", ""),
                 "selected_options": item.get("selected_options", []),
+                "seller_name": product.seller.display_name if product.seller else "",
+                "seller_allows_online_payment": (
+                    product.seller is None or can_accept_online_payment(product.seller)
+                ),
+                "seller_whatsapp_phone": product.seller_whatsapp_phone,
             })
 
         return Response({"valid_items": valid_items, "invalid_slugs": invalid_slugs})

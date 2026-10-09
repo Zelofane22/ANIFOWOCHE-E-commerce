@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -55,8 +56,9 @@ class Shop(models.Model):
 
     @property
     def public_path(self):
-        # Chemin d'accès public de la boutique sur le frontend.
-        return f"/shop/{self.slug}"
+        # Chemin d'accès public de la boutique sur le frontend (vitrine vendeur
+        # hébergée sur le domaine principal anifowoche.com).
+        return f"/sellers/{self.slug}"
 
     def save(self, *args, **kwargs):
         # Génère automatiquement un slug unique à partir du nom si absent.
@@ -112,6 +114,8 @@ class SellerSubscription(models.Model):
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
     last_expiry_reminder_at = models.DateTimeField(null=True, blank=True)
+    is_upgrade = models.BooleanField(default=False, help_text="Upgrade au prorata : conserve la fin de période en cours.")
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -120,3 +124,21 @@ class SellerSubscription(models.Model):
 
     def __str__(self):
         return f"Abonnement #{self.pk} — {self.seller.display_name} ({self.status})"
+
+    @property
+    def is_currently_active(self):
+        """Vrai si l'abonnement est actuellement actif.
+
+        Définition du « vendeur actif » : abonnement approuvé (APPROVED), sans
+        demande de résiliation, dont les bornes temporelles couvrent l'instant
+        présent (non expiré).
+        """
+        now = timezone.now()
+        return (
+            self.status == self.Status.APPROVED
+            and self.cancel_requested_at is None
+            and self.starts_at is not None
+            and self.ends_at is not None
+            and self.starts_at <= now
+            and self.ends_at >= now
+        )

@@ -2,7 +2,7 @@ from unfold.admin import ModelAdmin
 
 from django.contrib import admin
 
-from .models import HomeSection, MenuItem, FooterBlock, SiteTheme
+from .models import AppearanceVersion, FooterBlock, HomeSection, MenuItem, SiteTheme
 
 
 @admin.register(SiteTheme)
@@ -59,3 +59,19 @@ class MenuItemAdmin(ModelAdmin):
 class FooterBlockAdmin(ModelAdmin):
     list_display = ["title", "order", "is_visible"]
     list_editable = ["order", "is_visible"]
+
+
+@admin.register(AppearanceVersion)
+class AppearanceVersionAdmin(ModelAdmin):
+    """Historique des versions d'apparence (US-54) — lecture seule : la
+    publication/restauration se fait via l'API super-admin."""
+
+    list_display = ["id", "status", "published_at", "updated_at", "created_by"]
+    list_filter = ["status"]
+    readonly_fields = ["status", "theme", "sections", "published_at", "created_at", "updated_at", "created_by"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

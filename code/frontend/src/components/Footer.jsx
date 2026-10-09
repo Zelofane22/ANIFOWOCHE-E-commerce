@@ -110,6 +110,7 @@ export default function Footer() {
                     <p className="mb-2 font-semibold text-white">Boutique</p>
                     {[
                       ["Catalogue", "/catalogue"],
+                      ["Vendeurs", "/sellers"],
                       ["Panier", "/panier"],
                       ["Compte", "/compte"],
                     ].map(([label, to]) => (

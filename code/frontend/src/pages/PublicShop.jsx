@@ -36,8 +36,8 @@ export default function PublicShop() {
       <div className="min-h-screen bg-surface-muted px-4 py-10 text-center">
         <StoreIcon size={34} className="mx-auto text-muted" />
         <h1 className="mt-4 text-xl font-bold text-ink">Boutique introuvable</h1>
-        <Link to="/register" className="mt-5 inline-block rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white">
-          Créer une boutique
+        <Link to="/sellers" className="mt-5 inline-block rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white">
+          Voir les vendeurs
         </Link>
       </div>
     );
@@ -50,7 +50,7 @@ export default function PublicShop() {
       <Seo
         title={shop.name}
         description={shop.description || undefined}
-        path={`/${slug}`}
+        path={`/sellers/${slug}`}
         type="website"
       />
       <header className="border-b border-black/10 bg-white px-4 py-5">
@@ -64,12 +64,6 @@ export default function PublicShop() {
               {shop.city && <p className="text-sm text-muted">{shop.city}</p>}
             </div>
           </div>
-          <Link
-            to={`/${slug}/commande`}
-            className="shrink-0 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-medium"
-          >
-            Passer une commande
-          </Link>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">
@@ -144,7 +138,7 @@ export default function PublicShop() {
                 return (
                 <Link
                   key={product.id}
-                  to={`/${slug}/produits/${product.slug}`}
+                  to={`/produits/${product.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="relative aspect-square bg-brand-pale">

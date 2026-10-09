@@ -39,8 +39,7 @@ class OrderApiTests(APITestCase):
         self.assertEqual(Order.objects.count(), 1)
         self.assertEqual(Order.objects.get().customer, self.regular_user)
 
-    @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
-    def test_anonymous_can_create_public_order(self, mock_post):
+    def test_anonymous_cannot_create_order(self):
         payload = {
             "full_name": "Jean Client",
             "phone": "+2290190000000",
@@ -48,12 +47,12 @@ class OrderApiTests(APITestCase):
             "items": [{"product_id": self.product.id, "quantity": 1}],
         }
         response = self.client.post("/api/orders/", payload, format="json")
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Order.objects.count(), 1)
-        self.assertIsNone(Order.objects.get().customer)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(Order.objects.count(), 0)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_with_unknown_product_returns_clear_message(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         # Un product_id absent du catalogue (panier localStorage périmé) doit
         # renvoyer un message lisible, pas le brut DRF « Clé primaire … non valide ».
         payload = {
@@ -74,6 +73,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_rejects_missing_required_option(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         group = OptionGroupFactory(product=self.product, is_required=True, min_selections=1, max_selections=1)
         OptionFactory(group=group, price_xof=500)
         payload = {
@@ -88,6 +88,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_food_branch_options_are_optional(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         repas = Category.objects.get(slug="food").children.get(slug="repas")
         product = ProductFactory(category=repas, price_xof=3000, stock=0, made_to_order=True)
         group = OptionGroupFactory(product=product, is_required=True, min_selections=1, max_selections=1)
@@ -105,6 +106,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_normalizes_option_price_from_database(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         group = OptionGroupFactory(product=self.product, is_required=True, min_selections=1, max_selections=1)
         option = OptionFactory(group=group, price_xof=500)
         payload = {
@@ -124,6 +126,7 @@ class OrderApiTests(APITestCase):
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_create_order_with_delivery_zone_adds_fee(self, mock_post):
+        self.client.force_authenticate(user=self.regular_user)
         zone = DeliveryZoneFactory(name="Zone Commande Test", fee_xof=500)
         payload = {
             "full_name": "Jean Client",
@@ -140,6 +143,7 @@ class OrderApiTests(APITestCase):
         self.assertEqual(order.delivery_zone_id, zone.id)
 
     def test_create_order_blocked_during_maintenance_mode(self):
+        self.client.force_authenticate(user=self.regular_user)
         StoreSettings.objects.update_or_create(pk=1, defaults={"maintenance_mode": True})
         payload = {
             "full_name": "Jean Client",
@@ -323,9 +327,9 @@ class OrderAdminTests(TestCase):
         response = self.client.get("/admin/orders/order/")
         self.assertEqual(response.status_code, 200)
 
-    def test_order_add_form(self):
+    def test_order_add_form_is_read_only(self):
         response = self.client.get("/admin/orders/order/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_order_change_form(self):
         from apps.core.factories import OrderFactory

@@ -67,6 +67,13 @@ class PublicProductVisibilityTests(APITestCase):
         slugs = [item["slug"] for item in response.data["results"]]
         self.assertNotIn("produit-gratuit", slugs)
 
+    def test_free_seller_product_accessible_by_direct_slug(self):
+        # L'accès direct par slug reste ouvert, même pour un vendeur FREE
+        # (ex. depuis sa boutique publique), bien qu'il soit absent du catalogue.
+        response = self.client.get("/api/products/produit-gratuit/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["slug"], "produit-gratuit")
+
     def test_paid_seller_product_visible_in_public_list(self):
         response = self.client.get("/api/products/")
         slugs = [item["slug"] for item in response.data["results"]]
@@ -462,17 +469,17 @@ class ProductAdminTests(TestCase):
         response = self.client.get("/admin/products/product/")
         self.assertEqual(response.status_code, 200)
 
-    def test_product_add_form(self):
+    def test_product_add_form_is_read_only(self):
         response = self.client.get("/admin/products/product/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_optiongroup_changelist(self):
         response = self.client.get("/admin/products/optiongroup/")
         self.assertEqual(response.status_code, 200)
 
-    def test_optiongroup_add_form(self):
+    def test_optiongroup_add_form_is_read_only(self):
         response = self.client.get("/admin/products/optiongroup/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_non_staff_cannot_access(self):
         from apps.core.factories import UserFactory
@@ -713,3 +720,61 @@ class ProductCategoryLevelValidationTests(APITestCase):
         )
         self.assertEqual(response.status_code, 201)
         self.assertTrue(response.data["made_to_order"])
+
+
+class SellerWhatsappContactTests(APITestCase):
+    """Le numéro WhatsApp du vendeur non Business est exposé pour le contact direct
+    hors paiement en ligne (contact client → vendeur via WhatsApp)."""
+
+    def setUp(self):
+        self.category = CategoryFactory(name="Tissus", slug="tissus-whatsapp")
+        self.pro_user = UserFactory(username="wa_vendeur")
+        self.pro_seller = SellerProfileFactory(
+            user=self.pro_user, display_name="Wa Seller", phone="+2290190000010", plan="PRO"
+        )
+        self.shop = ShopFactory(
+            seller=self.pro_seller,
+            name="Wa Boutique",
+            slug="wa-boutique",
+            whatsapp_phone="+2290190000011",
+        )
+        self.product = ProductFactory(
+            seller=self.pro_seller,
+            shop=self.shop,
+            category=self.category,
+            name="Produit WhatsApp",
+            slug="produit-whatsapp",
+            price_xof=4000,
+            stock=3,
+        )
+
+    def test_product_detail_exposes_seller_whatsapp_phone(self):
+        # Le numéro public du vendeur (boutique) est exposé, et le paiement en
+        # ligne est refusé (vendeur PRO, non Business).
+        response = self.client.get("/api/products/produit-whatsapp/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["seller_whatsapp_phone"], "+2290190000011")
+        self.assertFalse(response.data["seller_allows_online_payment"])
+
+    def test_validate_cart_exposes_seller_whatsapp_phone_and_name(self):
+        response = self.client.post(
+            "/api/products/validate-cart/",
+            {"items": [{"slug": "produit-whatsapp", "quantity": 2}]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        valid = response.data["valid_items"]
+        self.assertEqual(len(valid), 1)
+        self.assertEqual(valid[0]["seller_name"], "Wa Seller")
+        self.assertEqual(valid[0]["seller_whatsapp_phone"], "+2290190000011")
+        self.assertFalse(valid[0]["seller_allows_online_payment"])
+
+    def test_company_product_has_empty_seller_whatsapp_phone(self):
+        # Un produit de la boutique entreprise (sans vendeur) n'expose aucun
+        # numéro WhatsApp.
+        company = ProductFactory(
+            category=self.category, name="Produit société", slug="produit-societe", stock=5
+        )
+        response = self.client.get(f"/api/products/{company.slug}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["seller_whatsapp_phone"], "")

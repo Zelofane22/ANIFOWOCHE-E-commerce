@@ -139,6 +139,21 @@ class Product(models.Model):
         # Représentation lisible : le nom du produit.
         return self.name
 
+    @property
+    def seller_whatsapp_phone(self):
+        """Numéro WhatsApp public du vendeur (boutique d'abord, sinon profil).
+
+        Sert au contact direct hors paiement en ligne (vendeurs FREE/STARTER/PRO) :
+        le client ouvre WhatsApp avec un message pré-rempli. Les produits de la
+        boutique entreprise (sans vendeur) renvoient une chaîne vide.
+        """
+        shop = self.shop if self.shop_id else None
+        if shop is not None:
+            return shop.whatsapp_phone
+        if self.seller_id:
+            return self.seller.phone
+        return ""
+
     def clean(self):
         super().clean()
         # Un produit peut être rattaché à une catégorie (L1), une

@@ -12,6 +12,7 @@ export default function ProductCard({ product }) {
   return (
     <Link
       to={`/produits/${product.slug}`}
+      data-testid="product-card"
       className="group flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-brand-pale">

@@ -23,9 +23,9 @@ const shop = {
 function renderShop() {
   return render(
     <HelmetProvider>
-      <MemoryRouter initialEntries={["/atelier-fofo"]}>
+      <MemoryRouter initialEntries={["/sellers/atelier-fofo"]}>
         <Routes>
-          <Route path="/:slug" element={<PublicShop />} />
+          <Route path="/sellers/:slug" element={<PublicShop />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>
@@ -57,7 +57,7 @@ describe("PublicShop — meta tags SEO", () => {
     );
     expect(document.querySelector('meta[property="og:url"]')).toHaveAttribute(
       "content",
-      `https://anifowoche.com/${shop.slug}`
+      `https://anifowoche.com/sellers/${shop.slug}`
     );
   });
 

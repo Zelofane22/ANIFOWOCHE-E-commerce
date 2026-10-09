@@ -180,8 +180,12 @@ def _send_whatsapp(*, event, recipient_phone, message):
     return notification
 
 
-def _send_email(*, event, recipient_email, subject, message, title, cta_label="", cta_url=""):
-    """Envoie un email transactionnel (HTML) et trace le résultat dans la table Notification."""
+def _send_email(*, event, recipient_email, subject, message, title, cta_label="", cta_url="", html=None):
+    """Envoie un email transactionnel (HTML) et trace le résultat dans la table Notification.
+
+    ``html`` permet de passer un rendu HTML dédié (ex. panier abandonné) ;
+    à défaut, le gabarit commun ``base_email.html`` est utilisé.
+    """
     if not recipient_email:
         return None
     # Création de la trace de notification email.
@@ -193,7 +197,8 @@ def _send_email(*, event, recipient_email, subject, message, title, cta_label=""
     )
     try:
         # Rendu du HTML puis envoi via Resend ; succès → statut Envoyée.
-        html = _render_email_html(title=title, message=message, cta_label=cta_label, cta_url=cta_url)
+        if html is None:
+            html = _render_email_html(title=title, message=message, cta_label=cta_label, cta_url=cta_url)
         message_id = ResendClient().send_email(to_email=recipient_email, subject=subject, html=html)
         notification.status = Notification.Status.SENT
         notification.provider_message_id = message_id
@@ -398,26 +403,90 @@ def notify_payment_retry(payment):
     )
 
 
-def notify_subscription_expiring(subscription, days_left):
+def notify_subscription_expiring(subscription, days_left, canceled=False):
     """Prévient le vendeur que son abonnement expire bientôt (rappel 1j/2
-    durant la semaine précédant `ends_at`), avec un lien pour payer en avance."""
+    durant la semaine précédant `ends_at`), avec un lien pour payer en avance.
+    Si ``canceled``, le message indique que l'abonnement résilié prend fin et
+    liste les fonctionnalités qui seront perdues."""
     seller = subscription.seller
     seller_user = seller.user
     if not seller_user.email:
         return None
     plan_label = subscription.get_plan_display()
-    message = (
-        f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} "
-        f"expire dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
-        f"Renouvelez dès maintenant pour éviter toute coupure de votre boutique."
-    )
+    if canceled:
+        from apps.sellers.limits import FEATURE_LABELS_FR, lost_features
+
+        lost = ", ".join(FEATURE_LABELS_FR.get(f, f) for f in lost_features(subscription.plan))
+        message = (
+            f"Bonjour {seller.display_name}, votre abonnement {plan_label} résilié "
+            f"prend fin dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
+            f"Vous perdrez : {lost}. Vous pouvez le réactiver avant cette date."
+        )
+        cta_label = "Réactiver mon abonnement"
+    else:
+        message = (
+            f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} "
+            f"expire dans {days_left} jour(s) (le {subscription.ends_at.strftime('%d/%m/%Y')}). "
+            f"Renouvelez dès maintenant pour éviter toute coupure de votre boutique."
+        )
+        cta_label = "Renouveler mon abonnement"
     return _send_email(
         event=Notification.Event.SUBSCRIPTION_EXPIRING,
         recipient_email=seller_user.email,
         subject=f"Votre abonnement {plan_label} expire dans {days_left} jour(s)",
         message=message,
         title="Votre abonnement expire bientôt",
-        cta_label="Renouveler mon abonnement",
+        cta_label=cta_label,
+        cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
+    )
+
+
+def notify_subscription_canceled(subscription):
+    """Confirme au vendeur la résiliation de son abonnement : date de fin d'accès
+    et fonctionnalités qui seront perdues."""
+    from apps.sellers.limits import FEATURE_LABELS_FR, lost_features
+
+    seller = subscription.seller
+    seller_user = seller.user
+    if not seller_user.email:
+        return None
+    plan_label = subscription.get_plan_display()
+    lost = ", ".join(FEATURE_LABELS_FR.get(f, f) for f in lost_features(subscription.plan))
+    message = (
+        f"Bonjour {seller.display_name}, votre abonnement {plan_label} a bien été résilié. "
+        f"Vous conservez l'accès à vos fonctionnalités payantes jusqu'au "
+        f"{subscription.ends_at.strftime('%d/%m/%Y')}. Vous perdrez ensuite : {lost}."
+    )
+    return _send_email(
+        event=Notification.Event.SUBSCRIPTION_CANCELED,
+        recipient_email=seller_user.email,
+        subject=f"Votre abonnement {plan_label} a été résilié",
+        message=message,
+        title="Votre abonnement a été résilié",
+        cta_label="Voir mon abonnement",
+        cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
+    )
+
+
+def notify_subscription_downgraded(subscription):
+    """Prévient le vendeur que son abonnement a expiré et qu'il est repassé au plan Gratuit."""
+    seller = subscription.seller
+    seller_user = seller.user
+    if not seller_user.email:
+        return None
+    plan_label = subscription.get_plan_display()
+    message = (
+        f"Bonjour {seller.display_name}, votre abonnement ANIF Seller {plan_label} a expiré le "
+        f"{subscription.ends_at.strftime('%d/%m/%Y')}. Votre boutique est repassée au plan Gratuit. "
+        f"Reprenez un abonnement pour retrouver toutes vos fonctionnalités."
+    )
+    return _send_email(
+        event=Notification.Event.SUBSCRIPTION_DOWNGRADED,
+        recipient_email=seller_user.email,
+        subject=f"Votre abonnement {plan_label} a expiré",
+        message=message,
+        title="Votre abonnement a expiré",
+        cta_label="Reprendre un abonnement",
         cta_url=f"{settings.SELLER_FRONTEND_BASE_URL.rstrip('/')}/plan",
     )
 
@@ -587,3 +656,53 @@ def notify_sensitive_action(*, action, obj, actor=None):
         if notification:
             sent.append(notification)
     return sent
+
+
+def notify_abandoned_cart(cart):
+    """Relance par email un client dont le panier n'a pas été finalisé.
+
+    N'envoie rien si une relance a déjà été envoyée, si l'email ou les articles
+    sont absents. Utilise un gabarit HTML dédié (liste des produits, montant
+    estimé, CTA de récupération) et retourne True uniquement si Resend a
+    confirmé l'envoi (le statut de la Notification vaut SENT).
+    """
+    if cart.reminder_sent_at is not None:
+        return False
+    if not cart.email or not cart.items:
+        return False
+
+    from apps.orders.services import estimated_total_xof  # Import local : évite le cycle notifications ↔ orders.
+
+    shop_name = cart.shop.name if cart.shop else "ANIFOWOCHE"
+    items = cart.items
+    total = estimated_total_xof(items)
+    recover_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/panier?token={cart.token}"
+
+    message = (
+        f"Vous avez laissé des articles dans votre panier chez {shop_name}. "
+        f"Montant estimé : {total} FCFA. Reprenez votre panier via le lien sécurisé."
+    )
+    html = render_to_string(
+        "emails/abandoned_cart.html",
+        {
+            "shop_name": shop_name,
+            "items": items,
+            "estimated_total": total,
+            "cta_url": recover_url,
+            "logo_url": f"{settings.FRONTEND_BASE_URL}/anifowoche-logo.png",
+        },
+    )
+
+    notification = _send_email(
+        event=Notification.Event.ABANDONED_CART,
+        recipient_email=cart.email,
+        subject=f"Votre panier vous attend chez {shop_name}",
+        message=message,
+        title=f"Votre panier vous attend chez {shop_name}",
+        cta_label="Reprendre mon panier",
+        cta_url=recover_url,
+        html=html,
+    )
+    if notification is None:
+        return False
+    return notification.status == Notification.Status.SENT

@@ -174,7 +174,7 @@ class ShopSlugTests(TestCase):
 
     def test_public_path(self):
         shop = ShopFactory(slug="mon-shop")
-        self.assertEqual(shop.public_path, "/shop/mon-shop")
+        self.assertEqual(shop.public_path, "/sellers/mon-shop")
 
     def test_build_unique_slug_fallback(self):
         slug = Shop._build_unique_slug("")

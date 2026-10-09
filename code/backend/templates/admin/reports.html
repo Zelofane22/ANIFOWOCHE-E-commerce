@@ -7,13 +7,12 @@
     {% include "unfold/helpers/site_branding.html" %}
 {% endblock %}
 
-
-
 {% block extrastyle %}
     <style>
         :root { --anw-surface: #fff; --anw-text-muted: #6b6b6b; --anw-text-strong: #1a1a1a; --anw-text-body: #1a1a1a; --anw-border: #f1efe0; --anw-divider: #f6f4e6; --anw-shadow-ambient: rgba(0,0,0,.06); }
         .dark { --anw-surface: #1f1f1f; --anw-text-muted: #9b9b9b; --anw-text-strong: #f2f2f2; --anw-text-body: #e5e5e5; --anw-border: rgba(255,255,255,.08); --anw-divider: rgba(255,255,255,.08); --anw-shadow-ambient: rgba(0,0,0,.45); }
         .anw-page-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: var(--anw-text-strong); }
+        .anw-page-sub { color: var(--anw-text-muted); font-size: .84rem; margin: -.6rem 0 1rem; }
         .anw-report-card { background: var(--anw-surface); border-radius: 14px; padding: 1.25rem; box-shadow: 0 1px 3px var(--anw-shadow-ambient); border: 1px solid var(--anw-border); margin-bottom: 1rem; }
         .anw-report-title { font-size: .95rem; font-weight: 700; color: var(--anw-text-strong); margin-bottom: .75rem; }
         .anw-report-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
@@ -24,9 +23,12 @@
         .anw-report-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; } .anw-report-filters label { color: var(--anw-text-muted); font-size: .78rem; font-weight: 600; }
         .anw-report-filters select, .anw-report-filters input, .anw-report-filters button, .anw-report-export { border: 1px solid var(--anw-border); border-radius: 8px; padding: .5rem .7rem; background: var(--anw-surface); color: var(--anw-text-body); font: inherit; text-decoration: none; }
         .anw-report-filters button, .anw-report-export { background: #b8a60f; color: #fff; border-color: #b8a60f; font-weight: 700; cursor: pointer; } .anw-custom-dates { display: none; align-items: end; gap: .4rem; } .anw-custom-dates.visible { display: inline-flex; }
-        .anw-report-period { color: var(--anw-text-muted); font-size: .8rem; margin: 0; } .anw-report-kpis, .anw-report-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .anw-report-period { color: var(--anw-text-muted); font-size: .8rem; margin: 0; }
+        .anw-report-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+        .anw-report-chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; }
         .anw-report-kpi { background: var(--anw-surface); border: 1px solid var(--anw-border); border-radius: 14px; padding: 1rem 1.25rem; } .anw-report-kpi span, .anw-report-kpi small { display: block; color: var(--anw-text-muted); font-size: .78rem; } .anw-report-kpi strong { display: block; color: var(--anw-text-strong); font-size: 1.4rem; margin: .3rem 0; } .anw-report-kpi small.positive { color: #16793d; } .anw-report-kpi small.negative { color: #c92a2a; }
-         @media (max-width: 700px) { .anw-report-toolbar { display: block; } .anw-report-period { margin-top: .7rem; } .anw-report-kpis, .anw-report-chart-grid { grid-template-columns: 1fr; } .anw-custom-dates.visible { display: grid; } }
+        @media (max-width: 1024px) { .anw-report-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .anw-report-chart-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .anw-report-toolbar { display: block; } .anw-report-period { margin-top: .7rem; } .anw-report-kpis { grid-template-columns: 1fr; } .anw-custom-dates.visible { display: grid; } }
     </style>
 {% endblock %}
 
@@ -35,6 +37,9 @@
 {% endblock %}
 
 {% block content %}
+    <h1 class="anw-page-title">Rapports — SaaS ANIF Seller</h1>
+    <p class="anw-page-sub">Abonnements, boutiques vendeur et activation de la plateforme. Les ventes de la boutique officielle se consultent dans son espace seller.</p>
+
     <div class="anw-report-toolbar">
         <form method="get" class="anw-report-filters">
             <label for="period">Période</label>
@@ -55,71 +60,94 @@
     </div>
 
     <div class="anw-report-kpis">
-        <div class="anw-report-kpi"><span>Chiffre d’affaires</span><strong>{{ revenue|intcomma }} FCFA</strong>{% if revenue_change is not None %}<small class="{% if revenue_change > 0 %}positive{% elif revenue_change < 0 %}negative{% endif %}">{% if revenue_change > 0 %}↗{% elif revenue_change < 0 %}↘{% endif %} {{ revenue_change }}% vs période précédente</small>{% endif %}</div>
-        <div class="anw-report-kpi"><span>Commandes</span><strong>{{ order_count }}</strong>{% if order_count_change is not None %}<small class="{% if order_count_change > 0 %}positive{% elif order_count_change < 0 %}negative{% endif %}">{% if order_count_change > 0 %}↗{% elif order_count_change < 0 %}↘{% endif %} {{ order_count_change }}% vs période précédente</small>{% endif %}</div>
+        <div class="anw-report-kpi">
+            <span>CA abonnements encaissés</span>
+            <strong>{{ revenue|intcomma }} FCFA</strong>
+            {% if revenue_change is not None %}<small class="{% if revenue_change > 0 %}positive{% elif revenue_change < 0 %}negative{% endif %}">{% if revenue_change > 0 %}↗{% elif revenue_change < 0 %}↘{% endif %} {{ revenue_change }}% vs période précédente</small>{% endif %}
+        </div>
+        <div class="anw-report-kpi">
+            <span>Abonnements payés</span>
+            <strong>{{ subscriptions_approved }}</strong>
+            {% if subscriptions_change is not None %}<small class="{% if subscriptions_change > 0 %}positive{% elif subscriptions_change < 0 %}negative{% endif %}">{% if subscriptions_change > 0 %}↗{% elif subscriptions_change < 0 %}↘{% endif %} {{ subscriptions_change }}% vs période précédente</small>{% endif %}
+        </div>
+        <div class="anw-report-kpi">
+            <span>MRR (fin de période)</span>
+            <strong>{{ mrr|intcomma }} FCFA</strong>
+            <small>{{ paying_vendors }} vendeur{{ paying_vendors|pluralize }} payant{{ paying_vendors|pluralize }}</small>
+        </div>
+        <div class="anw-report-kpi">
+            <span>ARPU</span>
+            <strong>{% if arpu is not None %}{{ arpu|intcomma }} FCFA{% else %}—{% endif %}</strong>
+            <small>Revenu abonnements / vendeur payant</small>
+        </div>
+        <div class="anw-report-kpi">
+            <span>Churn</span>
+            <strong>{% if churn_rate is not None %}{{ churn_rate }} %{% else %}—{% endif %}</strong>
+            <small>{{ churned_vendors_count }} / {{ active_vendors_start_count }} non renouvelé{{ churned_vendors_count|pluralize }}</small>
+        </div>
+        <div class="anw-report-kpi">
+            <span>Boutiques vendeur créées</span>
+            <strong>{{ shops_created }}</strong>
+            <small>{{ shops_total }} boutique{{ shops_total|pluralize }} au total</small>
+        </div>
+        <div class="anw-report-kpi">
+            <span>Taux d'activation</span>
+            <strong>{% if activation_rate is not None %}{{ activation_rate }} %{% else %}—{% endif %}</strong>
+            <small>{{ activation_vendors_activated }} / {{ activation_vendors_total }} vendeur{{ activation_vendors_total|pluralize }}</small>
+        </div>
+        <div class="anw-report-kpi">
+            <span>Abonnements créés</span>
+            <strong>{{ subscriptions_created }}</strong>
+            <small>Tous statuts confondus sur la période</small>
+        </div>
     </div>
 
     <div class="anw-report-chart-grid">
-        <div class="anw-report-card"><div class="anw-report-title">Tendance du chiffre d’affaires</div><canvas id="revenue-chart" height="110"></canvas></div>
-        <div class="anw-report-card"><div class="anw-report-title">Répartition par catégorie</div><canvas id="category-chart" height="180"></canvas></div>
+        <div class="anw-report-card"><div class="anw-report-title">CA abonnements par jour</div><canvas id="revenue-chart" height="110"></canvas></div>
+        <div class="anw-report-card"><div class="anw-report-title">Répartition des abonnements par plan</div><canvas id="plan-chart" height="180"></canvas></div>
     </div>
-    <h1 class="anw-page-title">Rapports</h1>
 
     <div class="anw-report-card">
-        <div class="anw-report-title">Chiffre d'affaires par mois</div>
+        <div class="anw-report-title">Répartition par plan (abonnements payés sur la période)</div>
         <div class="anw-table-wrap"><table class="anw-report-table">
-            <thead><tr><th>Mois</th><th style="text-align:right;">Total</th></tr></thead>
+            <thead><tr><th>Plan</th><th style="text-align:right;">Abonnements payés</th></tr></thead>
             <tbody>
-                {% for row in revenue_by_month %}
-                    <tr><td>{{ row.month }}</td><td style="text-align:right;">{{ row.total|intcomma }} FCFA</td></tr>
+                {% for row in plan_mix %}
+                    <tr><td>{{ row.plan }}</td><td style="text-align:right;">{{ row.count|intcomma }}</td></tr>
                 {% empty %}
-                    <tr><td colspan="2" class="anw-empty">Pas encore de données.</td></tr>
+                    <tr><td colspan="2" class="anw-empty">Aucun abonnement payé sur la période.</td></tr>
                 {% endfor %}
             </tbody>
         </table></div>
     </div>
 
     <div class="anw-report-card">
-        <div class="anw-report-title">Top 10 produits (toutes ventes confondues)</div>
+        <div class="anw-report-title">Dernières transactions SAAS</div>
         <div class="anw-table-wrap"><table class="anw-report-table">
-            <thead><tr><th>Produit</th><th>Quantité vendue</th><th style="text-align:right;">Chiffre d'affaires</th></tr></thead>
+            <thead><tr><th>Vendeur</th><th>Plan</th><th>Statut</th><th style="text-align:right;">Montant</th><th>Date</th></tr></thead>
             <tbody>
-                {% for row in top_products %}
+                {% for sub in recent_subscriptions %}
                     <tr>
-                        <td>{{ row.product__name }}</td>
-                        <td>{{ row.total_quantity }}</td>
-                        <td style="text-align:right;">{{ row.total_revenue|intcomma }} FCFA</td>
+                        <td><a href="{% url 'admin:sellers_sellersubscription_change' sub.id %}">{{ sub.seller.display_name }}</a></td>
+                        <td>{{ sub.get_plan_display }}</td>
+                        <td>{{ sub.get_status_display }}</td>
+                        <td style="text-align:right;">{{ sub.amount_xof|intcomma }} FCFA</td>
+                        <td>{{ sub.created_at|date:"d/m/Y H:i" }}</td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="3" class="anw-empty">Pas encore de données.</td></tr>
+                    <tr><td colspan="5" class="anw-empty">Aucune transaction pour l'instant.</td></tr>
                 {% endfor %}
             </tbody>
         </table></div>
     </div>
 
-    <div class="anw-report-card">
-        <div class="anw-report-title">Répartition par catégorie ({{ total_products }} produits actifs)</div>
-        <div class="anw-table-wrap"><table class="anw-report-table">
-            <thead><tr><th>Catégorie</th><th style="text-align:right;">Chiffre d'affaires</th></tr></thead>
-            <tbody>
-                {% for row in category_breakdown %}
-                    <tr>
-                        <td>{{ row.product__category__name|default:"Autres" }}</td>
-                        <td style="text-align:right;">{{ row.total|intcomma }} FCFA</td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="2" class="anw-empty">Pas encore de données.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table></div>
-    </div>
     <script>
         const periodSelect = document.getElementById("period");
         const customDates = document.getElementById("custom-dates");
         function toggleCustomDates() { customDates.classList.toggle("visible", periodSelect.value === "custom"); }
         periodSelect.addEventListener("change", toggleCustomDates);
         toggleCustomDates();
-        new Chart(document.getElementById("revenue-chart"), { type: "line", data: { labels: {{ revenue_chart_labels_json|safe }}, datasets: [{ label: "Ventes (FCFA)", data: {{ revenue_chart_values_json|safe }}, borderColor: "#b8a60f", backgroundColor: "rgba(230, 211, 21, 0.15)", fill: true, tension: 0.35 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
-        new Chart(document.getElementById("category-chart"), { type: "doughnut", data: { labels: {{ category_labels_json|safe }}, datasets: [{ data: {{ category_values_json|safe }}, backgroundColor: ["#e6d315", "#b8a60f", "#faf6c9", "#6b6b6b", "#52525b"] }] }, options: { plugins: { legend: { position: "bottom" } } } });
+        new Chart(document.getElementById("revenue-chart"), { type: "line", data: { labels: {{ sales_chart_labels_json|safe }}, datasets: [{ label: "CA abonnements (FCFA)", data: {{ sales_chart_values_json|safe }}, borderColor: "#b8a60f", backgroundColor: "rgba(230, 211, 21, 0.15)", fill: true, tension: 0.35 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+        new Chart(document.getElementById("plan-chart"), { type: "doughnut", data: { labels: {{ plan_mix_labels_json|safe }}, datasets: [{ data: {{ plan_mix_values_json|safe }}, backgroundColor: ["#e6d315", "#b8a60f", "#faf6c9", "#6b6b6b", "#52525b"] }] }, options: { plugins: { legend: { position: "bottom" } } } });
     </script>
 {% endblock %}

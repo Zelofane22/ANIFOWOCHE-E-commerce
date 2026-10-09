@@ -2,6 +2,8 @@ from unfold.admin import ModelAdmin, TabularInline
 
 from django.contrib import admin
 
+from apps.core.admin_mixins import ReadOnlyAdminMixin
+
 from .models import Order, OrderItem
 
 
@@ -29,7 +31,10 @@ class ToProcessListFilter(admin.SimpleListFilter):
 
 
 @admin.register(Order)
-class OrderAdmin(ModelAdmin):
+class OrderAdmin(ReadOnlyAdminMixin, ModelAdmin):
+    """Consultation seule : le traitement des commandes se fait dans l'espace
+    seller de chaque boutique."""
+
     list_display = ["reference", "full_name", "phone", "city", "delivery_zone", "status", "total_xof", "created_at"]
     list_filter = ["status", "city", ToProcessListFilter]
     search_fields = ["full_name", "phone", "email"]

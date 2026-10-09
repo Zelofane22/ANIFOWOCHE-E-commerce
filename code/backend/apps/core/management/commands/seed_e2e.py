@@ -14,6 +14,7 @@ from django.db import transaction
 from PIL import Image, ImageDraw
 
 from apps.core.factories import (
+    SellerProfile,
     CategoryFactory,
     DeliverySlotFactory,
     DeliveryZoneFactory,
@@ -104,6 +105,7 @@ class Command(BaseCommand):
         user = User.objects.filter(username=SELLER_USERNAME).first()
         if not user:
             user = UserFactory(username=SELLER_USERNAME, email=SELLER_EMAIL, password=SELLER_PASSWORD)
+            seller = SellerProfileFactory(user=user, display_name=SELLER_DISPLAY_NAME, phone=SELLER_PHONE, plan=SellerProfile.Plan.STARTER)
             self.stdout.write(f"Seller '{SELLER_USERNAME}' créé ({SELLER_EMAIL}).")
         else:
             self.stdout.write(f"Seller '{SELLER_USERNAME}' déjà présent.")

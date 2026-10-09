@@ -20,3 +20,10 @@ export const getOrders = () => apiClient.get("/orders/").then((res) => res.data)
  * @returns {Promise<Order>}
  */
 export const getOrder = (id) => apiClient.get(`/orders/${id}/`).then((res) => res.data);
+
+/**
+ * Synchronise un panier abandonné côté backend dès qu'un email est connu.
+ * @returns {Promise<{token: string|null, status: string|null, items: any[], shop: string|null}>}
+ */
+export const syncAbandonedCart = (payload) =>
+  apiClient.post("/orders/abandoned-cart/", payload).then((res) => res.data);

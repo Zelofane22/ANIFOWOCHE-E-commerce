@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AUTH_LOGIN_EVENT } from "../api/axios.js";
 import { validateCart } from "../api/products.js";
+import { syncAbandonedCart as syncAbandonedCartApi } from "../api/orders.js";
 import { CartContextValue } from "./cartContextValue.js";
 const STORAGE_KEY = "anifowoche_cart";
 
@@ -52,6 +53,9 @@ export function CartProvider({ children }) {
         quantity,
         deliveryMethod,
         sellerAddress: product.sellerAddress || "",
+        sellerName: product.seller_name || "",
+        sellerAllowsOnlinePayment: product.seller_allows_online_payment ?? true,
+        sellerWhatsappPhone: product.seller_whatsapp_phone || "",
       };
       const key = itemKey(newItem);
       const existing = current.find((item) => itemKey(item) === key);
@@ -136,6 +140,9 @@ export function CartProvider({ children }) {
           selectedOptions: item.selected_options || [],
           quantity: item.quantity,
           deliveryMethod: item.delivery_method || "delivery",
+          sellerName: item.seller_name || "",
+          sellerAllowsOnlinePayment: item.seller_allows_online_payment ?? true,
+          sellerWhatsappPhone: item.seller_whatsapp_phone || "",
         }));
         return cartsEqual(next, current) ? current : next;
       });
@@ -152,6 +159,30 @@ export function CartProvider({ children }) {
       } catch {
         // 2 échecs consécutifs : on conserve le panier tel quel.
       }
+    }
+  }, []);
+
+  // Synchronise le panier vers le backend dès qu'un email est connu, afin de
+  // pouvoir relancer le client par email s'il n'a pas finalisé sa commande.
+  // Pour les visiteurs anonymes sans email, aucune donnée n'est envoyée.
+  const syncAbandonedCart = useCallback(async (email) => {
+    const snapshot = itemsRef.current;
+    if (!email || !snapshot || snapshot.length === 0) return;
+    try {
+      await syncAbandonedCartApi({
+        email,
+        items: snapshot.map((item) => ({
+          id: item.id,
+          slug: item.slug,
+          quantity: item.quantity,
+          color_name: item.colorName || "",
+          color_hex: item.colorHex || "",
+          selected_options: item.selectedOptions || [],
+          delivery_method: item.deliveryMethod || "delivery",
+        })),
+      });
+    } catch {
+      // La synchronisation est silencieuse : elle ne doit jamais casser l'UX panier.
     }
   }, []);
 
@@ -187,6 +218,7 @@ export function CartProvider({ children }) {
     updateDeliveryMethod,
     clearCart,
     reconcileCart,
+    syncAbandonedCart,
     itemCount,
     subtotal,
   };

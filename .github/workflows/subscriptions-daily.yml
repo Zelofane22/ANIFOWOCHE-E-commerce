@@ -60,6 +60,11 @@ jobs:
         working-directory: code/backend
         run: pip install -r requirements.txt
 
+      - name: Send abandoned cart reminders
+        if: steps.check.outputs.configured == 'true'
+        working-directory: code/backend
+        run: python manage.py send_abandoned_cart_reminders
+
       - name: Send expiry reminders
         if: steps.check.outputs.configured == 'true'
         working-directory: code/backend

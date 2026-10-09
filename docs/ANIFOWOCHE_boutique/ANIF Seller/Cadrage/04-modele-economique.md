@@ -18,7 +18,7 @@ Monétiser ANIF Seller avec un abonnement mensuel accessible, adapté aux petits
 ## Tarification par offre
 Le revenu principal vient d'un paiement mensuel. Le prix doit rester assez bas pour être acceptable, mais assez clair pour prouver la valeur.
 ### Gratuit — Découvrir
-- 5 produits ;
+- 50 produits ;
 - 5 commandes/mois.
 - vitrine publique (avec identité ANIF affichée) ;
 - bouton WhatsApp ;
@@ -52,7 +52,6 @@ La valeur est directement liée au pilotage et à la croissance commerciale.
 
 ### Business 15000 FCFA/mois (Développer son activité avec ANIFOWOCHE) : Bientôt disponible
 Vérification du vendeur nécessaire pour accéder aux services marketplace, paiement et livraison.
- - Produit accessibles dans la vitrine principale avec un lien 
  - Refférencement SEO sur les produits
  - Paiement Mobile Money et carte bancaire (frais de transaction = 1,6%)
  - livraison prise en charge (un livreur vient récupérer le produit chez vous)

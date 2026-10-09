@@ -2,7 +2,7 @@ from unittest import mock
 
 import requests
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APITestCase
 
 from apps.core.factories import (
@@ -19,6 +19,7 @@ from apps.orders.models import Order, OrderItem
 
 from apps.products.models import Category, Product
 
+from .limits import required_plan_for
 from .models import SellerProfile, Shop
 
 User = get_user_model()
@@ -79,7 +80,7 @@ class SellerApiTests(APITestCase):
 
         response = self.client.get("/api/seller/profile/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["shop"]["public_path"], "/shop/afi-wax")
+        self.assertEqual(response.data["shop"]["public_path"], "/sellers/afi-wax")
 
         patch_response = self.client.patch(
             "/api/seller/profile/",
@@ -724,7 +725,8 @@ class SellerPlanLimitsTests(APITestCase):
 
     def test_order_rejected_when_seller_quota_reached(self):
         product = self._create_orders_for_seller(5)
-        self.client.force_authenticate(user=None)
+        customer = UserFactory(username="client")
+        self.client.force_authenticate(user=customer)
 
         response = self.client.post(
             "/api/orders/",
@@ -924,3 +926,76 @@ class SellerDashboardPeriodTests(APITestCase):
         response = self.client.get("/api/seller/dashboard/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["kpi"]["period_days"], 30)
+
+
+class SellerReportExportTests(APITestCase):
+    """Export CSV des statistiques vendeur, réservé aux offres avec `exports`."""
+
+    def setUp(self):
+        self.user = UserFactory(username="report-seller")
+        self.seller = SellerProfileFactory(
+            user=self.user, display_name="Rapport Boutique", phone="+2290190000000"
+        )
+        self.shop = ShopFactory(
+            seller=self.seller, name="Rapport Wax", whatsapp_phone="+2290190000000"
+        )
+        self.category = CategoryFactory(name="Tissus")
+        self.product = ProductFactory(
+            category=self.category, shop=self.shop, seller=self.seller,
+            is_active=True, price_xof=5000,
+        )
+        order = OrderFactory(customer=UserFactory(), total_xof=5000, status=Order.Status.DELIVERED)
+        OrderItemFactory(order=order, product=self.product, quantity=1, unit_price_xof=5000)
+        self.client.force_authenticate(user=self.user)
+
+    def test_export_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/seller/reports/export/")
+        self.assertEqual(response.status_code, 401)
+
+    def test_export_forbidden_on_free_plan(self):
+        response = self.client.get("/api/seller/reports/export/")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["code"], "feature_not_included")
+        self.assertEqual(response.data["feature"], "exports")
+        self.assertEqual(response.data["required_plan"], "PRO")
+        self.assertEqual(response.data["current_plan"], "FREE")
+        self.assertIn("Pro", response.data["detail"])
+
+    def test_export_forbidden_on_starter_plan(self):
+        self.seller.plan = SellerProfile.Plan.STARTER
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/reports/export/")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["code"], "feature_not_included")
+        self.assertEqual(response.data["current_plan"], "STARTER")
+
+    def test_export_returns_csv_for_pro_plan(self):
+        self.seller.plan = SellerProfile.Plan.PRO
+        self.seller.save(update_fields=["plan"])
+
+        response = self.client.get("/api/seller/reports/export/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        body = response.content.decode()
+        self.assertIn("Rapport de ventes", body)
+        self.assertIn(self.product.name, body)
+
+    def test_export_allowed_for_official_shop(self):
+        self.shop.is_official = True
+        self.shop.save(update_fields=["is_official"])
+
+        response = self.client.get("/api/seller/reports/export/")
+
+        self.assertEqual(response.status_code, 200)
+
+
+class RequiredPlanForTests(SimpleTestCase):
+    def test_required_plan_for(self):
+        self.assertEqual(required_plan_for("exports"), "PRO")
+        self.assertEqual(required_plan_for("online_payment"), "STARTER")
+        self.assertEqual(required_plan_for("multi_store"), "BUSINESS")
+        self.assertIsNone(required_plan_for("inconnue"))

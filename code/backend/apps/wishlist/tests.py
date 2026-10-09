@@ -72,9 +72,9 @@ class WishlistAdminTests(TestCase):
         response = self.client.get("/admin/wishlist/wishlistitem/")
         self.assertEqual(response.status_code, 200)
 
-    def test_wishlistitem_add_form(self):
+    def test_wishlistitem_add_form_is_read_only(self):
         response = self.client.get("/admin/wishlist/wishlistitem/add/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_non_staff_cannot_access(self):
         user = UserFactory(username="regular-wishlist")

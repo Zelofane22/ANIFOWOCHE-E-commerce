@@ -20,6 +20,7 @@ from .services import (
     start_fedapay_transaction,
     verify_webhook_signature,
 )
+from apps.sellers.limits import can_accept_online_payment
 from apps.sellers.services import apply_subscription_status
 
 logger = logging.getLogger(__name__)
@@ -48,11 +49,12 @@ class InitiatePaymentView(APIView):
     Pour le paiement à la livraison, seule une ligne Payment en attente est
     créée afin que la commande apparaisse dans le suivi backoffice.
 
-    Limité par un scope de rate limiting dédié (au lieu du seul throttle anon
-    générique) : chaque appel déclenche un appel payant à l'API FedaPay et crée
-    une ligne Payment — un abus serait coûteux, pas juste bruyant."""
+    Requiert un client authentifié (l'achat est réservé aux comptes inscrits).
+    Limité par un scope de rate limiting dédié : chaque appel déclenche un appel
+    payant à l'API FedaPay et crée une ligne Payment — un abus serait coûteux,
+    pas juste bruyant."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "payments"
 
@@ -72,6 +74,22 @@ class InitiatePaymentView(APIView):
                 amount_xof=order.total_xof,
             )
             return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+        # Paiement en ligne : réservé aux vendeurs Business (ou boutique officielle).
+        # Un panier contenant un produit d'un vendeur STARTER/PRO/FREE bascule en
+        # paiement à la livraison.
+        if any(
+            item.product.seller is not None
+            and not can_accept_online_payment(item.product.seller)
+            for item in order.items.select_related("product__seller").all()
+        ):
+            return Response(
+                {
+                    "detail": "Le paiement en ligne est réservé aux boutiques Business. "
+                    "Merci de choisir le paiement à la livraison."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Paiement en ligne : vérification des bascules admin (global et par moyen).
         payment_settings = PaymentSettings.get_solo()
