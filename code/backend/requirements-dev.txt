@@ -5,7 +5,7 @@
 
 # Tunnel ngrok pour tester les webhooks externes (FedaPay...) en local —
 # voir apps/core/management/commands/start_ngrok.py.
-pyngrok>=8.1.2
+pyngrok>=9.0.3
 
 # Factories pour les tests (remplace les setUp() manuels)
 factory-boy>=3.3.3
