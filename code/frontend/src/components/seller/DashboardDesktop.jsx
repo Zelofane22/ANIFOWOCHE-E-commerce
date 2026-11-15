@@ -267,7 +267,7 @@ function OrdersTable({ orders }) {
               <th className="w-[34%] py-2.5 pl-5 font-bold">Client</th>
               <th className="w-[11%] py-2.5 font-bold">N°</th>
               <th className="w-[17%] py-2.5 font-bold">Date</th>
-              <th className="w-[11%] py-2.5 font-bold">Articles</th>
+              <th className="hidden w-[11%] py-2.5 font-bold 2xl:table-cell">Articles</th>
               <th className="w-[15%] py-2.5 font-bold">Statut</th>
               <th className="py-2.5 pr-5 text-right font-bold">Total</th>
             </tr>
@@ -291,7 +291,7 @@ function OrdersTable({ orders }) {
                   </td>
                   <td className="py-3 text-[13px] font-semibold text-ink">#{order.id}</td>
                   <td className="py-3 text-[13px] text-muted">{formatOrderDate(order.created_at)}</td>
-                  <td className="py-3 text-[13px] text-muted">
+                  <td className="hidden py-3 text-[13px] text-muted 2xl:table-cell">
                     {count} article{count > 1 ? "s" : ""}
                   </td>
                   <td className="py-3">
