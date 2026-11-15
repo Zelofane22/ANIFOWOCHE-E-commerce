@@ -3,13 +3,15 @@ name: DB Backup
 # US-37 — Sauvegarde quotidienne de la base PostgreSQL Render.
 # Le plan free Render ne fournit aucune sauvegarde automatique : ce workflow
 # fait un pg_dump via l'URL de connexion externe, chiffre le dump (GPG,
-# AES-256) et le stocke comme artifact GitHub (30 jours de rétention).
+# AES-256) et le stocke comme artifact GitHub (90 jours de rétention).
 # Secrets requis (repo → Settings → Secrets → Actions) :
 #   - RENDER_DATABASE_URL : "External Database URL" du dashboard Render
 #   - BACKUP_PASSPHRASE   : passphrase de chiffrement des dumps
 # Sans ces secrets, le workflow se termine sans erreur (simple notice) pour
 # ne pas générer un échec quotidien tant que la prod n'est pas branchée.
-# Procédure de restauration : docs/backups.md
+# Procédure de restauration :
+#   gpg --decrypt --passphrase "$BACKUP_PASSPHRASE" anifowoche-db-YYYY-MM-DD.dump.gpg > dump.dump
+#   pg_restore --clean --no-owner --no-privileges -d "$DATABASE_URL" dump.dump
 
 on:
   schedule:
@@ -61,7 +63,7 @@ jobs:
         with:
           name: anifowoche-db-backup-${{ github.run_id }}
           path: "*.dump.gpg"
-          retention-days: 30
+          retention-days: 90
           if-no-files-found: error
 
       - name: Notify on failure
@@ -74,5 +76,5 @@ jobs:
           password: ${{ secrets.NOTIFY_EMAIL_PASSWORD }}
           subject: "❌ Échec sauvegarde DB - ANIFOWOCHE E-commerce"
           to: ${{ secrets.NOTIFY_EMAIL_TO }}
-          from: ANIFOWOCHE Backup Bot
+          from: "ANIFOWOCHE Backup Bot <${{ secrets.NOTIFY_EMAIL_USER }}>"
           body: file://${{ github.workspace }}/.github/workflows/backup-failure-email.txt
