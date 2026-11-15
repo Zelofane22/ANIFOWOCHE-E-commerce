@@ -1,15 +1,17 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
-import { getSellerProfile, updateSellerProfile } from "../api/seller.js";
+import { getSellerProfile, updateSellerProfile, uploadShopAvatar, deleteShopAvatar } from "../api/seller.js";
 import { fetchDeliveryZones } from "../api/delivery.js";
 import {
   CheckIcon,
   CopyIcon,
   ExternalLinkIcon,
   ChevronRightIcon,
+  ImageIcon,
   MessageSquareIcon,
   Share2Icon,
   StoreIcon,
+  TrashIcon,
   GlobeIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
@@ -86,6 +88,9 @@ export default function SellerShopPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState(null);
+  const avatarInputRef = useRef(null);
   const { maintenanceMode } = useStoreStatus();
 
   useEffect(() => {
@@ -182,6 +187,55 @@ export default function SellerShopPage() {
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
 
+  const handleAvatarChange = async (e) => {
+    if (maintenanceMode) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const extOk = /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!allowed.includes(file.type) || !extOk) {
+      setAvatarError("Format accepté : JPG, PNG ou WEBP.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("L'image ne doit pas dépasser 5 Mo.");
+      return;
+    }
+
+    setAvatarLoading(true);
+    setAvatarError(null);
+    try {
+      const data = await uploadShopAvatar(file);
+      setSeller((current) => ({
+        ...current,
+        shop: { ...current.shop, image: data.image },
+      }));
+    } catch (err) {
+      setAvatarError(extractErrorMessage(err));
+    } finally {
+      setAvatarLoading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    if (maintenanceMode || !seller.shop?.image) return;
+    setAvatarLoading(true);
+    setAvatarError(null);
+    try {
+      await deleteShopAvatar();
+      setSeller((current) => ({
+        ...current,
+        shop: { ...current.shop, image: null },
+      }));
+    } catch (err) {
+      setAvatarError(extractErrorMessage(err));
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
   return (
     <SellerShell title="Boutique" seller={seller}>
       {maintenanceMode && (
@@ -204,6 +258,62 @@ export default function SellerShopPage() {
             <div>
               <p className="text-white font-bold text-sm">Boutique en ligne et active</p>
               <p className="text-white/50 text-xs mt-0.5">Accessible 24h/24 à vos clients</p>
+            </div>
+          </div>
+
+          {/* Avatar boutique */}
+          <div className="mt-6 flex items-center gap-4">
+            <div className="relative">
+              <div className="h-20 w-20 rounded-full bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden">
+                {seller.shop?.image ? (
+                  <img
+                    src={seller.shop.image}
+                    alt={shopName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <StoreIcon size={32} className="text-white/70" />
+                )}
+              </div>
+              {avatarLoading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white">Image de la boutique</p>
+              <p className="text-xs text-white/50">JPG, PNG ou WEBP · max 5 Mo</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={avatarLoading || maintenanceMode}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/20 disabled:opacity-50"
+                >
+                  <ImageIcon size={14} />
+                  {seller.shop?.image ? "Changer l'image" : "Ajouter une image"}
+                </button>
+                {seller.shop?.image && (
+                  <button
+                    type="button"
+                    disabled={avatarLoading || maintenanceMode}
+                    onClick={handleAvatarDelete}
+                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-red-500/20 px-3 py-2 text-xs font-bold text-red-200 transition hover:bg-red-500/30 disabled:opacity-50"
+                  >
+                    <TrashIcon size={14} />
+                    Retirer
+                  </button>
+                )}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+              {avatarError && <p className="mt-2 text-xs text-red-300">{avatarError}</p>}
             </div>
           </div>
         </div>

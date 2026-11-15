@@ -4,6 +4,11 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
+def shop_avatar_upload_to(instance, filename):
+    # Stockage sous MEDIA_ROOT/shops/avatars/<shop_slug>/<filename>
+    return f"shops/avatars/{instance.slug}/{filename}"
+
+
 class SellerProfile(models.Model):
     """Profil commercial d'un utilisateur : identité publique et plan d'abonnement."""
     class Plan(models.TextChoices):
@@ -44,6 +49,7 @@ class Shop(models.Model):
         help_text="Afficher les produits de cette boutique dans le catalogue, "
                   "la recherche et la wishlist de la vitrine principale anifowoche.com",
     )
+    image = models.ImageField(upload_to=shop_avatar_upload_to, blank=True, null=True, verbose_name="Avatar de la boutique")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

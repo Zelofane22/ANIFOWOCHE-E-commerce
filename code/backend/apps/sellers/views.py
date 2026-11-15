@@ -1,8 +1,10 @@
 import csv
 import io
 import logging
+import os
 
 from datetime import date, timedelta
+from PIL import Image
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -10,8 +12,9 @@ from django.db.models import Count, F, Sum, Q
 from django.db.models.functions import ExtractHour, ExtractIsoWeekDay, TruncDate
 from django.utils import timezone
 from django.utils.text import slugify
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.exceptions import APIException, NotFound
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
@@ -36,6 +39,7 @@ from .serializers import (
     SellerOrderStatusSerializer,
     SellerProfileSerializer,
     SellerRegisterSerializer,
+    ShopSerializer,
 )
 
 KPI_PERIOD_DAYS = 30
@@ -805,3 +809,79 @@ class SellerAnalyticsActiveView(APIView):
         from .services import active_sellers_analytics
 
         return Response(active_sellers_analytics())
+
+class SellerShopAvatarView(APIView):
+    """Upload ou suppression de l'avatar de la boutique du vendeur connecté."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    AVATAR_MAX_SIZE = 5 * 1024 * 1024  # 5 Mo
+    AVATAR_FORMATS = {"JPEG", "PNG", "WEBP"}
+    AVATAR_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+
+    def _get_shop(self):
+        try:
+            seller = self.request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+        return seller.shop
+
+    def _validate_avatar(self, file):
+        if file.size > self.AVATAR_MAX_SIZE:
+            raise serializers.ValidationError("L'image ne doit pas dépasser 5 Mo.")
+
+        ext = os.path.splitext(file.name)[1].lstrip(".").lower()
+        if ext not in self.AVATAR_EXTENSIONS:
+            raise serializers.ValidationError("Format non supporté. Utilisez JPG, PNG ou WEBP.")
+
+        try:
+            image = Image.open(file)
+            fmt = image.format
+            image.verify()
+        except Exception:
+            raise serializers.ValidationError("Le fichier n'est pas une image valide.")
+
+        if fmt not in self.AVATAR_FORMATS:
+            raise serializers.ValidationError("Format non supporté. Utilisez JPG, PNG ou WEBP.")
+
+        file.seek(0)
+        return ext
+
+    def patch(self, request, *args, **kwargs):
+        """Upload d'un nouvel avatar (remplace l'ancien et supprime le fichier précédent)."""
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+
+        shop = self._get_shop()
+        file = request.FILES.get("image")
+        if not file:
+            return Response({"detail": "Aucune image fournie."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            ext = self._validate_avatar(file)
+        except serializers.ValidationError as exc:
+            return Response({"detail": exc.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        if shop.image:
+            shop.image.delete(save=False)
+
+        filename = f"avatar.{ext}"
+        shop.image.save(filename, file, save=True)
+        return Response(ShopSerializer(shop).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        """Supprime l'avatar actuel de la boutique."""
+        blocked = block_if_maintenance()
+        if blocked:
+            return blocked
+
+        shop = self._get_shop()
+        if not shop.image:
+            return Response({"detail": "Aucun avatar à supprimer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        shop.image.delete(save=False)
+        shop.save(update_fields=["image"])
+        return Response(ShopSerializer(shop).data, status=status.HTTP_200_OK)
+

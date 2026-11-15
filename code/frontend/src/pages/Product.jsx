@@ -303,7 +303,7 @@ function ProductView({ slug }) {
         <span className="max-w-52 truncate text-ink">{product.name}</span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr_340px] lg:gap-8">
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr] lg:gap-10">
         <div>
           <ProductGallery
             images={galleryImages}
@@ -330,24 +330,6 @@ function ProductView({ slug }) {
           />
         </div>
 
-        <aside className="hidden lg:block">
-          <div className="sticky top-28 rounded-xl border border-black/10 bg-white p-5 shadow-sm">
-            <ProductInfo product={product} badge={badge} selectedColor={selectedColor} optionErrors={optionErrors} onColorChange={setSelectedColor} onOptionToggle={handleOptionToggle} isOptionSelected={isOptionSelected} quantity={quantity} setQuantity={setQuantity} unit={unit} isRestaurantProduct={isRestaurantProduct} />
-
-            <ProductActions
-              handleBuyNow={handleBuyNow}
-              handleAddToCart={handleAddToCart}
-              handleToggleWishlist={handleToggleWishlist}
-              handleShare={handleShare}
-              wishlisted={wishlisted}
-              added={added}
-              shared={shared}
-              outOfStock={outOfStock}
-              maintenanceMode={maintenanceMode}
-              isMobile={false}
-            />
-          </div>
-        </aside>
       </div>
 
       <ProductReviews productId={product.id} productSlug={slug} />
