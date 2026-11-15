@@ -20,7 +20,7 @@ const PERIODS = [
   ["3m", "3 mois"],
 ];
 
-export const PERIOD_LABEL = {
+const PERIOD_LABEL = {
   "7j": "7 derniers jours",
   "30j": "30 derniers jours",
   "3m": "3 derniers mois",

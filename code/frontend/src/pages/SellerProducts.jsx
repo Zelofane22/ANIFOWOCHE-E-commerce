@@ -8,6 +8,7 @@ import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
 import ProductImage from "../components/ProductImage.jsx";
+import ProductsTableDesktop from "../components/seller/ProductsTableDesktop.jsx";
 
 const FILTERS = [
   { key: "all", label: "Tous" },
@@ -91,6 +92,11 @@ export default function SellerProducts() {
   const productLimit = seller?.limits?.max_products ?? null;
   const activeCount = useMemo(() => products.filter((p) => p.is_active).length, [products]);
 
+  const counts = useMemo(
+    () => Object.fromEntries(FILTERS.map((f) => [f.key, products.filter((p) => productMatchesFilter(p, f.key)).length])),
+    [products]
+  );
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return products.filter((p) => {
@@ -121,10 +127,34 @@ export default function SellerProducts() {
     );
   }
 
+  const desktopHeader = {
+    title: "Produits",
+    subtitle: `${activeCount}${productLimit != null ? ` / ${productLimit}` : ""} produit${activeCount > 1 ? "s" : ""} publié${activeCount > 1 ? "s" : ""}${
+      productLimit != null ? " · limite de votre offre" : ""
+    }`,
+    actions: maintenanceMode ? (
+      <span
+        className="inline-flex cursor-not-allowed items-center gap-2 rounded-[10px] bg-gray-200 px-4 py-2.5 text-sm font-bold text-gray-400"
+        title="Boutique en maintenance"
+      >
+        <PlusIcon size={16} />
+        Ajouter un produit
+      </span>
+    ) : (
+      <Link
+        to="/products/new"
+        className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+      >
+        <PlusIcon size={16} />
+        Ajouter un produit
+      </Link>
+    ),
+  };
+
   return (
-    <SellerShell seller={seller} pendingCount={0}>
-      {/* Sticky header */}
-      <div className="bg-white px-5 pt-12 pb-4 border-b border-black/5 sticky top-0 z-10">
+    <SellerShell seller={seller} pendingCount={0} header={desktopHeader}>
+      {/* Sticky header (mobile) */}
+      <div className="bg-white px-5 pt-12 pb-4 border-b border-black/5 sticky top-0 z-10 lg:hidden">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-[#111827]">Produits</h1>
@@ -180,7 +210,7 @@ export default function SellerProducts() {
       </div>
 
       {maintenanceMode && (
-        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 lg:mx-8 lg:mt-6 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
           </svg>
@@ -188,8 +218,25 @@ export default function SellerProducts() {
         </div>
       )}
 
-      {/* Product grid */}
-      <div className="px-4 pt-4 pb-24">
+      {/* Desktop table */}
+      <div className="hidden lg:block">
+        <ProductsTableDesktop
+          products={filtered}
+          totalCount={products.length}
+          filters={FILTERS}
+          counts={counts}
+          filter={filter}
+          onFilterChange={setFilter}
+          search={search}
+          onSearchChange={setSearch}
+          onArchive={handleArchive}
+          maintenanceMode={maintenanceMode}
+          StatusBadge={StatusBadge}
+        />
+      </div>
+
+      {/* Product grid (mobile) */}
+      <div className="px-4 pt-4 pb-24 lg:hidden">
         {filtered.length === 0 ? (
           <div className="py-16 text-center">
             <div className="w-16 h-16 rounded-2xl bg-[#F3F4F6] flex items-center justify-center mx-auto">
