@@ -204,7 +204,7 @@ export default function SellerDashboard() {
       </div>
 
       <div className="mx-auto max-w-2xl space-y-4 lg:hidden">
-        <div className="-mx-4 rounded-2xl bg-[#111827] px-5 pt-8 pb-6 sm:mx-0 sm:rounded-2xl">
+        <div className="rounded-2xl bg-[#111827] px-5 pt-8 pb-6">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-gray-400">

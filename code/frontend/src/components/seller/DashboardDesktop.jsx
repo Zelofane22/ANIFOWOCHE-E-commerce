@@ -300,7 +300,7 @@ function OrdersTable({ orders }) {
                   <td className="py-3 pr-5">
                     <Link
                       to={`/orders/${order.id}`}
-                      className="flex items-center justify-end gap-2 text-sm font-bold text-ink"
+                      className="flex items-center justify-end gap-2 whitespace-nowrap text-sm font-bold text-ink"
                       aria-label={`Voir la commande #${order.id}`}
                     >
                       {formatXof(order.total_xof ?? order.total)}
