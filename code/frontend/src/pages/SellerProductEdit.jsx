@@ -4,7 +4,7 @@ import { fetchCategoryTree } from "../api/products.js";
 import { getSellerProducts, getSellerProfile } from "../api/seller.js";
 import { PackageIcon } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
-import ProductFormMobile from "../components/seller/ProductFormMobile.jsx";
+import ProductFormScreen from "../components/seller/ProductFormScreen.jsx";
 import { useAuth } from "../context/useAuth.js";
 
 export default function SellerProductEdit() {
@@ -70,7 +70,7 @@ export default function SellerProductEdit() {
   }
 
   return (
-    <ProductFormMobile
+    <ProductFormScreen
       seller={seller}
       categoryTree={categoryTree}
       product={product}

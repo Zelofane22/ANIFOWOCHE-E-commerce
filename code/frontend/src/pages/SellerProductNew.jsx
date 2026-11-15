@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { fetchCategoryTree } from "../api/products.js";
 import { getSellerProducts, getSellerProfile } from "../api/seller.js";
-import ProductFormMobile from "../components/seller/ProductFormMobile.jsx";
+import ProductFormScreen from "../components/seller/ProductFormScreen.jsx";
 import { useAuth } from "../context/useAuth.js";
 
 export default function SellerProductNew() {
@@ -36,7 +36,7 @@ export default function SellerProductNew() {
   const activeProductCount = products.filter((p) => p.is_active).length;
 
   return (
-    <ProductFormMobile
+    <ProductFormScreen
       seller={seller}
       categoryTree={categoryTree}
       activeProductCount={activeProductCount}
