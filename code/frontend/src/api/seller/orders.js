@@ -1,9 +1,13 @@
 import apiClient from "../axios.js";
+import { fetchAllPages } from "./paginate.js";
 
 /**
- * @returns {Promise<Paginated & {results: Order[]}>}
+ * Récupère TOUTES les commandes du vendeur (toutes les pages DRF).
+ * Sans ça, liste, compteurs par statut, recherche et filtre « À traiter »
+ * ne voyaient que les 20 premières commandes.
+ * @returns {Promise<{count: number, results: Order[]}>}
  */
-export const getSellerOrders = () => apiClient.get("/seller/orders/").then((res) => res.data);
+export const getSellerOrders = () => fetchAllPages("/seller/orders/");
 
 /**
  * @returns {Promise<Order>}

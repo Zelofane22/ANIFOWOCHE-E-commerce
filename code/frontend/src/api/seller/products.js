@@ -1,23 +1,11 @@
 import apiClient from "../axios.js";
-
-// Garde-fou : 50 pages × 20 produits couvrent largement tous les paliers.
-const MAX_PAGES = 50;
+import { fetchAllPages } from "./paginate.js";
 
 /**
- * Récupère TOUS les produits du vendeur en parcourant la pagination DRF
- * (PAGE_SIZE = 20). Sans ça, les pages produits ne voyaient que les 20 premiers.
+ * Récupère TOUS les produits du vendeur (toutes les pages DRF).
  * @returns {Promise<{count: number, results: Product[]}>}
  */
-export const getSellerProducts = async () => {
-  const results = [];
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const { data } = await apiClient.get("/seller/products/", { params: { page } });
-    if (Array.isArray(data)) return { count: data.length, results: data };
-    results.push(...(data.results ?? []));
-    if (!data.next) break;
-  }
-  return { count: results.length, results };
-};
+export const getSellerProducts = () => fetchAllPages("/seller/products/");
 
 /**
  * @returns {Promise<Product>}
