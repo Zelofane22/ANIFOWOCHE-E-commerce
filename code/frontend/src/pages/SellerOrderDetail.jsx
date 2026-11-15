@@ -14,15 +14,15 @@ import { itemsCount } from "../utils/sellerOrders.js";
 import { formatDateTime } from "../utils/sellerOrderDetail.js";
 
 const STATUS_CONFIG = {
-  received: { label: "Recue", color: "#7C3AED", bg: "#F5F3FF", Icon: ClockIcon },
-  prepared: { label: "En preparation", color: "#2563EB", bg: "#EFF6FF", Icon: PackageIcon },
-  delivered: { label: "Livree", color: "#059669", bg: "#ECFDF5", Icon: CheckIcon },
-  cancelled: { label: "Annulee", color: "#DC2626", bg: "#FEF2F2", Icon: AlertCircleIcon },
+  received: { label: "Reçue", color: "#7C3AED", bg: "#F5F3FF", Icon: ClockIcon },
+  prepared: { label: "En préparation", color: "#2563EB", bg: "#EFF6FF", Icon: PackageIcon },
+  delivered: { label: "Livrée", color: "#059669", bg: "#ECFDF5", Icon: CheckIcon },
+  cancelled: { label: "Annulée", color: "#DC2626", bg: "#FEF2F2", Icon: AlertCircleIcon },
 };
 
-const PAYMENT_STATUS_LABEL = { pending: "En attente", approved: "Approuve", declined: "Refuse", canceled: "Annule", failed: "Echec" };
-const PAYMENT_METHOD_LABEL = { mtn: "MTN Mobile Money", moov: "Moov Money", card: "Carte bancaire", cash_on_delivery: "Paiement a la livraison" };
-const TIMELINE_STEPS = ["Commande recue", "Paiement confirme", "Preparation", "Livree"];
+const PAYMENT_STATUS_LABEL = { pending: "En attente", approved: "Approuvé", declined: "Refusé", canceled: "Annulé", failed: "Échec" };
+const PAYMENT_METHOD_LABEL = { mtn: "MTN Mobile Money", moov: "Moov Money", card: "Carte bancaire", cash_on_delivery: "Paiement à la livraison" };
+const TIMELINE_STEPS = ["Commande reçue", "Paiement confirmé", "Préparation", "Livrée"];
 
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? { label: status, color: "#6B7280", bg: "#F3F4F6", Icon: ClockIcon };
@@ -244,7 +244,7 @@ export default function SellerOrderDetail() {
                 {Object.entries(ORDER_STATUS).map(([st, cfg]) => <option key={st} value={st}>{cfg.label}</option>)}
               </select>
               <button type="button" onClick={handleSubmitStatus} disabled={saving || maintenanceMode || statusSelection === order.status} className="min-h-11 w-full rounded-lg bg-[#C99F08] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b38a00] disabled:cursor-not-allowed disabled:opacity-50">
-                {saving ? "Enregistrement..." : "Mettre a jour"}
+                {saving ? "Enregistrement..." : "Mettre à jour"}
               </button>
               {statusError ? <p role="alert" className="text-sm text-red-600">{statusError}</p> : null}
             </div>
@@ -259,10 +259,10 @@ export default function SellerOrderDetail() {
                 {order.payment_info.status === "pending" ? (
                   <div className="mt-3 space-y-2">
                     <button type="button" onClick={handleConfirmPayment} disabled={confirming || maintenanceMode} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
-                      {confirming ? "Confirmation en cours..." : "Confirmer le paiement recu"}
+                      {confirming ? "Confirmation en cours..." : "Confirmer le paiement reçu"}
                     </button>
-                    {confirmResult ? (confirmResult.success ? <p role="status" className="text-sm text-green-700">Paiement confirme.</p> : <p role="alert" className="text-sm text-red-600">{confirmResult.message || "Echec."}</p>) : null}
-                    <a href={whatsappUrl(order.phone, "Bonjour " + order.full_name + ", le paiement de votre commande ANIFOWOCHE #" + order.id + " n a pas ete confirme. Pouvez-vous finaliser ?")} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:border-[#C99F08] hover:text-[#C99F08]"><SendIcon size={15} />Relancer le paiement (WhatsApp)</a>
+                    {confirmResult ? (confirmResult.success ? <p role="status" className="text-sm text-green-700">Paiement confirmé.</p> : <p role="alert" className="text-sm text-red-600">{confirmResult.message || "Échec."}</p>) : null}
+                    <a href={whatsappUrl(order.phone, "Bonjour " + order.full_name + ", le paiement de votre commande ANIFOWOCHE #" + order.id + " n'a pas été confirmé. Pouvez-vous le finaliser ?")} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:border-[#C99F08] hover:text-[#C99F08]"><SendIcon size={15} />Relancer le paiement (WhatsApp)</a>
                   </div>
                 ) : null}
                 {(order.payment_info.status === "failed" || order.payment_info.status === "declined" || order.payment_info.status === "canceled") ? (
@@ -270,7 +270,7 @@ export default function SellerOrderDetail() {
                     <button type="button" onClick={handleRelaunchPayment} disabled={relaunching || maintenanceMode} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50">
                       <RefreshCwIcon size={15} />{relaunching ? "Relance en cours..." : "Relancer le paiement"}
                     </button>
-                    {relaunchResult ? (relaunchResult.success && relaunchResult.payment_url ? <a href={relaunchResult.payment_url} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"><ExternalLinkIcon size={15} />Nouveau lien de paiement</a> : <p role="alert" className="text-sm text-red-600">{relaunchResult.message || "Echec."}</p>) : null}
+                    {relaunchResult ? (relaunchResult.success && relaunchResult.payment_url ? <a href={relaunchResult.payment_url} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"><ExternalLinkIcon size={15} />Nouveau lien de paiement</a> : <p role="alert" className="text-sm text-red-600">{relaunchResult.message || "Échec."}</p>) : null}
                   </div>
                 ) : null}
               </div>
@@ -280,7 +280,7 @@ export default function SellerOrderDetail() {
           <div className="rounded-2xl border border-black/[0.05] bg-white p-5 shadow-sm">
             <p className="text-sm font-bold text-[#111827] mb-3 flex items-center gap-2"><MessageSquareIcon size={15} className="text-[#C99F08]" />Contacter le client</p>
             <div className="space-y-2">
-              <a href={whatsappUrl(order.phone, "Bonjour " + order.full_name + ", je confirme la reception de votre commande ANIFOWOCHE #" + order.id + ". Je vous tiens au courant.")} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:border-[#C99F08] hover:text-[#C99F08]"><SendIcon size={15} />Confirmer la commande</a>
+              <a href={whatsappUrl(order.phone, "Bonjour " + order.full_name + ", je confirme la réception de votre commande ANIFOWOCHE #" + order.id + ". Je vous tiens au courant.")} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:border-[#C99F08] hover:text-[#C99F08]"><SendIcon size={15} />Confirmer la commande</a>
               <a href={whatsappUrl(order.phone, "Bonjour " + order.full_name + ", le paiement de votre commande ANIFOWOCHE #" + order.id + " n a pas abouti. Pourrez-vous finaliser ?")} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:border-[#C99F08] hover:text-[#C99F08]"><SendIcon size={15} />Relancer le paiement</a>
               <a href={whatsappUrl(order.phone, "Bonjour " + order.full_name + ", un article de votre commande ANIFOWOCHE #" + order.id + " est en rupture de stock. Je vous contacte pour trouver une solution.")} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:border-[#C99F08] hover:text-[#C99F08]"><SendIcon size={15} />Rupture de stock</a>
             </div>
@@ -297,7 +297,7 @@ export default function SellerOrderDetail() {
               <div>
                 <h3 className="text-lg font-bold text-[#111827]">Annuler la commande</h3>
                 <p className="mt-2 text-sm text-[#6B7280]">Etes-vous sur de vouloir annuler cette commande de {order.full_name} ?</p>
-                <p className="mt-1 text-xs text-[#9CA3AF]">Cette action remettra les produits en stock et ne peut pas etre annulee.</p>
+                <p className="mt-1 text-xs text-[#9CA3AF]">Cette action remettra les produits en stock et ne peut pas être annulée.</p>
               </div>
             </div>
             <div className="mt-4">
@@ -307,7 +307,7 @@ export default function SellerOrderDetail() {
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => { setShowCancelModal(false); setCancelReason(""); }} className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111827] transition hover:bg-gray-50">Retour</button>
               <button type="button" onClick={handleCancelConfirm} disabled={saving} className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50">
-                {saving ? "Annulation..." : "Confirmer l annulation"}
+                {saving ? "Annulation..." : "Confirmer l'annulation"}
               </button>
             </div>
           </div>

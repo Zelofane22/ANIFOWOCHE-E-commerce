@@ -127,13 +127,15 @@ class OrderSerializer(serializers.ModelSerializer):
             "total_xof",
             "items",
             "payment_info",
+            "prepared_at",
+            "delivered_at",
             "cancelled_at",
             "cancellation_reason",
             "created_at",
             "updated_at",
             "requires_delivery",
         ]
-        read_only_fields = ["discount_xof", "total_xof", "cancelled_at", "cancellation_reason", "created_at", "updated_at"]
+        read_only_fields = ["discount_xof", "total_xof", "prepared_at", "delivered_at", "cancelled_at", "cancellation_reason", "created_at", "updated_at"]
 
     def get_payment_info(self, obj):
         # Renvoie le dernier paiement de la commande (None si aucun).

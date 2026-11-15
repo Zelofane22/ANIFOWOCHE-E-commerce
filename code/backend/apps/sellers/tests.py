@@ -342,6 +342,7 @@ class SellerApiTests(APITestCase):
         self.assertEqual(response.data["status"], "prepared")
         order.refresh_from_db()
         self.assertEqual(order.status, Order.Status.PREPARED)
+        self.assertIsNotNone(order.prepared_at)
 
     @mock.patch("apps.notifications.services.requests.post", side_effect=requests.exceptions.ConnectionError)
     def test_seller_can_cancel_received_order(self, mock_post):

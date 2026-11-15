@@ -243,3 +243,36 @@ class WishlistUniqueConstraintTests(TestCase):
         WishlistItemFactory(user=user1, product=product)
         WishlistItemFactory(user=user2, product=product)
         self.assertEqual(2, WishlistItemFactory._meta.model.objects.count())
+
+
+class OrderStatusTimestampTests(TestCase):
+    def test_prepared_then_delivered_are_stamped(self):
+        order = OrderFactory(status=Order.Status.RECEIVED)
+        self.assertIsNone(order.prepared_at)
+
+        order = Order.objects.get(pk=order.pk)
+        order.status = Order.Status.PREPARED
+        order.save(update_fields=["status"])
+        order.refresh_from_db()
+        self.assertIsNotNone(order.prepared_at)
+        self.assertIsNone(order.delivered_at)
+        prepared_at = order.prepared_at
+
+        order = Order.objects.get(pk=order.pk)
+        order.status = Order.Status.DELIVERED
+        order.save(update_fields=["status"])
+        order.refresh_from_db()
+        self.assertEqual(order.prepared_at, prepared_at)
+        self.assertIsNotNone(order.delivered_at)
+
+    def test_saving_without_status_change_keeps_timestamp(self):
+        order = OrderFactory(status=Order.Status.RECEIVED)
+        order = Order.objects.get(pk=order.pk)
+        order.status = Order.Status.PREPARED
+        order.save()
+        first = Order.objects.get(pk=order.pk).prepared_at
+
+        order = Order.objects.get(pk=order.pk)
+        order.full_name = "Autre nom"
+        order.save()
+        self.assertEqual(Order.objects.get(pk=order.pk).prepared_at, first)

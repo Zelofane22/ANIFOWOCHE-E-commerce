@@ -45,6 +45,8 @@ class Order(models.Model):
     coupon_code = models.CharField(max_length=30, blank=True, default="")
     discount_xof = models.PositiveIntegerField(default=0)
     total_xof = models.PositiveIntegerField(default=0)
+    prepared_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancellation_reason = models.CharField(max_length=500, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -56,6 +58,35 @@ class Order(models.Model):
     def __str__(self):
         # Représentation lisible : numéro de commande et nom du client.
         return f"Commande #{self.pk} — {self.full_name}"
+
+    STATUS_TIMESTAMP_FIELDS = {
+        Status.PREPARED: "prepared_at",
+        Status.DELIVERED: "delivered_at",
+    }
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        # Mémorise le statut chargé pour détecter les transitions au save().
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_status = instance.__dict__.get("status")
+        return instance
+
+    def save(self, *args, **kwargs):
+        # Horodate le passage en « Préparée » / « Livrée » (historique de la commande).
+        stamp_field = self.STATUS_TIMESTAMP_FIELDS.get(self.status)
+        if (
+            stamp_field
+            and self.status != getattr(self, "_loaded_status", None)
+            and getattr(self, stamp_field) is None
+        ):
+            from django.utils import timezone
+
+            setattr(self, stamp_field, timezone.now())
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, stamp_field}
+        super().save(*args, **kwargs)
+        self._loaded_status = self.status
 
     @property
     def reference(self):

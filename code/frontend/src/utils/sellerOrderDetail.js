@@ -88,13 +88,13 @@ export function buildHistory(order) {
     {
       key: "prepared",
       label: "Préparation",
-      date: rank === 1 ? order.updated_at : null,
+      date: order.prepared_at || (rank === 1 ? order.updated_at : null),
       state: rank > 1 ? "done" : rank === 1 ? "current" : "todo",
     },
     {
       key: "delivered",
       label: "Livrée",
-      date: rank === 2 ? order.updated_at : null,
+      date: order.delivered_at || (rank === 2 ? order.updated_at : null),
       state: rank === 2 ? "done" : "todo",
     },
   );
