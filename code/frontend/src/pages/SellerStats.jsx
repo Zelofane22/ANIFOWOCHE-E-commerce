@@ -7,10 +7,12 @@ import {
   ChevronRightIcon,
   CheckIcon,
   CircleIcon,
+  FileTextIcon,
   TrendingUpIcon,
 } from "../components/icons.jsx";
 import { getSellerDashboard } from "../api/seller.js";
 import SellerShell from "../components/seller/SellerShell.jsx";
+import StatsDesktop from "../components/seller/StatsDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
 import {
   Bar,
@@ -198,15 +200,66 @@ export default function SellerStats() {
 
   const plan = data?.seller?.plan ?? "FREE";
   const hasAdvancedStats = plan === "PRO" || plan === "BUSINESS";
+  const monthLabel = formatMonthLabel(currentMonth);
+  const monthLabelTitle = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
+  const desktopSkeleton = (
+    <div className="hidden animate-pulse space-y-6 px-8 pt-7 lg:block">
+      <div className="grid grid-cols-4 gap-5">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-[132px] rounded-2xl bg-gray-200" />
+        ))}
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
+        <div className="h-[360px] rounded-2xl bg-gray-200" />
+        <div className="h-[360px] rounded-2xl bg-gray-200" />
+      </div>
+    </div>
+  );
+
+  const desktopHeader = {
+    title: "Statistiques",
+    subtitle: `Revenus et activité de votre boutique · ${monthLabelTitle}`,
+    actions: (
+      <>
+        <div className="flex items-center gap-1 rounded-[10px] border border-black/[0.08] p-1">
+          <button
+            type="button"
+            aria-label="Mois précédent"
+            onClick={goToPreviousMonth}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-gray-100 hover:text-ink"
+          >
+            <ChevronLeftIcon size={16} />
+          </button>
+          <span className="min-w-[132px] text-center text-sm font-bold text-ink">{monthLabelTitle}</span>
+          <button
+            type="button"
+            aria-label="Mois suivant"
+            onClick={goToNextMonth}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-gray-100 hover:text-ink"
+          >
+            <ChevronRightIcon size={16} />
+          </button>
+        </div>
+        <Link
+          to="/reports"
+          className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+        >
+          <FileTextIcon size={16} />
+          Rapports et exports
+        </Link>
+      </>
+    ),
+  };
   if (authLoading || loading || !data) {
     return (
       <SellerShell pendingCount={0}>
-        <div className="mx-auto max-w-3xl space-y-4 px-4 pt-6">
+        <div className="mx-auto max-w-3xl space-y-4 px-4 pt-6 lg:hidden">
           <div className="h-40 animate-pulse rounded-2xl bg-gray-200" />
           <div className="grid grid-cols-2 gap-3"><div className="h-32 animate-pulse rounded-2xl bg-gray-200" /><div className="h-32 animate-pulse rounded-2xl bg-gray-200" /></div>
           <div className="h-72 animate-pulse rounded-2xl bg-gray-200" />
         </div>
+        {desktopSkeleton}
       </SellerShell>
     );
   }
@@ -220,8 +273,31 @@ export default function SellerStats() {
   }
 
   return (
-    <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0}>
-      <div className="mx-auto max-w-3xl space-y-4">
+    <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0} header={desktopHeader}>
+      <div className="hidden lg:block">
+        <StatsDesktop
+          monthLabel={monthLabelTitle}
+          revenue={data.kpi?.revenue}
+          averageRevenue={averageRevenue}
+          orders={orders}
+          validationRate={validationRate}
+          validOrders={validOrders}
+          cancelledOrders={cancelledOrders}
+          conversionRate={conversionRate}
+          chartData={chartData}
+          statusData={statusData}
+          totalStatusOrders={totalStatusOrders}
+          weekdayData={weekdayData}
+          hourData={hourData}
+          hasActivity={Boolean(hasActivity)}
+          peakLabel={hasActivity ? `${DAY_FULL[activity.peak_weekday]} vers ${activity.peak_hour}h` : ""}
+          productData={productData}
+          categoryData={categoryData}
+          hasAdvancedStats={hasAdvancedStats}
+        />
+      </div>
+
+      <div className="mx-auto max-w-3xl space-y-4 lg:hidden">
         <header
           className="bg-[#111827] px-5 pb-7 pt-7 text-white sm:rounded-b-2xl sm:px-7"
           onTouchStart={handleTouchStart}
