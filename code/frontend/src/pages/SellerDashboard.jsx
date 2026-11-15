@@ -67,7 +67,7 @@ export default function SellerDashboard() {
 
   if (error) {
     return (
-      <SellerShell seller={data?.seller} pendingCount={0}>
+      <SellerShell seller={data?.seller}>
         <div className="mx-auto max-w-2xl px-4 pt-8 text-center text-sm text-red-500">
           {error}
         </div>
@@ -77,7 +77,7 @@ export default function SellerDashboard() {
 
   if (authLoading || loading || !data) {
     return (
-      <SellerShell seller={data?.seller} pendingCount={0}>
+      <SellerShell seller={data?.seller}>
         <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4 lg:hidden">
           <div className="animate-pulse space-y-4">
             <div className="h-64 rounded-2xl bg-gray-200" />
@@ -181,7 +181,7 @@ export default function SellerDashboard() {
   };
 
   return (
-    <SellerShell seller={data.seller} pendingCount={pending_count} header={desktopHeader}>
+    <SellerShell seller={data.seller} header={desktopHeader}>
       <div className="hidden lg:block">
         <DashboardDesktop
           period={period}

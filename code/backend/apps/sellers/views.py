@@ -25,6 +25,7 @@ from apps.orders.serializers import OrderSerializer
 from apps.payments.models import Payment
 from apps.core.maintenance import block_if_maintenance
 from apps.payments.serializers import PaymentSerializer
+from apps.notifications.models import SellerNotification
 from apps.notifications.services import notify_invoice
 from apps.payments.services import PaymentRelaunchError, RELAUNCHABLE_STATUSES, relaunch_payment
 from apps.products.models import Product
@@ -339,6 +340,43 @@ class SellerDashboardView(APIView):
         if error:
             return error
         return Response(data)
+
+
+class SellerSummaryView(APIView):
+    """Résumé léger pour la coque de l'espace vendeur (barre latérale, badges).
+
+    Chargé une fois par l'application vendeur et rafraîchi à la navigation :
+    profil + nombre de commandes à traiter + notifications non lues.
+
+    « À traiter » = commandes au statut ``received`` (même définition que le
+    filtre « À traiter » de /orders et ``metrics.pending_orders`` du tableau de
+    bord). Les non lues excluent ``new_order``, absentes de la boîte de
+    réception vendeur.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            seller = request.user.seller_profile
+        except SellerProfile.DoesNotExist:
+            raise NotFound("Aucun profil vendeur n'est associé à ce compte.")
+
+        pending_orders = (
+            Order.objects.filter(items__product__seller=seller, status=Order.Status.RECEIVED)
+            .distinct()
+            .count()
+        )
+        unread_notifications = (
+            SellerNotification.objects.filter(seller=seller, is_read=False)
+            .exclude(notification_type=SellerNotification.Type.NEW_ORDER)
+            .count()
+        )
+        return Response({
+            "seller": SellerProfileSerializer(seller).data,
+            "pending_orders": pending_orders,
+            "unread_notifications": unread_notifications,
+        })
 
 
 class SellerReportExportView(APIView):

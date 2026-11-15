@@ -9,6 +9,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import { SiteConfigProvider } from "./context/SiteConfigContext.jsx";
 import { StoreStatusProvider } from "./context/StoreStatusContext.jsx";
+import { SellerProvider } from "./context/SellerContext.jsx";
 import MaintenanceBanner from "./components/MaintenanceBanner.jsx";
 import { useAuth } from "./context/useAuth.js";
 import { RequireAccount } from "./components/account/common.jsx";
@@ -84,6 +85,7 @@ export default function App() {
     return (
       <StoreStatusProvider>
         <AuthProvider>
+          <SellerProvider>
           <CartProvider>
             <div className="min-h-screen bg-white text-ink">
               <MaintenanceBanner />
@@ -113,6 +115,7 @@ export default function App() {
             </main>
           </div>
           </CartProvider>
+          </SellerProvider>
         </AuthProvider>
       </StoreStatusProvider>
     );

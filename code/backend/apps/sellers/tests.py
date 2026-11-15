@@ -1118,3 +1118,70 @@ class SellerShopAvatarTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["image"])
+
+
+class SellerSummaryTests(APITestCase):
+    """Résumé de la coque vendeur : profil + commandes à traiter + non lues."""
+
+    def setUp(self):
+        self.user = UserFactory(username="summary-seller")
+        self.seller = SellerProfileFactory(user=self.user, display_name="Résumé Boutique")
+        self.shop = ShopFactory(seller=self.seller, name="Résumé Wax")
+        self.product = ProductFactory(
+            category=CategoryFactory(name="Pagnes"), shop=self.shop, seller=self.seller, price_xof=5000,
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _order(self, status, product=None, items=1):
+        order = OrderFactory(customer=UserFactory(), total_xof=5000, status=status)
+        for _ in range(items):
+            OrderItemFactory(order=order, product=product or self.product, quantity=1, unit_price_xof=5000)
+        return order
+
+    def test_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get("/api/seller/summary/").status_code, 401)
+
+    def test_404_without_seller_profile(self):
+        self.client.force_authenticate(user=UserFactory())
+        self.assertEqual(self.client.get("/api/seller/summary/").status_code, 404)
+
+    def test_counts_only_received_orders_of_this_seller(self):
+        self._order(Order.Status.RECEIVED, items=2)  # 2 lignes, compté une fois
+        self._order(Order.Status.RECEIVED)
+        self._order(Order.Status.PREPARED)
+        self._order(Order.Status.DELIVERED)
+        self._order(Order.Status.CANCELLED)
+        other_seller = SellerProfileFactory(user=UserFactory())
+        other_product = ProductFactory(
+            category=CategoryFactory(name="Autre"), shop=ShopFactory(seller=other_seller, name="Autre"),
+            seller=other_seller,
+        )
+        self._order(Order.Status.RECEIVED, product=other_product)
+
+        response = self.client.get("/api/seller/summary/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["pending_orders"], 2)
+        self.assertEqual(response.data["seller"]["display_name"], "Résumé Boutique")
+        self.assertEqual(response.data["seller"]["shop"]["name"], "Résumé Wax")
+
+    def test_unread_notifications_exclude_read_and_new_order(self):
+        from apps.notifications.models import SellerNotification
+
+        SellerNotification.objects.create(seller=self.seller, title="a", message="a")
+        SellerNotification.objects.create(
+            seller=self.seller, title="b", message="b",
+            notification_type=SellerNotification.Type.LOW_STOCK,
+        )
+        SellerNotification.objects.create(seller=self.seller, title="lue", message="c", is_read=True)
+        SellerNotification.objects.create(
+            seller=self.seller, title="cmd", message="d",
+            notification_type=SellerNotification.Type.NEW_ORDER,
+        )
+        other_seller = SellerProfileFactory(user=UserFactory())
+        SellerNotification.objects.create(seller=other_seller, title="x", message="x")
+
+        response = self.client.get("/api/seller/summary/")
+
+        self.assertEqual(response.data["unread_notifications"], 2)

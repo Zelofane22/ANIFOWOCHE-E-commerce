@@ -8,6 +8,7 @@ import {
 } from "../api/notifications.js";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useSeller } from "../context/useSeller.js";
 import {
   BellIcon,
   CheckIcon,
@@ -118,6 +119,7 @@ function NotificationCard({ notification, onRead }) {
 export default function SellerNotifications() {
   const navigate = useNavigate();
   const { loading: authLoading, isAuthenticated } = useAuth();
+  const { refresh: refreshSummary } = useSeller();
   const [seller, setSeller] = useState(null);
   const [notifications, setNotifications] = useState(null);
   const [filter, setFilter] = useState("all");
@@ -142,6 +144,7 @@ export default function SellerNotifications() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n))
     );
+    refreshSummary();
   };
 
   const handleMarkAllRead = async () => {
@@ -150,6 +153,7 @@ export default function SellerNotifications() {
       setNotifications((prev) =>
         prev.map((n) => (n.is_read ? n : { ...n, is_read: true, read_at: new Date().toISOString() }))
       );
+      refreshSummary();
     } catch {
       /* silent */
     }
@@ -193,7 +197,7 @@ export default function SellerNotifications() {
   };
 
   return (
-    <SellerShell seller={seller} pendingCount={unreadCount} header={desktopHeader}>
+    <SellerShell seller={seller} header={desktopHeader}>
       <div className="mx-auto max-w-2xl lg:grid lg:max-w-6xl lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start lg:gap-6 lg:px-8 lg:pt-6">
         {/* Filtres (desktop) */}
         <aside className="hidden lg:sticky lg:top-28 lg:block">

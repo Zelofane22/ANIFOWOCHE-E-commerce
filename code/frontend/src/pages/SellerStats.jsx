@@ -253,7 +253,7 @@ export default function SellerStats() {
   };
   if (authLoading || loading || !data) {
     return (
-      <SellerShell pendingCount={0}>
+      <SellerShell>
         <div className="mx-auto max-w-3xl space-y-4 px-4 pt-6 lg:hidden">
           <div className="h-40 animate-pulse rounded-2xl bg-gray-200" />
           <div className="grid grid-cols-2 gap-3"><div className="h-32 animate-pulse rounded-2xl bg-gray-200" /><div className="h-32 animate-pulse rounded-2xl bg-gray-200" /></div>
@@ -266,14 +266,14 @@ export default function SellerStats() {
 
   if (error) {
     return (
-      <SellerShell seller={data?.seller} pendingCount={data?.metrics?.pending_orders || 0}>
+      <SellerShell seller={data?.seller}>
         <div className="mx-auto max-w-2xl px-4 pt-8 text-center text-sm text-red-500">{error}</div>
       </SellerShell>
     );
   }
 
   return (
-    <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0} header={desktopHeader}>
+    <SellerShell seller={data.seller} header={desktopHeader}>
       <div className="hidden lg:block">
         <StatsDesktop
           monthLabel={monthLabelTitle}

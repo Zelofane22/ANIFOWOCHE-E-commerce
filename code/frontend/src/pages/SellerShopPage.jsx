@@ -17,6 +17,7 @@ import {
 import SellerShell from "../components/seller/SellerShell.jsx";
 import ShopPreviewDesktop from "../components/seller/ShopPreviewDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useSeller } from "../context/useSeller.js";
 import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 
@@ -93,6 +94,7 @@ function ToggleSwitch({ enabled, onChange, disabled }) {
 export default function SellerShopPage() {
   const navigate = useNavigate();
   const { loading, isAuthenticated } = useAuth();
+  const { refresh: refreshSummary } = useSeller();
   const [seller, setSeller] = useState(null);
   const [copied, setCopied] = useState(false);
   const [editingShop, setEditingShop] = useState(false);
@@ -152,6 +154,7 @@ export default function SellerShopPage() {
     setSubmitting(true);
     try {
       const data = await updateSellerProfile(form);
+      refreshSummary();
       setSeller(data);
       setSlugError(null);
       setSlugChecking(false);

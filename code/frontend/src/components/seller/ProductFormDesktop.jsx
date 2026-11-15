@@ -158,7 +158,7 @@ export default function ProductFormDesktop({ ctl, seller }) {
   };
 
   return (
-    <SellerShell seller={seller} pendingCount={0} header={header}>
+    <SellerShell seller={seller} header={header}>
       <div className="px-8 pt-6 pb-32">
         {maintenanceMode && <MaintenanceAlert className="mb-6" />}
         {createLimitReached && (

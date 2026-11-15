@@ -152,7 +152,7 @@ export default function SellerProducts() {
   };
 
   return (
-    <SellerShell seller={seller} pendingCount={0} header={desktopHeader}>
+    <SellerShell seller={seller} header={desktopHeader}>
       {/* Sticky header (mobile) */}
       <div className="bg-white px-5 pt-12 pb-4 border-b border-black/5 sticky top-0 z-10 lg:hidden">
         <div className="flex items-center justify-between mb-4">

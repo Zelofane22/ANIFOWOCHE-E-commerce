@@ -4,6 +4,7 @@ import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../a
 import SellerShell from "../components/seller/SellerShell.jsx";
 import OrdersTableDesktop from "../components/seller/OrdersTableDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useSeller } from "../context/useSeller.js";
 import { useStoreStatus } from "../context/useStoreStatus.js";
 import { formatXof } from "../utils/format.js";
 import {
@@ -90,6 +91,7 @@ export default function SellerOrders() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { loading, isAuthenticated } = useAuth();
+  const { refresh: refreshSummary } = useSeller();
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState(null);
   const [search, setSearch] = useState("");
@@ -139,7 +141,6 @@ export default function SellerOrders() {
     }, {});
   }, [orders]);
 
-  const pendingCount = (statusCounts.received ?? 0) + (statusCounts.prepared ?? 0);
 
   const filterCounts = useMemo(() => {
     const counts = { all: orders?.length ?? 0 };
@@ -159,6 +160,7 @@ export default function SellerOrders() {
       const payload = { status: nextStatus };
       if (nextStatus === "cancelled" && reason) payload.cancellation_reason = reason;
       const updatedOrder = await updateSellerOrderStatus(order.id, payload);
+      refreshSummary();
       setOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, ...updatedOrder } : o))
       );
@@ -208,7 +210,7 @@ export default function SellerOrders() {
   };
 
   return (
-    <SellerShell pendingCount={pendingCount} seller={seller} header={desktopHeader}>
+    <SellerShell seller={seller} header={desktopHeader}>
       <div className="hidden lg:block">
         {maintenanceBanner && <div className="px-8 pt-6">{maintenanceBanner}</div>}
         <OrdersTableDesktop

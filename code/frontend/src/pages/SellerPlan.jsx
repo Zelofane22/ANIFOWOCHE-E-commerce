@@ -242,7 +242,7 @@ export default function SellerPlan() {
   };
 
   return (
-    <SellerShell seller={{ display_name: "Plan" }} pendingCount={0} header={desktopHeader}>
+    <SellerShell header={desktopHeader}>
       <div className="bg-[#111827] px-5 pt-12 pb-6 lg:mx-8 lg:mt-6 lg:rounded-[20px] lg:p-6">
         <h1 className="text-xl font-bold text-white mb-1 lg:hidden">Mon abonnement</h1>
         <p className="text-white/50 text-sm lg:hidden">Gérez votre plan et vos fonctionnalités</p>

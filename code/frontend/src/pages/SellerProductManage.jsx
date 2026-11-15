@@ -205,7 +205,7 @@ export default function SellerProductManage() {
       ),
     };
     return (
-      <SellerShell seller={seller} pendingCount={0} header={notFoundHeader}>
+      <SellerShell seller={seller} header={notFoundHeader}>
         <section className="px-4 pt-10 text-center lg:pt-24">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F3F4F6]">
             <ImageIcon size={28} className="text-[#9CA3AF]" />
@@ -287,7 +287,7 @@ export default function SellerProductManage() {
   };
 
   return (
-    <SellerShell seller={seller} pendingCount={0} header={desktopHeader}>
+    <SellerShell seller={seller} header={desktopHeader}>
       {maintenanceMode && (
         <div role="alert" className="mx-4 mt-4 lg:mx-8 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">

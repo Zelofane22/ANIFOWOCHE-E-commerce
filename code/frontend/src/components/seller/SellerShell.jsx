@@ -14,6 +14,7 @@ import {
   MoreHorizontalIcon,
 } from "../icons.jsx";
 import { useAuth } from "../../context/useAuth.js";
+import { useSeller } from "../../context/useSeller.js";
 import BottomSheet from "../BottomSheet.jsx";
 
 const navItems = [
@@ -39,7 +40,7 @@ const desktopSections = [
   {
     title: "Compte",
     items: [
-      { to: "/notifications", label: "Notifications", Icon: BellIcon },
+      { to: "/notifications", label: "Notifications", Icon: BellIcon, badge: "unread" },
       { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
     ],
   },
@@ -97,8 +98,16 @@ const getInitials = (name) =>
     .map((part) => part[0].toUpperCase())
     .join("") || "";
 
-export default function SellerShell({ children, seller, pendingCount = 0, header = null }) {
+/**
+ * Coque de l'espace vendeur. Le profil et les compteurs (commandes à traiter,
+ * notifications non lues) viennent de `SellerContext`, partagé par toutes les
+ * pages. `seller` reste accepté pour afficher un profil fraîchement modifié.
+ */
+export default function SellerShell({ children, seller: sellerProp, header = null }) {
   const { logout, user } = useAuth();
+  const { seller: sharedSeller, pendingCount, unreadCount } = useSeller();
+  const seller = sellerProp ?? sharedSeller;
+  const badges = { pending: pendingCount, unread: unreadCount };
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -156,9 +165,13 @@ export default function SellerShell({ children, seller, pendingCount = 0, header
                   >
                     <item.Icon size={19} />
                     <span className="flex-1">{item.label}</span>
-                    {item.badge === "pending" && pendingCount > 0 && (
-                      <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
-                        {pendingCount}
+                    {item.badge && badges[item.badge] > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none text-white ${
+                          item.badge === "unread" ? "bg-brand-dark" : "bg-red-500"
+                        }`}
+                      >
+                        {badges[item.badge] > 99 ? "99+" : badges[item.badge]}
                       </span>
                     )}
                   </NavLink>

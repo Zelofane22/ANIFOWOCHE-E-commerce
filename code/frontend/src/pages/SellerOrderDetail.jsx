@@ -7,6 +7,7 @@ import OrderDetailDesktop from "../components/seller/OrderDetailDesktop.jsx";
 import OrderStatusPill from "../components/seller/OrderStatusPill.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useSeller } from "../context/useSeller.js";
 import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 import { formatXof } from "../utils/format.js";
@@ -53,6 +54,7 @@ export default function SellerOrderDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { loading, isAuthenticated } = useAuth();
+  const { refresh: refreshSummary } = useSeller();
   const [seller, setSeller] = useState(null);
   const [order, setOrder] = useState(null);
   const [statusSelection, setStatusSelection] = useState("");
@@ -90,6 +92,7 @@ export default function SellerOrderDetail() {
       const payload = { status: statusSelection };
       if (statusSelection === "cancelled" && reason) payload.cancellation_reason = reason;
       const updatedOrder = await updateSellerOrderStatus(order.id, payload);
+      refreshSummary();
       setOrder((prev) => prev ? { ...prev, ...updatedOrder, updated_at: updatedOrder.updated_at ?? prev.updated_at } : prev);
       setStatusSelection(updatedOrder.status);
     } catch (error) { setStatusError(extractErrorMessage(error)); } finally { setSaving(false); }

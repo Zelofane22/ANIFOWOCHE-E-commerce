@@ -15,6 +15,7 @@ import {
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
 import { useAuth } from "../context/useAuth.js";
+import { useSeller } from "../context/useSeller.js";
 import { extractErrorMessage } from "../utils/apiError.js";
 
 const inputClass =
@@ -90,6 +91,7 @@ function NotificationToggle({ label, enabled, onChange }) {
 export default function SellerSettings() {
   const navigate = useNavigate();
   const { logout, loading, isAuthenticated, user } = useAuth();
+  const { refresh: refreshSummary } = useSeller();
   const [seller, setSeller] = useState(null);
   const [form, setForm] = useState(null);
   const [error, setError] = useState(null);
@@ -133,6 +135,7 @@ export default function SellerSettings() {
         phone: form.phone,
         city: form.city,
       });
+      refreshSummary();
       setSeller((prev) => ({ ...prev, ...data, shop: prev.shop }));
       setSuccess("Profil mis à jour.");
       setEditingProfile(false);
@@ -170,7 +173,7 @@ export default function SellerSettings() {
   };
 
   return (
-    <SellerShell seller={seller} pendingCount={0} header={desktopHeader}>
+    <SellerShell seller={seller} header={desktopHeader}>
       {/* Header (mobile) */}
       <div className="bg-white px-5 pt-12 pb-4 border-b border-black/[0.05] sticky top-0 z-10 lg:hidden">
         <h1 className="text-xl font-bold text-[#111827]">Plus</h1>

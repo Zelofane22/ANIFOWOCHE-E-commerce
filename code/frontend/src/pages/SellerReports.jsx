@@ -126,7 +126,7 @@ export default function SellerReports() {
 
   if (authLoading || loading || !data) {
     return (
-      <SellerShell pendingCount={0}>
+      <SellerShell>
         <div className="mx-auto max-w-3xl space-y-4 px-4 pt-6 lg:hidden">
           <div className="h-36 animate-pulse rounded-2xl bg-gray-200" />
           <div className="grid grid-cols-2 gap-3">
@@ -212,7 +212,7 @@ export default function SellerReports() {
   };
 
   return (
-    <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0} header={desktopHeader}>
+    <SellerShell seller={data.seller} header={desktopHeader}>
       <div className="hidden lg:block">
         <ReportsDesktop
           periodLabel={periodLabel}
