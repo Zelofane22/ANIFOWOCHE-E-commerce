@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { getSellerOrders, getSellerProfile, updateSellerOrderStatus } from "../api/seller.js";
 import SellerShell from "../components/seller/SellerShell.jsx";
+import OrdersTableDesktop from "../components/seller/OrdersTableDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { useStoreStatus } from "../context/useStoreStatus.js";
 import { formatXof } from "../utils/format.js";
@@ -23,10 +24,10 @@ const STATUS_CONFIG = {
 
 const FILTERS = [
   { key: "all", label: "Toutes" },
-  { key: "pending", label: "A traiter" },
+  { key: "pending", label: "À traiter" },
   { key: "active", label: "En cours" },
-  { key: "done", label: "Terminees" },
-  { key: "cancelled", label: "Annulees" },
+  { key: "done", label: "Terminées" },
+  { key: "cancelled", label: "Annulées" },
 ];
 
 const FILTER_MAP = {
@@ -93,7 +94,6 @@ export default function SellerOrders() {
   const [orders, setOrders] = useState(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState(() => searchParams.get("filter") || "all");
-  const [statusSelection, setStatusSelection] = useState({});
   const [savingOrderIds, setSavingOrderIds] = useState([]);
   const [statusErrors, setStatusErrors] = useState({});
   const [cancelModal, setCancelModal] = useState(null);
@@ -141,11 +141,18 @@ export default function SellerOrders() {
 
   const pendingCount = (statusCounts.received ?? 0) + (statusCounts.prepared ?? 0);
 
+  const filterCounts = useMemo(() => {
+    const counts = { all: orders?.length ?? 0 };
+    Object.entries(FILTER_MAP).forEach(([key, statuses]) => {
+      counts[key] = statuses.reduce((sum, status) => sum + (statusCounts[status] ?? 0), 0);
+    });
+    return counts;
+  }, [orders, statusCounts]);
 
-  const handleUpdateStatus = async (order, reason = "") => {
+
+  const handleUpdateStatus = async (order, nextStatus, reason = "") => {
     if (maintenanceMode) return;
-    const nextStatus = statusSelection[order.id] ?? order.status;
-    if (nextStatus === order.status) return;
+    if (!nextStatus || nextStatus === order.status) return;
     setSavingOrderIds((prev) => [...prev, order.id]);
     setStatusErrors((prev) => ({ ...prev, [order.id]: "" }));
     try {
@@ -155,7 +162,6 @@ export default function SellerOrders() {
       setOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, ...updatedOrder } : o))
       );
-      setStatusSelection((prev) => ({ ...prev, [order.id]: updatedOrder.status }));
     } catch (error) {
       setStatusErrors((prev) => ({
         ...prev,
@@ -172,7 +178,7 @@ export default function SellerOrders() {
 
   const handleCancelConfirm = async () => {
     if (!cancelModal) return;
-    await handleUpdateStatus(cancelModal.order, cancelModal.reason);
+    await handleUpdateStatus(cancelModal.order, "cancelled", cancelModal.reason);
     setCancelModal(null);
   };
 
@@ -186,9 +192,43 @@ export default function SellerOrders() {
     );
   }
 
+  const maintenanceBanner = maintenanceMode ? (
+    <div role="alert" className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
+      </svg>
+      <span>Boutique en maintenance — la mise à jour du statut des commandes est suspendue.</span>
+    </div>
+  ) : null;
+
+  const toProcess = filterCounts.pending ?? 0;
+  const desktopHeader = {
+    title: "Commandes",
+    subtitle: `${orders?.length ?? 0} commande${(orders?.length ?? 0) > 1 ? "s" : ""} · ${toProcess} à traiter`,
+  };
+
   return (
-    <SellerShell pendingCount={pendingCount} seller={seller}>
-      <div className="mx-auto max-w-2xl">
+    <SellerShell pendingCount={pendingCount} seller={seller} header={desktopHeader}>
+      <div className="hidden lg:block">
+        {maintenanceBanner && <div className="px-8 pt-6">{maintenanceBanner}</div>}
+        <OrdersTableDesktop
+          orders={filteredOrders}
+          totalCount={orders?.length ?? 0}
+          filters={FILTERS}
+          counts={filterCounts}
+          filter={activeFilter}
+          onFilterChange={setActiveFilter}
+          search={search}
+          onSearchChange={setSearch}
+          savingOrderIds={savingOrderIds}
+          statusErrors={statusErrors}
+          maintenanceMode={maintenanceMode}
+          onAdvance={(order, nextStatus) => handleUpdateStatus(order, nextStatus)}
+          onCancel={(order) => setCancelModal({ order, reason: "" })}
+        />
+      </div>
+
+      <div className="mx-auto max-w-2xl lg:hidden">
         <div className="bg-[#111827] px-5 pt-8 pb-6">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-white">Commandes</h1>
@@ -213,10 +253,7 @@ export default function SellerOrders() {
 
           <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
             {FILTERS.map((f) => {
-              const count =
-                f.key === "all"
-                  ? orders?.length ?? 0
-                  : statusCounts[FILTER_MAP[f.key]?.[0] ?? ""] ?? 0;
+              const count = filterCounts[f.key] ?? 0;
               return (
                 <FilterChip
                   key={f.key}
@@ -229,14 +266,7 @@ export default function SellerOrders() {
           </div>
         </div>
 
-        {maintenanceMode && (
-          <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
-            </svg>
-            <span>Boutique en maintenance — la mise à jour du statut des commandes est suspendue.</span>
-          </div>
-        )}
+        {maintenanceBanner && <div className="mx-4 mt-4">{maintenanceBanner}</div>}
 
         <div className="px-4 pt-4 space-y-3 pb-8">
           {orders === null ? (

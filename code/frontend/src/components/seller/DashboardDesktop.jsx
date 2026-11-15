@@ -13,6 +13,8 @@ import {
 } from "../icons.jsx";
 import { formatXof } from "../../utils/format.js";
 import PlanLimitCard from "./PlanLimitCard.jsx";
+import OrderStatusPill from "./OrderStatusPill.jsx";
+import { formatOrderDate, initialsOf, itemsCount, orderCustomerName } from "../../utils/sellerOrders.js";
 
 const PERIODS = [
   ["7j", "7 j"],
@@ -24,13 +26,6 @@ const PERIOD_LABEL = {
   "7j": "7 derniers jours",
   "30j": "30 derniers jours",
   "3m": "3 derniers mois",
-};
-
-const STATUS = {
-  received: { label: "Reçue", pill: "bg-blue-50 text-blue-700", dot: "bg-blue-600" },
-  prepared: { label: "Préparée", pill: "bg-violet-50 text-violet-700", dot: "bg-violet-600" },
-  delivered: { label: "Livrée", pill: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-600" },
-  cancelled: { label: "Annulée", pill: "bg-red-50 text-red-700", dot: "bg-red-600" },
 };
 
 const FILTERS = [
@@ -49,19 +44,6 @@ const TONES = {
 
 const MASK = "••••••";
 
-const initialsOf = (name) =>
-  (name || "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("");
-
-const formatOrderDate = (iso) =>
-  iso
-    ? new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-    : "";
-
 function timeAgo(iso) {
   if (!iso) return "";
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -72,9 +54,6 @@ function timeAgo(iso) {
   if (hours < 48) return "hier";
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 }
-
-const itemsCount = (order) =>
-  (order.items ?? []).reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
 
 const formatPct = (pct) => (pct == null ? null : `${pct >= 0 ? "+" : ""}${pct}%`);
 
@@ -220,16 +199,6 @@ function RevenueChart({ data, hidden }) {
   );
 }
 
-function StatusPill({ status }) {
-  const meta = STATUS[status] || STATUS.received;
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${meta.pill}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-      {meta.label}
-    </span>
-  );
-}
-
 function OrdersTable({ orders }) {
   const [filter, setFilter] = useState("all");
   const rows = filter === "all" ? orders : orders.filter((o) => o.status === filter);
@@ -274,7 +243,7 @@ function OrdersTable({ orders }) {
           </thead>
           <tbody className="divide-y divide-black/[0.06]">
             {rows.map((order) => {
-              const name = order.full_name || order.customer_name || `Commande #${order.id}`;
+              const name = orderCustomerName(order);
               const count = itemsCount(order);
               return (
                 <tr key={order.id} className="group cursor-pointer transition hover:bg-[#FAFAFC]">
@@ -295,7 +264,7 @@ function OrdersTable({ orders }) {
                     {count} article{count > 1 ? "s" : ""}
                   </td>
                   <td className="py-3">
-                    <StatusPill status={order.status} />
+                    <OrderStatusPill status={order.status} />
                   </td>
                   <td className="py-3 pr-5">
                     <Link
