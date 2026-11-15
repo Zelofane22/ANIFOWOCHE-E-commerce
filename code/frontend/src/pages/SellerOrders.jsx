@@ -16,10 +16,10 @@ import {
 } from "../components/icons.jsx";
 
 const STATUS_CONFIG = {
-  received: { label: "Recue", color: "#7C3AED", bg: "#F5F3FF", Icon: ClockIcon },
-  prepared: { label: "En preparation", color: "#2563EB", bg: "#EFF6FF", Icon: PackageIcon },
-  delivered: { label: "Livree", color: "#059669", bg: "#ECFDF5", Icon: CheckIcon },
-  cancelled: { label: "Annulee", color: "#DC2626", bg: "#FEF2F2", Icon: AlertCircleIcon },
+  received: { label: "Reçue", color: "#7C3AED", bg: "#F5F3FF", Icon: ClockIcon },
+  prepared: { label: "En préparation", color: "#2563EB", bg: "#EFF6FF", Icon: PackageIcon },
+  delivered: { label: "Livrée", color: "#059669", bg: "#ECFDF5", Icon: CheckIcon },
+  cancelled: { label: "Annulée", color: "#DC2626", bg: "#FEF2F2", Icon: AlertCircleIcon },
 };
 
 const FILTERS = [
@@ -72,7 +72,7 @@ function formatRelativeDate(iso) {
   const diffMin = Math.floor(diffMs / 60000);
   const diffH = Math.floor(diffMin / 60);
   const diffD = Math.floor(diffH / 24);
-  if (diffMin < 1) return "A l'instant";
+  if (diffMin < 1) return "À l'instant";
   if (diffMin < 60) return `Il y a ${diffMin} min`;
   if (diffH < 24) return `Il y a ${diffH}h`;
   if (diffD === 1) return "Hier";
@@ -168,7 +168,7 @@ export default function SellerOrders() {
         [order.id]:
           error?.response?.data?.status?.[0] ||
           error?.response?.data?.detail ||
-          "Impossible de mettre a jour le statut.",
+          "Impossible de mettre à jour le statut.",
       }));
     } finally {
       setSavingOrderIds((prev) => prev.filter((id) => id !== order.id));
@@ -246,7 +246,7 @@ export default function SellerOrders() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Client, numero de commande..."
+              placeholder="Client, numéro de commande..."
               className="w-full rounded-xl bg-white/10 pl-10 pr-4 py-3 text-sm text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-[#C99F08]/40"
             />
           </div>
@@ -279,11 +279,11 @@ export default function SellerOrders() {
             <div className="rounded-2xl border border-black/[0.05] bg-white p-10 text-center shadow-sm">
               <PackageIcon size={32} className="mx-auto mb-3 text-[#9CA3AF]" />
               <p className="font-semibold text-[#111827]">
-                {orders.length === 0 ? "Aucune commande recue" : "Aucune commande trouvee"}
+                {orders.length === 0 ? "Aucune commande reçue" : "Aucune commande trouvée"}
               </p>
               <p className="mt-1 text-sm text-[#9CA3AF]">
                 {orders.length === 0
-                  ? "Les nouvelles commandes apparaitront ici."
+                  ? "Les nouvelles commandes apparaîtront ici."
                   : "Essayez de modifier vos filtres."}
               </p>
             </div>
@@ -299,7 +299,7 @@ export default function SellerOrders() {
                     <p className="font-bold text-[#111827]">#{order.id}</p>
                     <p className="text-sm text-[#6B7280] mt-0.5">{order.full_name}</p>
                     <p className="text-xs text-[#9CA3AF] mt-0.5">
-                      {formatRelativeDate(order.created_at)} a {formatTime(order.created_at)} - {(order.items?.length ?? 0)} art.
+                      {formatRelativeDate(order.created_at)} à {formatTime(order.created_at)} - {(order.items?.length ?? 0)} art.
                     </p>
                   </div>
                   <StatusBadge status={order.status} />
@@ -329,9 +329,9 @@ export default function SellerOrders() {
               <div>
                 <h3 className="text-lg font-bold text-[#111827]">Annuler la commande</h3>
                 <p className="mt-2 text-sm text-[#6B7280]">
-                  Etes-vous sur de vouloir annuler la commande <strong>#{cancelModal.order.id}</strong> de {cancelModal.order.full_name} ?
+                  Êtes-vous sûr de vouloir annuler la commande <strong>#{cancelModal.order.id}</strong> de {cancelModal.order.full_name} ?
                 </p>
-                <p className="mt-1 text-xs text-[#9CA3AF]">Cette action remettra les produits en stock et ne peut pas etre annulee.</p>
+                <p className="mt-1 text-xs text-[#9CA3AF]">Cette action remettra les produits en stock et ne peut pas être annulée.</p>
               </div>
             </div>
             <div className="mt-4">
@@ -342,7 +342,7 @@ export default function SellerOrders() {
                 id="cancel-reason"
                 value={cancelModal.reason}
                 onChange={(e) => setCancelModal((prev) => ({ ...prev, reason: e.target.value }))}
-                placeholder="Exemple : Rupture de stock, client annule, etc."
+                placeholder="Exemple : Rupture de stock, client a annulé, etc."
                 className="mt-2 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-[#111827] outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 rows={3}
               />

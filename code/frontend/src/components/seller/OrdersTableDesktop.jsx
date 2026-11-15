@@ -100,7 +100,11 @@ export default function OrdersTableDesktop({
           />
         </div>
 
-        <div className="flex flex-1 flex-wrap gap-1.5" role="tablist" aria-label="Filtrer les commandes">
+        <div
+          className="order-last flex w-full flex-wrap gap-1.5 2xl:order-none 2xl:w-auto 2xl:flex-1"
+          role="tablist"
+          aria-label="Filtrer les commandes"
+        >
           {filters.map((f) => (
             <button
               key={f.key}
@@ -124,7 +128,7 @@ export default function OrdersTableDesktop({
           ))}
         </div>
 
-        <label className="relative">
+        <label className="relative ml-auto 2xl:ml-0">
           <span className="sr-only">Trier par</span>
           <select
             value={sort}
