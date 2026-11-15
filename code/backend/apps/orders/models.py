@@ -65,9 +65,9 @@ class Order(models.Model):
     }
 
     @classmethod
-    def from_db(cls, db, field_names, values):
+    def from_db(cls, *args, **kwargs):
         # Mémorise le statut chargé pour détecter les transitions au save().
-        instance = super().from_db(db, field_names, values)
+        instance = super().from_db(*args, **kwargs)
         instance._loaded_status = instance.__dict__.get("status")
         return instance
 
