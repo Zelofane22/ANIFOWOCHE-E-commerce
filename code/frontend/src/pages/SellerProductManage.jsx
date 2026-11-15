@@ -9,16 +9,27 @@ import {
 import {
   ChevronLeftIcon,
   EditIcon,
+  ExternalLinkIcon,
   EyeOffIcon,
   ImageIcon,
   MoreHorizontalIcon,
   TrashIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
+import ProductManageDesktop from "../components/seller/ProductManageDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { useStoreStatus } from "../context/useStoreStatus.js";
 import { formatXof } from "../utils/format.js";
+import { absoluteUrl } from "../utils/siteUrl.js";
 import ProductImage from "../components/ProductImage.jsx";
+
+function getStatusLabel(product) {
+  if (!product.is_active) return "Archivé";
+  if (product.made_to_order) return "Sur commande";
+  if ((product.stock ?? 0) <= 0) return "Rupture";
+  if ((product.stock ?? 0) <= 5) return "Stock faible";
+  return "Publié";
+}
 
 function StatusBadge({ product, light }) {
   if (!product.is_active) {
@@ -203,197 +214,264 @@ export default function SellerProductManage() {
     );
   }
 
+  const category = product.category_path || product.category?.name;
+  const desktopHeader = {
+    title: product.name,
+    subtitle: [getStatusLabel(product), category].filter(Boolean).join(" · "),
+    actions: (
+      <div className="flex shrink-0 items-center gap-2">
+        {product.is_active && (
+          <a
+            href={absoluteUrl(`/produits/${product.slug}`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-[10px] border border-black/[0.1] bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+          >
+            <ExternalLinkIcon size={16} />
+            Voir en boutique
+          </a>
+        )}
+        {product.is_active ? (
+          <button
+            type="button"
+            onClick={handleArchive}
+            disabled={archiving || maintenanceMode}
+            className="inline-flex items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <EyeOffIcon size={16} />
+            {archiving ? "Archivage..." : "Archiver"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleReactivate}
+            disabled={reactivating || maintenanceMode}
+            className="inline-flex items-center gap-2 rounded-[10px] border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-bold text-green-600 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <EyeOffIcon size={16} />
+            {reactivating ? "Réactivation..." : "Réactiver"}
+          </button>
+        )}
+        {maintenanceMode ? (
+          <span
+            className="inline-flex cursor-not-allowed items-center gap-2 rounded-[10px] bg-gray-200 px-4 py-2.5 text-sm font-bold text-gray-400"
+            title="Boutique en maintenance"
+          >
+            <EditIcon size={16} />
+            Modifier
+          </span>
+        ) : (
+          <Link
+            to={`/products/${product.slug}/edit`}
+            className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+          >
+            <EditIcon size={16} />
+            Modifier
+          </Link>
+        )}
+      </div>
+    ),
+  };
+
   return (
-    <SellerShell seller={seller} pendingCount={0}>
+    <SellerShell seller={seller} pendingCount={0} header={desktopHeader}>
       {maintenanceMode && (
-        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <div role="alert" className="mx-4 mt-4 lg:mx-8 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
           </svg>
           <span>Boutique en maintenance — les modifications (archiver, réactiver, éditer) sont suspendues.</span>
         </div>
       )}
-      {/* Hero image area */}
-      <div className="relative h-72 w-full bg-[#F3F4F6] overflow-hidden">
-        {product.image ? (
-          <ProductImage
-            src={product.image}
-            alt={product.name}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <ImageIcon size={48} className="text-[#D1D5DB]" />
+      {/* Desktop */}
+      <div className="hidden lg:block">
+        <ProductManageDesktop product={product} performance={performance} StatusBadge={StatusBadge} />
+      </div>
+
+      {/* Mobile */}
+      <div className="lg:hidden">
+        {/* Hero image area */}
+        <div className="relative h-72 w-full bg-[#F3F4F6] overflow-hidden">
+          {product.image ? (
+            <ProductImage
+              src={product.image}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <ImageIcon size={48} className="text-[#D1D5DB]" />
+            </div>
+          )}
+
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+          {/* Back button */}
+          <Link
+            to="/products"
+            className="absolute top-4 left-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[#374151] shadow-sm transition hover:bg-white"
+          >
+            <ChevronLeftIcon size={18} />
+          </Link>
+
+          {/* More menu button */}
+          <div className="absolute top-4 right-4">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[#374151] shadow-sm transition hover:bg-white"
+            >
+              <MoreHorizontalIcon size={16} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-11 z-20 min-w-[160px] rounded-[12px] border border-black/10 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  disabled={maintenanceMode}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate(`/products/${product.slug}/edit`);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[#374151] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <EditIcon size={14} />
+                  Modifier
+                </button>
+                {product.is_active ? (
+                  <button
+                    type="button"
+                    onClick={handleArchive}
+                    disabled={archiving || maintenanceMode}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <TrashIcon size={14} />
+                    {archiving ? "Archivage..." : "Archiver"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReactivate}
+                    disabled={reactivating || maintenanceMode}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-green-600 hover:bg-green-50 disabled:opacity-50"
+                  >
+                    <EyeOffIcon size={14} />
+                    {reactivating ? "Réactivation..." : "Réactiver"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Status badge */}
+          <div className="absolute bottom-3 left-4">
+            <StatusBadge product={product} light />
+          </div>
+        </div>
+
+        {/* Close menu overlay */}
+        {menuOpen && (
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setMenuOpen(false)}
+          />
         )}
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        {/* Content area */}
+        <div className="px-4 pt-5 pb-24 space-y-4">
+          {/* Product name + category */}
+          <div>
+            <h1 className="text-xl font-bold text-[#111827]">{product.name}</h1>
+            {(product.category?.name || product.category_path) && (
+              <p className="mt-1 text-sm text-[#9CA3AF]">
+                {product.category_path || product.category.name}
+              </p>
+            )}
+          </div>
 
-        {/* Back button */}
-        <Link
-          to="/products"
-          className="absolute top-4 left-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[#374151] shadow-sm transition hover:bg-white"
-        >
-          <ChevronLeftIcon size={18} />
-        </Link>
+          {/* 3-column stats grid */}
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard label="Prix" value={formatXof(product.price_xof)} />
+            <StatCard
+              label="Stock"
+              value={product.made_to_order ? "Sur com." : (product.stock ?? 0)}
+            />
+            <StatCard
+              label="Ventes"
+              value={product.orders_count ?? product.order_count ?? 0}
+            />
+          </div>
 
-        {/* More menu button */}
-        <div className="absolute top-4 right-4">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-[#374151] shadow-sm transition hover:bg-white"
-          >
-            <MoreHorizontalIcon size={16} />
-          </button>
+          {/* Description card */}
+          {product.description && (
+            <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4">
+              <h3 className="text-sm font-bold text-[#111827] mb-2">Description</h3>
+              <p className="text-sm leading-6 text-[#6B7280] whitespace-pre-line">
+                {product.description}
+              </p>
+            </div>
+          )}
 
-          {menuOpen && (
-            <div className="absolute right-0 top-11 z-20 min-w-[160px] rounded-[12px] border border-black/10 bg-white py-1 shadow-lg">
+          {/* Performance card (7 jours) */}
+          {performance && (
+            <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-bold text-[#111827]">Performance</h3>
+                <span className="text-[10px] font-semibold text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">
+                  7 jours
+                </span>
+              </div>
+              <div className="mt-2">
+                <PerfRow label="Vues" value={performance.views} />
+                <PerfRow label="Commandes" value={performance.orders} />
+                <PerfRow label="Revenu" value={formatXof(performance.revenue)} />
+                <PerfRow label="Taux de conversion" value={performance.conversion} />
+                <PerfRow label="Favoris" value={performance.favorites} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky bottom action bar */}
+        <div className="fixed bottom-16 left-0 right-0 z-30 border-t border-black/[0.06] bg-white px-4 py-3">
+          <div className="mx-auto max-w-6xl flex gap-3">
+            {product.is_active ? (
               <button
                 type="button"
-                disabled={maintenanceMode}
-                onClick={() => {
-                  setMenuOpen(false);
-                  navigate(`/products/${product.slug}/edit`);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[#374151] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={handleArchive}
+                disabled={archiving || maintenanceMode}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
               >
-                <EditIcon size={14} />
-                Modifier
+                <EyeOffIcon size={16} />
+                {archiving ? "Archivage..." : "Désactiver"}
               </button>
-              {product.is_active ? (
-                <button
-                  type="button"
-                  onClick={handleArchive}
-                  disabled={archiving || maintenanceMode}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                >
-                  <TrashIcon size={14} />
-                  {archiving ? "Archivage..." : "Archiver"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleReactivate}
-                  disabled={reactivating || maintenanceMode}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-green-600 hover:bg-green-50 disabled:opacity-50"
-                >
-                  <EyeOffIcon size={14} />
-                  {reactivating ? "Réactivation..." : "Réactiver"}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Status badge */}
-        <div className="absolute bottom-3 left-4">
-          <StatusBadge product={product} light />
-        </div>
-      </div>
-
-      {/* Close menu overlay */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-10"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
-
-      {/* Content area */}
-      <div className="px-4 pt-5 pb-24 space-y-4">
-        {/* Product name + category */}
-        <div>
-          <h1 className="text-xl font-bold text-[#111827]">{product.name}</h1>
-          {(product.category?.name || product.category_path) && (
-            <p className="mt-1 text-sm text-[#9CA3AF]">
-              {product.category_path || product.category.name}
-            </p>
-          )}
-        </div>
-
-        {/* 3-column stats grid */}
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Prix" value={formatXof(product.price_xof)} />
-          <StatCard
-            label="Stock"
-            value={product.made_to_order ? "Sur com." : (product.stock ?? 0)}
-          />
-          <StatCard
-            label="Ventes"
-            value={product.orders_count ?? product.order_count ?? 0}
-          />
-        </div>
-
-        {/* Description card */}
-        {product.description && (
-          <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4">
-            <h3 className="text-sm font-bold text-[#111827] mb-2">Description</h3>
-            <p className="text-sm leading-6 text-[#6B7280] whitespace-pre-line">
-              {product.description}
-            </p>
-          </div>
-        )}
-
-        {/* Performance card (7 jours) */}
-        {performance && (
-          <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-bold text-[#111827]">Performance</h3>
-              <span className="text-[10px] font-semibold text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">
-                7 jours
+            ) : (
+              <button
+                type="button"
+                onClick={handleReactivate}
+                disabled={reactivating || maintenanceMode}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-600 transition hover:bg-green-100 disabled:opacity-50"
+              >
+                <EyeOffIcon size={16} />
+                {reactivating ? "Réactivation..." : "Réactiver"}
+              </button>
+            )}
+            {maintenanceMode ? (
+              <span className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-4 py-3 text-sm font-bold text-gray-400 cursor-not-allowed">
+                <EditIcon size={16} />
+                Modifier
               </span>
-            </div>
-            <div className="mt-2">
-              <PerfRow label="Vues" value={performance.views} />
-              <PerfRow label="Commandes" value={performance.orders} />
-              <PerfRow label="Revenu" value={formatXof(performance.revenue)} />
-              <PerfRow label="Taux de conversion" value={performance.conversion} />
-              <PerfRow label="Favoris" value={performance.favorites} />
-            </div>
+            ) : (
+              <Link
+                to={`/products/${product.slug}/edit`}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#A67C06] active:bg-[#8B6604]"
+              >
+                <EditIcon size={16} />
+                Modifier
+              </Link>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Sticky bottom action bar */}
-      <div className="fixed bottom-16 left-0 right-0 z-30 border-t border-black/[0.06] bg-white px-4 py-3 lg:static lg:border-t-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0">
-        <div className="mx-auto max-w-6xl flex gap-3">
-          {product.is_active ? (
-            <button
-              type="button"
-              onClick={handleArchive}
-              disabled={archiving || maintenanceMode}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-            >
-              <EyeOffIcon size={16} />
-              {archiving ? "Archivage..." : "Désactiver"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleReactivate}
-              disabled={reactivating || maintenanceMode}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-600 transition hover:bg-green-100 disabled:opacity-50"
-            >
-              <EyeOffIcon size={16} />
-              {reactivating ? "Réactivation..." : "Réactiver"}
-            </button>
-          )}
-          {maintenanceMode ? (
-            <span className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-4 py-3 text-sm font-bold text-gray-400 cursor-not-allowed">
-              <EditIcon size={16} />
-              Modifier
-            </span>
-          ) : (
-            <Link
-              to={`/products/${product.slug}/edit`}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#A67C06] active:bg-[#8B6604]"
-            >
-              <EditIcon size={16} />
-              Modifier
-            </Link>
-          )}
         </div>
       </div>
     </SellerShell>
