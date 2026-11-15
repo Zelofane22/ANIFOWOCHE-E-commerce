@@ -11,6 +11,7 @@ import {
   TrendingUpIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
+import ReportsDesktop from "../components/seller/ReportsDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { formatXof } from "../utils/format.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -28,6 +29,17 @@ const PERIODS = [
   { key: "30j", days: 30, label: "30 j" },
   { key: "3m", days: 90, label: "3 mois" },
 ];
+
+const PERIOD_LABEL = {
+  "7j": "7 derniers jours",
+  "30j": "30 derniers jours",
+  "3m": "3 derniers mois",
+};
+
+function formatShortDate(iso) {
+  const [year, month, day] = iso.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : iso;
+}
 
 function SummaryCard({ icon: Icon, label, value, sub }) {
   return (
@@ -115,13 +127,24 @@ export default function SellerReports() {
   if (authLoading || loading || !data) {
     return (
       <SellerShell pendingCount={0}>
-        <div className="mx-auto max-w-3xl space-y-4 px-4 pt-6">
+        <div className="mx-auto max-w-3xl space-y-4 px-4 pt-6 lg:hidden">
           <div className="h-36 animate-pulse rounded-2xl bg-gray-200" />
           <div className="grid grid-cols-2 gap-3">
             <div className="h-28 animate-pulse rounded-2xl bg-gray-200" />
             <div className="h-28 animate-pulse rounded-2xl bg-gray-200" />
           </div>
           <div className="h-64 animate-pulse rounded-2xl bg-gray-200" />
+        </div>
+        <div className="hidden animate-pulse space-y-6 px-8 pt-7 lg:block">
+          <div className="grid grid-cols-4 gap-5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[120px] rounded-2xl bg-gray-200" />
+            ))}
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
+            <div className="h-[380px] rounded-2xl bg-gray-200" />
+            <div className="h-[220px] rounded-2xl bg-gray-200" />
+          </div>
         </div>
       </SellerShell>
     );
@@ -136,9 +159,78 @@ export default function SellerReports() {
   const exportedAllowed = data.seller?.limits?.features?.exports !== false;
   const maxProductRevenue = Math.max(...topProducts.map((p) => Number(p.revenue) || 0), 1);
 
+  const customRange = Boolean(dateFrom && dateTo);
+  const periodLabel = customRange
+    ? `Du ${formatShortDate(dateFrom)} au ${formatShortDate(dateTo)}`
+    : PERIOD_LABEL[period] || PERIOD_LABEL["30j"];
+
+  const desktopHeader = {
+    title: "Rapports",
+    subtitle: `Chiffre d'affaires, ventes et export · ${periodLabel}`,
+    actions: (
+      <>
+        <div className="flex gap-0.5 rounded-[10px] bg-[#F4F4F8] p-[3px]" role="group" aria-label="Période">
+          {PERIODS.map((p) => {
+            const active = period === p.key && !dateFrom && !dateTo;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => { setPeriod(p.key); setDateFrom(""); setDateTo(""); }}
+                className={`rounded-lg px-3 py-1.5 text-xs transition ${
+                  active ? "bg-white font-bold text-ink shadow-sm" : "font-semibold text-muted hover:text-ink"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+        {exportedAllowed ? (
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark disabled:opacity-60"
+          >
+            <DownloadIcon size={16} />
+            {exporting ? "Préparation…" : "Exporter en CSV"}
+          </button>
+        ) : (
+          <Link
+            to="/plan"
+            title="L'export des rapports est inclus dans les offres Pro et Business."
+            className="inline-flex items-center gap-2 rounded-[10px] border border-black/[0.08] px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+          >
+            <FileTextIcon size={16} />
+            Export CSV avec Pro
+          </Link>
+        )}
+      </>
+    ),
+  };
+
   return (
-    <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0}>
-      <div className="mx-auto max-w-3xl space-y-4">
+    <SellerShell seller={data.seller} pendingCount={data.metrics?.pending_orders || 0} header={desktopHeader}>
+      <div className="hidden lg:block">
+        <ReportsDesktop
+          periodLabel={periodLabel}
+          kpi={data.kpi}
+          metrics={data.metrics}
+          chartData={chartData}
+          topProducts={topProducts}
+          categories={categories}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+          onResetDates={() => { setDateFrom(""); setDateTo(""); }}
+          error={error}
+        />
+      </div>
+
+      <div className="mx-auto max-w-3xl space-y-4 lg:hidden">
         <header className="bg-[#111827] px-5 pb-6 pt-7 text-white sm:rounded-b-2xl sm:px-7">
           <div className="mb-5 flex items-center justify-between">
             <Link
