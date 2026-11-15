@@ -4,6 +4,8 @@ import { getSellerDashboard } from "../api/seller.js";
 import {
   BellIcon,
   BarChartIcon,
+  CopyIcon,
+  ExternalLinkIcon,
   PackageIcon,
   PlusIcon,
   Share2Icon,
@@ -17,6 +19,7 @@ import { formatXof } from "../utils/format.js";
 import StatCard from "../components/seller/StatCard.jsx";
 import PlanLimitCard from "../components/seller/PlanLimitCard.jsx";
 import RecentOrders from "../components/seller/RecentOrders.jsx";
+import DashboardDesktop from "../components/seller/DashboardDesktop.jsx";
 
 const PLAN_META = {
   FREE: { name: "Gratuit", color: "text-gray-500", bg: "bg-gray-100" },
@@ -75,7 +78,7 @@ export default function SellerDashboard() {
   if (authLoading || loading || !data) {
     return (
       <SellerShell seller={data?.seller} pendingCount={0}>
-        <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
+        <div className="mx-auto max-w-2xl space-y-4 px-4 pt-4 lg:hidden">
           <div className="animate-pulse space-y-4">
             <div className="h-64 rounded-2xl bg-gray-200" />
             <div className="grid grid-cols-2 gap-3">
@@ -83,6 +86,18 @@ export default function SellerDashboard() {
               <div className="h-20 rounded-2xl bg-gray-200" />
             </div>
             <div className="h-16 rounded-2xl bg-gray-200" />
+          </div>
+        </div>
+        <div className="hidden animate-pulse space-y-6 px-8 pt-7 lg:block">
+          <div className="h-9 w-64 rounded-lg bg-gray-200" />
+          <div className="grid grid-cols-4 gap-5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[132px] rounded-2xl bg-gray-200" />
+            ))}
+          </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-5">
+            <div className="h-[340px] rounded-2xl bg-gray-200" />
+            <div className="h-[340px] rounded-2xl bg-gray-200" />
           </div>
         </div>
       </SellerShell>
@@ -115,9 +130,80 @@ export default function SellerDashboard() {
     });
   };
 
+  const todayLabel = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const desktopHeader = {
+    title: "Tableau de bord",
+    subtitle: `Bonjour ${shop_name} · ${todayLabel}`,
+    actions: (
+      <>
+        <Link
+          to="/notifications"
+          aria-label="Notifications"
+          className="relative flex h-[42px] w-[42px] items-center justify-center rounded-[10px] border border-black/[0.08] text-ink transition hover:bg-gray-50"
+        >
+          <BellIcon size={19} />
+          {pending_count > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {pending_count}
+            </span>
+          )}
+        </Link>
+        {shopUrl && (
+          <>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="inline-flex items-center gap-2 rounded-[10px] border border-black/[0.08] px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-gray-50"
+            >
+              <CopyIcon size={16} />
+              {copyLabel === "Copier" ? "Copier le lien" : copyLabel}
+            </button>
+            <a
+              href={shopUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-black/[0.08] px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-gray-50"
+            >
+              <ExternalLinkIcon size={16} />
+              Voir ma boutique
+            </a>
+          </>
+        )}
+        <Link
+          to="/products/new"
+          className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+        >
+          <PlusIcon size={16} />
+          Ajouter un produit
+        </Link>
+      </>
+    ),
+  };
+
   return (
-    <SellerShell seller={data.seller} pendingCount={pending_count}>
-      <div className="mx-auto max-w-2xl space-y-4">
+    <SellerShell seller={data.seller} pendingCount={pending_count} header={desktopHeader}>
+      <div className="hidden lg:block">
+        <DashboardDesktop
+          period={period}
+          onPeriodChange={setPeriod}
+          hideBalance={hideBalance}
+          onToggleBalance={() => setHideBalance(!hideBalance)}
+          revenue={revenue}
+          revenueChangePct={revenue_change_pct}
+          ordersCount={orders_count}
+          ordersChangePct={data.kpi?.orders_change ?? null}
+          pendingCount={pending_count}
+          productsCount={products_count}
+          chartData={chartData}
+          recentOrders={recent_orders}
+          lowStock={low_stock}
+          plan={plan}
+          limits={limits}
+          planMeta={planMeta}
+        />
+      </div>
+
+      <div className="mx-auto max-w-2xl space-y-4 lg:hidden">
         <div className="-mx-4 rounded-2xl bg-[#111827] px-5 pt-8 pb-6 sm:mx-0 sm:rounded-2xl">
           <div className="mb-6 flex items-center justify-between">
             <div>

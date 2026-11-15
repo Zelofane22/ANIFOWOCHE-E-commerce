@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import {
+  BarChartIcon,
+  BellIcon,
   HomeIcon,
   LogOutIcon,
+  ZapIcon,
   PackageIcon,
   SettingsIcon,
   ShoppingBagIcon,
@@ -20,6 +23,29 @@ const navItems = [
   { to: "/boutique", label: "Boutique", Icon: StoreIcon },
   { to: "/settings", label: "Plus", Icon: MoreHorizontalIcon },
 ];
+
+// Navigation desktop : pas de menu "Plus", toutes les sections sont accessibles directement.
+const desktopSections = [
+  {
+    title: "Menu",
+    items: [
+      { to: "/dashboard", label: "Tableau de bord", Icon: HomeIcon },
+      { to: "/products", label: "Produits", Icon: PackageIcon },
+      { to: "/orders", label: "Commandes", Icon: ShoppingBagIcon, badge: "pending" },
+      { to: "/boutique", label: "Boutique", Icon: StoreIcon },
+      { to: "/stats", label: "Statistiques", Icon: BarChartIcon },
+    ],
+  },
+  {
+    title: "Compte",
+    items: [
+      { to: "/notifications", label: "Notifications", Icon: BellIcon },
+      { to: "/settings", label: "Paramètres", Icon: SettingsIcon },
+    ],
+  },
+];
+
+const PLAN_NAMES = { FREE: "Gratuit", STARTER: "Starter", PRO: "Pro", BUSINESS: "Business" };
 
 function BottomNav({ pendingCount = 0 }) {
   return (
@@ -71,7 +97,7 @@ const getInitials = (name) =>
     .map((part) => part[0].toUpperCase())
     .join("") || "";
 
-export default function SellerShell({ children, seller, pendingCount }) {
+export default function SellerShell({ children, seller, pendingCount = 0, header = null }) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -82,44 +108,113 @@ export default function SellerShell({ children, seller, pendingCount }) {
   };
 
   const initials = getInitials(seller?.display_name);
+  const shopName = seller?.shop?.name ?? seller?.display_name ?? "";
+  const plan = seller?.plan;
+  const planName = plan ? PLAN_NAMES[plan] ?? plan : "";
 
   return (
     <div className="min-h-screen bg-[#F4F4F8] text-ink">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-black/10 bg-white px-4 py-5 lg:block">
-        <Link to="/dashboard" className="flex items-center gap-2 text-base font-bold text-ink">
-          <StoreIcon size={21} className="text-brand-dark" />
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-black/[0.08] bg-white px-4 pt-5 pb-4 lg:flex">
+        <Link to="/dashboard" className="flex items-center gap-2.5 px-3 text-[17px] font-extrabold text-ink">
+          <StoreIcon size={20} className="text-brand-dark" />
           ANIF Seller
         </Link>
-        <nav className="mt-8 grid gap-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/dashboard"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                  isActive ? "bg-brand-light text-brand-dark" : "text-muted hover:bg-gray-100 hover:text-ink"
-                }`
-              }
-            >
-              <item.Icon size={17} />
-              {item.label}
-            </NavLink>
+
+        <Link
+          to="/boutique"
+          className="mt-5 flex items-center gap-2.5 rounded-xl bg-[#F4F4F8] p-2.5 transition hover:bg-gray-100"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand text-[13px] font-extrabold text-white">
+            {getInitials(shopName) || <StoreIcon size={16} />}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-bold text-ink">{shopName || "Ma boutique"}</span>
+            {planName && <span className="block text-[11px] font-semibold text-[#9CA3AF]">Plan {planName}</span>}
+          </span>
+        </Link>
+
+        <nav aria-label="Navigation vendeur" className="mt-2 flex-1 overflow-y-auto">
+          {desktopSections.map((section) => (
+            <div key={section.title}>
+              <p className="px-3 pt-5 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+                {section.title}
+              </p>
+              <div className="grid gap-1">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === "/dashboard"}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm transition ${
+                        isActive
+                          ? "bg-brand-light font-bold text-brand-dark"
+                          : "font-semibold text-muted hover:bg-gray-100 hover:text-ink"
+                      }`
+                    }
+                  >
+                    <item.Icon size={19} />
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge === "pending" && pendingCount > 0 && (
+                      <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">
+                        {pendingCount}
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
+
+        {plan === "FREE" && (
+          <div className="mt-4 rounded-2xl bg-[#111827] p-4">
+            <p className="flex items-center gap-2 text-sm font-bold text-white">
+              <ZapIcon size={16} className="text-brand" />
+              Passez à une offre supérieure
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-[#9CA3AF]">
+              Plus de produits, plus de commandes et une meilleure visibilité.
+            </p>
+            <Link
+              to="/plan"
+              className="mt-3 flex items-center justify-center rounded-[10px] bg-brand px-3 py-2 text-sm font-bold text-white transition hover:bg-brand-dark"
+            >
+              Voir les offres
+            </Link>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleLogout}
-          className="absolute bottom-5 left-4 right-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-gray-100 hover:text-ink"
+          className="mt-3 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-gray-100 hover:text-ink"
         >
-          <LogOutIcon size={17} />
+          <LogOutIcon size={19} />
           Se déconnecter
         </button>
       </aside>
 
       <div className="lg:pl-64">
-        <main className="mx-auto max-w-6xl pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] lg:pb-6">{children}</main>
+        {header && (
+          <header className="sticky top-0 z-30 hidden border-b border-black/[0.06] bg-white/95 backdrop-blur lg:block">
+            <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-8 py-4">
+              <div className="min-w-0 flex-1">
+                <h1 className="truncate text-[22px] font-extrabold leading-tight text-ink">{header.title}</h1>
+                {header.subtitle && <p className="mt-0.5 truncate text-[13px] font-medium text-muted">{header.subtitle}</p>}
+              </div>
+              {header.actions}
+            </div>
+          </header>
+        )}
+        <main
+          className={`mx-auto pb-[calc(var(--tabbar-h)+var(--tabbar-safe)+1.5rem)] lg:pb-6 ${
+            header ? "max-w-6xl lg:max-w-[1400px]" : "max-w-6xl"
+          }`}
+        >
+          {children}
+        </main>
       </div>
 
       <BottomNav pendingCount={pendingCount} />
