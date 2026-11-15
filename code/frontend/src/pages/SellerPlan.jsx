@@ -236,13 +236,18 @@ export default function SellerPlan() {
   const isDowngrade = PLAN_ORDER.indexOf(selected) < PLAN_ORDER.indexOf(data.current_plan);
   const getFeatureLabel = (feature) => FEATURE_LABELS[feature] || feature;
 
-  return (
-    <SellerShell seller={{ display_name: "Plan" }} pendingCount={0}>
-      <div className="bg-[#111827] px-5 pt-12 pb-6">
-        <h1 className="text-xl font-bold text-white mb-1">Mon abonnement</h1>
-        <p className="text-white/50 text-sm">Gérez votre plan et vos fonctionnalités</p>
+  const desktopHeader = {
+    title: "Mon abonnement",
+    subtitle: `Plan actuel : ${currentPlanMeta?.label || data.current_plan} · gérez votre plan et vos fonctionnalités`,
+  };
 
-        <div className="mt-5 bg-white/10 backdrop-blur-sm rounded-[20px] p-5 border border-white/10">
+  return (
+    <SellerShell seller={{ display_name: "Plan" }} pendingCount={0} header={desktopHeader}>
+      <div className="bg-[#111827] px-5 pt-12 pb-6 lg:mx-8 lg:mt-6 lg:rounded-[20px] lg:p-6">
+        <h1 className="text-xl font-bold text-white mb-1 lg:hidden">Mon abonnement</h1>
+        <p className="text-white/50 text-sm lg:hidden">Gérez votre plan et vos fonctionnalités</p>
+
+        <div className="mt-5 bg-white/10 backdrop-blur-sm rounded-[20px] p-5 border border-white/10 lg:mt-0">
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">
@@ -369,7 +374,7 @@ export default function SellerPlan() {
           )}
 
           {isFree && limits && (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
               <QuotaBar
                 label="Produits"
                 used={limits.products_used || 0}
@@ -411,10 +416,10 @@ export default function SellerPlan() {
         </div>
       </div>
 
-      <div className="px-4 pt-5 pb-8 max-w-lg mx-auto">
-        <p className="text-sm font-bold text-[#374151] mb-3 px-1">Comparer les offres</p>
+      <div className="px-4 pt-5 pb-8 max-w-lg mx-auto lg:max-w-none lg:px-8 lg:pt-8">
+        <p className="text-sm font-bold text-[#374151] mb-3 px-1 lg:mb-5 lg:px-0 lg:text-base lg:text-[#111827]">Comparer les offres</p>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:gap-5 xl:grid-cols-4">
           {PLAN_ORDER.map((code) => {
             const plan = plans.find((p) => p.code === code);
             const meta = PLAN_META[code];
@@ -431,9 +436,12 @@ export default function SellerPlan() {
                 type="button"
                 onClick={() => payable && setSelected(code)}
                 disabled={!payable}
-                className={`relative bg-white rounded-[16px] shadow-sm border p-5 text-left transition-all ${
+                aria-current={current ? "true" : undefined}
+                className={`relative bg-white rounded-[16px] shadow-sm border p-5 text-left transition-all lg:flex lg:flex-col lg:p-6 ${
                   isSelected
                     ? "border-[#C99F08] shadow-md ring-1 ring-[#C99F08]/20"
+                    : current
+                    ? "border-black/[0.05] hover:border-black/10 lg:border-green-500 lg:hover:border-green-500 lg:bg-green-50/40 lg:ring-2 lg:ring-green-500/20"
                     : "border-black/[0.05] hover:border-black/10"
                 } ${!payable ? "opacity-80" : ""}`}
               >
@@ -514,6 +522,12 @@ export default function SellerPlan() {
                     </li>
                   ))}
                 </ul>
+                {current && (
+                  <p className="mt-auto hidden items-center gap-1.5 pt-5 text-sm font-bold text-green-700 lg:flex">
+                    <CheckIcon size={15} />
+                    Votre plan actuel
+                  </p>
+                )}
               </button>
             );
           })}
@@ -545,13 +559,13 @@ export default function SellerPlan() {
           </div>
         )}
 
-        <div className="mt-5 bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-5">
+        <div className="mt-5 bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-5 lg:mt-6 lg:flex lg:flex-row-reverse lg:items-center lg:justify-between lg:gap-8 lg:p-6">
           {isFree ? (
             <button
               type="button"
               onClick={handleSubscribe}
               disabled={submitting || isCurrentPlan(selected) || !isPayable(selected)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50 disabled:cursor-not-allowed lg:w-auto lg:min-w-[280px] lg:shrink-0"
             >
               {submitting ? (
                 <>
@@ -570,7 +584,7 @@ export default function SellerPlan() {
               <button
                 type="button"
                 disabled
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed lg:w-auto lg:min-w-[280px] lg:shrink-0"
               >
                 Rétrogradation à l'expiration
               </button>
@@ -579,7 +593,7 @@ export default function SellerPlan() {
                 type="button"
                 onClick={handleSubscribe}
                 disabled={submitting || !quote}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#C99F08] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#A67C06] active:bg-[#8B6604] disabled:opacity-50 lg:w-auto lg:min-w-[280px] lg:shrink-0"
               >
                 {submitting ? (
                   <>
@@ -603,7 +617,7 @@ export default function SellerPlan() {
             <button
               type="button"
               disabled
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gray-200 px-5 py-3 text-sm font-bold text-gray-400 cursor-not-allowed lg:w-auto lg:min-w-[280px] lg:shrink-0"
             >
               {selected === "BUSINESS"
                 ? "Bientôt disponible après vérification"
@@ -613,7 +627,7 @@ export default function SellerPlan() {
             </button>
           )}
 
-          <p className="mt-3 text-xs leading-5 text-[#9CA3AF] text-center">
+          <p className="mt-3 text-xs leading-5 text-[#9CA3AF] text-center lg:mt-0 lg:max-w-xl lg:text-left">
             Paiement sécurisé par FedaPay (mobile money ou carte). L'abonnement
             prend effet dès la confirmation du paiement et se renouvelle
             mensuellement.

@@ -30,6 +30,12 @@ const TYPE_CONFIG = {
   system: { label: "Système", Icon: InfoIcon, color: "#6B7280", bg: "#F3F4F6" },
 };
 
+const FILTERS = [
+  { key: "all", label: "Toutes" },
+  { key: "unread", label: "Non lues" },
+  { key: "read", label: "Lues" },
+];
+
 function formatRelativeDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -38,7 +44,7 @@ function formatRelativeDate(iso) {
   const diffMin = Math.floor(diffMs / 60000);
   const diffH = Math.floor(diffMin / 60);
   const diffD = Math.floor(diffH / 24);
-  if (diffMin < 1) return "A l'instant";
+  if (diffMin < 1) return "À l'instant";
   if (diffMin < 60) return `Il y a ${diffMin} min`;
   if (diffH < 24) return `Il y a ${diffH}h`;
   if (diffD === 1) return "Hier";
@@ -63,10 +69,10 @@ function NotificationCard({ notification, onRead }) {
   return (
     <div
       onClick={handleMarkRead}
-      className={`relative rounded-2xl border p-4 shadow-sm transition cursor-pointer active:scale-[0.98] ${
+      className={`relative rounded-2xl border p-4 shadow-sm transition cursor-pointer active:scale-[0.98] lg:px-5 lg:active:scale-100 ${
         notification.is_read
-          ? "border-black/[0.05] bg-white"
-          : "border-[#C99F08]/20 bg-[#C99F08]/[0.03]"
+          ? "border-black/[0.05] bg-white lg:hover:border-black/10"
+          : "border-[#C99F08]/20 bg-[#C99F08]/[0.03] lg:hover:border-[#C99F08]/40"
       }`}
     >
       {!notification.is_read && (
@@ -80,15 +86,15 @@ function NotificationCard({ notification, onRead }) {
           <Icon size={18} style={{ color: cfg.color }} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className={`text-sm font-bold leading-snug ${notification.is_read ? "text-[#6B7280]" : "text-[#111827]"}`}>
+          <div className="flex items-start justify-between gap-2 lg:gap-4 lg:pr-6">
+            <p className={`text-sm font-bold leading-snug lg:text-[15px] ${notification.is_read ? "text-[#6B7280]" : "text-[#111827]"}`}>
               {notification.title}
             </p>
-            <span className="shrink-0 text-[11px] text-[#9CA3AF]">
+            <span className="shrink-0 text-[11px] text-[#9CA3AF] lg:text-xs">
               {formatRelativeDate(notification.created_at)}
             </span>
           </div>
-          <p className="mt-1 text-sm leading-relaxed text-[#6B7280] line-clamp-2">
+          <p className="mt-1 text-sm leading-relaxed text-[#6B7280] line-clamp-2 lg:line-clamp-none lg:max-w-3xl">
             {notification.message}
           </p>
           <div className="mt-2 flex items-center gap-1.5">
@@ -167,10 +173,66 @@ export default function SellerNotifications() {
     );
   }
 
+  const totalCount = notifications?.length ?? 0;
+  const filterCounts = { all: totalCount, unread: unreadCount, read: totalCount - unreadCount };
+
+  const desktopHeader = {
+    title: "Notifications",
+    subtitle: `${unreadCount} non lue${unreadCount > 1 ? "s" : ""} · ${totalCount} au total`,
+    actions:
+      unreadCount > 0 ? (
+        <button
+          type="button"
+          onClick={handleMarkAllRead}
+          className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+        >
+          <CheckIcon size={16} />
+          Tout marquer comme lu
+        </button>
+      ) : null,
+  };
+
   return (
-    <SellerShell seller={seller} pendingCount={unreadCount}>
-      <div className="mx-auto max-w-2xl">
-        <div className="bg-[#111827] px-5 pt-8 pb-6">
+    <SellerShell seller={seller} pendingCount={unreadCount} header={desktopHeader}>
+      <div className="mx-auto max-w-2xl lg:grid lg:max-w-6xl lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start lg:gap-6 lg:px-8 lg:pt-6">
+        {/* Filtres (desktop) */}
+        <aside className="hidden lg:sticky lg:top-28 lg:block">
+          <nav
+            aria-label="Filtrer les notifications"
+            className="rounded-2xl border border-black/[0.05] bg-white p-2 shadow-sm"
+          >
+            <p className="px-3 pt-2 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+              Afficher
+            </p>
+            {FILTERS.map((f) => {
+              const active = filter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  aria-pressed={active}
+                  className={`flex w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2.5 text-left text-sm transition ${
+                    active
+                      ? "bg-brand-light font-bold text-brand-dark"
+                      : "font-semibold text-muted hover:bg-gray-100 hover:text-ink"
+                  }`}
+                >
+                  {f.label}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold leading-none ${
+                      active ? "bg-white text-brand-dark" : "bg-[#F3F4F6] text-[#6B7280]"
+                    }`}
+                  >
+                    {notifications === null ? "…" : filterCounts[f.key]}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <div className="bg-[#111827] px-5 pt-8 pb-6 lg:hidden">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-white">Notifications</h1>
@@ -193,11 +255,7 @@ export default function SellerNotifications() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
-            {[
-              { key: "all", label: "Toutes" },
-              { key: "unread", label: "Non lues" },
-              { key: "read", label: "Lues" },
-            ].map((f) => (
+            {FILTERS.map((f) => (
               <button
                 key={f.key}
                 type="button"
@@ -214,7 +272,7 @@ export default function SellerNotifications() {
           </div>
         </div>
 
-        <div className="px-4 pt-4 space-y-3 pb-8">
+        <div className="px-4 pt-4 space-y-3 pb-8 lg:px-0 lg:pt-0">
           {notifications === null ? (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
@@ -233,7 +291,7 @@ export default function SellerNotifications() {
               </p>
               <p className="mt-1 text-sm text-[#9CA3AF]">
                 {filter === "all"
-                  ? "Les notifications de vos commandes et alertes apparaitront ici."
+                  ? "Les notifications de vos commandes et alertes apparaîtront ici."
                   : "Essayez de modifier votre filtre."}
               </p>
             </div>

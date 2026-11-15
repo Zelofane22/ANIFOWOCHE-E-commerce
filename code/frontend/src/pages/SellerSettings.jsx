@@ -164,14 +164,21 @@ export default function SellerSettings() {
   const initials = getInitials(seller.display_name);
   const quotaReached = seller.limits?.orders_quota_reached;
 
+  const desktopHeader = {
+    title: "Paramètres",
+    subtitle: "Profil vendeur, abonnement, préférences et aide",
+  };
+
   return (
-    <SellerShell seller={seller} pendingCount={0}>
-      {/* Header */}
-      <div className="bg-white px-5 pt-12 pb-4 border-b border-black/[0.05] sticky top-0 z-10">
+    <SellerShell seller={seller} pendingCount={0} header={desktopHeader}>
+      {/* Header (mobile) */}
+      <div className="bg-white px-5 pt-12 pb-4 border-b border-black/[0.05] sticky top-0 z-10 lg:hidden">
         <h1 className="text-xl font-bold text-[#111827]">Plus</h1>
       </div>
 
-      <div className="px-4 pt-4 pb-8 space-y-3 max-w-lg mx-auto">
+      {/* Mobile : une seule colonne. Desktop : deux colonnes de cartes. */}
+      <div className="px-4 pt-4 pb-8 space-y-3 max-w-lg mx-auto lg:grid lg:max-w-6xl lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0 lg:px-8 lg:pt-6">
+        <div className="space-y-3 lg:space-y-6">
         {/* ── Profile Card ── */}
         <button
           type="button"
@@ -302,7 +309,9 @@ export default function SellerSettings() {
             </div>
           )}
         </div>
+        </div>
 
+        <div className="space-y-3 lg:space-y-6">
         {/* ── Préférences ── */}
         <div className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] divide-y divide-black/[0.04]">
           <div className="px-4 pt-3 pb-2">
@@ -381,6 +390,7 @@ export default function SellerSettings() {
             </div>
             <p className="font-semibold text-sm text-red-600">Se déconnecter</p>
           </button>
+        </div>
         </div>
       </div>
     </SellerShell>
