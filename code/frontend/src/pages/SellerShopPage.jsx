@@ -15,6 +15,7 @@ import {
   GlobeIcon,
 } from "../components/icons.jsx";
 import SellerShell from "../components/seller/SellerShell.jsx";
+import ShopPreviewDesktop from "../components/seller/ShopPreviewDesktop.jsx";
 import { useAuth } from "../context/useAuth.js";
 import { useStoreStatus } from "../context/useStoreStatus.js";
 import { extractErrorMessage } from "../utils/apiError.js";
@@ -22,6 +23,21 @@ import { extractErrorMessage } from "../utils/apiError.js";
 const inputClass =
   "w-full rounded-[12px] border border-black/[0.12] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#C99F08] focus:ring-2 focus:ring-[#C99F08]/15";
 
+// État initial du formulaire à partir du profil vendeur.
+const buildForm = (data) => ({
+  display_name: data.display_name,
+  phone: data.phone,
+  city: data.city || "",
+  shop: {
+    name: data.shop.name,
+    slug: data.shop.slug,
+    whatsapp_phone: data.shop.whatsapp_phone,
+    city: data.shop.city || "",
+    description: data.shop.description || "",
+    delivery_zone_ids: (data.shop.delivery_zones || []).map((zone) => zone.id),
+    is_published: data.shop.is_published,
+  },
+});
 
 function SettingsRow({ icon: Icon, label, desc, onClick, gold, badge }) {
   return (
@@ -103,20 +119,7 @@ export default function SellerShopPage() {
           .then(([data, zonesData]) => {
             setDeliveryZones(zonesData.results ?? zonesData);
             setSeller(data);
-            setForm({
-              display_name: data.display_name,
-              phone: data.phone,
-              city: data.city || "",
-              shop: {
-                name: data.shop.name,
-                slug: data.shop.slug,
-                whatsapp_phone: data.shop.whatsapp_phone,
-                city: data.shop.city || "",
-                description: data.shop.description || "",
-                delivery_zone_ids: (data.shop.delivery_zones || []).map((zone) => zone.id),
-                is_published: data.shop.is_published,
-              },
-            });
+            setForm(buildForm(data));
           })
           .catch((err) => {
             navigate(err?.response?.status === 404 ? "/register" : "/login", { replace: true });
@@ -236,22 +239,57 @@ export default function SellerShopPage() {
     }
   };
 
+  // Desktop : réinitialise le formulaire aux valeurs enregistrées.
+  const handleDesktopReset = () => {
+    slugEditedRef.current = false;
+    setForm(buildForm(seller));
+    setSlugError(null);
+    setSlugChecking(false);
+    setError(null);
+    setSuccess(null);
+  };
+
+  // Lien public reflétant le slug en cours de saisie (aperçu desktop).
+  const savedSlug = seller.shop?.slug || "";
+  const previewUrl =
+    savedSlug && shopUrl.endsWith(`/${savedSlug}`)
+      ? `${shopUrl.slice(0, -savedSlug.length)}${form.shop.slug || "..."}`
+      : `/sellers/${form.shop.slug || "..."}`;
+  const previewZones = deliveryZones.filter((zone) => (form.shop.delivery_zone_ids || []).includes(zone.id));
+
+  const desktopHeader = {
+    title: "Boutique",
+    subtitle: "Réglages de votre boutique et aperçu en direct",
+    actions: shopUrl ? (
+      <a
+        href={shopUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+      >
+        <ExternalLinkIcon size={16} />
+        Voir ma boutique
+      </a>
+    ) : null,
+  };
+
   return (
-    <SellerShell title="Boutique" seller={seller}>
+    <SellerShell title="Boutique" seller={seller} header={desktopHeader}>
       {maintenanceMode && (
-        <div role="alert" className="mx-4 mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <div role="alert" className="mx-4 mt-4 lg:mx-8 lg:mt-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-amber-600">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.3 3.3 10.3a2 2 0 0 0 0 2.8l7 7a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8l-7-7a2 2 0 0 0-2.8 0Z" />
           </svg>
           <span>Boutique en maintenance — les modifications de la boutique sont suspendues.</span>
         </div>
       )}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start lg:gap-8 lg:px-8 lg:py-6">
       {/* Dark header */}
-      <div className="mx-auto max-w-2xl">
-        <div className="rounded-2xl bg-[#111827] px-5 pt-8 pb-6 -mx-4 sm:mx-0 sm:rounded-2xl">
-          <h1 className="text-xl font-bold text-white mb-1">Votre boutique</h1>
-          <p className="text-white/50 text-sm">Partagez et augmentez vos ventes</p>
-          <div className="mt-5 bg-green-500/15 border border-green-400/20 rounded-[14px] p-4 flex items-center gap-3">
+      <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
+        <div className="rounded-2xl bg-[#111827] px-5 pt-8 pb-6 -mx-4 sm:mx-0 sm:rounded-2xl lg:pt-6">
+          <h1 className="text-xl font-bold text-white mb-1 lg:hidden">Votre boutique</h1>
+          <p className="text-white/50 text-sm lg:hidden">Partagez et augmentez vos ventes</p>
+          <div className="mt-5 lg:mt-0 bg-green-500/15 border border-green-400/20 rounded-[14px] p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
               <CheckIcon size={18} className="text-green-400" />
             </div>
@@ -363,12 +401,14 @@ export default function SellerShopPage() {
             <div className="px-4 pt-3 pb-2">
               <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Ma boutique</p>
             </div>
-            <SettingsRow
-              icon={StoreIcon}
-              label="Paramètres boutique"
-              desc={`${seller.shop?.name} · ${seller.shop?.slug}`}
-              onClick={() => { if (maintenanceMode) return; setEditingShop(!editingShop); }}
-            />
+            <div className="lg:hidden">
+              <SettingsRow
+                icon={StoreIcon}
+                label="Paramètres boutique"
+                desc={`${seller.shop?.name} · ${seller.shop?.slug}`}
+                onClick={() => { if (maintenanceMode) return; setEditingShop(!editingShop); }}
+              />
+            </div>
             <div className="px-4 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-9 h-9 rounded-[10px] bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
@@ -394,8 +434,13 @@ export default function SellerShopPage() {
           </div>
 
           {/* ── Inline Shop Edit ── */}
-          {editingShop && (
-            <form onSubmit={handleFullSave} className="bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4 space-y-3">
+          {/* Mobile : formulaire ouvert à la demande. Desktop : toujours visible. */}
+          <form
+            onSubmit={handleFullSave}
+            className={`bg-white rounded-[16px] shadow-sm border border-black/[0.05] p-4 space-y-3 lg:p-5 ${
+              editingShop ? "" : "hidden lg:block"
+            }`}
+          >
               <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">Paramètres boutique</p>
               <div>
                 <label className="block text-sm font-semibold text-[#111827] mb-1.5">Nom de boutique</label>
@@ -490,8 +535,16 @@ export default function SellerShopPage() {
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
+                  onClick={handleDesktopReset}
+                  disabled={submitting}
+                  className="hidden lg:block flex-1 rounded-[10px] border border-black/[0.12] bg-white px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Réinitialiser
+                </button>
+                <button
+                  type="button"
                   onClick={() => { setEditingShop(false); setError(null); setSuccess(null); }}
-                  className="flex-1 rounded-[10px] border border-black/[0.12] bg-white px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-gray-50"
+                  className="lg:hidden flex-1 rounded-[10px] border border-black/[0.12] bg-white px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-gray-50"
                 >
                   Annuler
                 </button>
@@ -503,8 +556,7 @@ export default function SellerShopPage() {
                   {submitting ? "Enregistrement..." : "Enregistrer"}
                 </button>
               </div>
-            </form>
-          )}
+          </form>
           
           {/* Social share */}
           <div className="rounded-2xl bg-white border border-black/[0.05] p-4 shadow-sm">
@@ -534,6 +586,22 @@ export default function SellerShopPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Aperçu (desktop) */}
+      <aside className="hidden lg:block lg:sticky lg:top-24" aria-label="Aperçu de la boutique">
+        <ShopPreviewDesktop
+          name={form.shop.name}
+          city={form.shop.city}
+          description={form.shop.description}
+          image={seller.shop?.image}
+          imageLoading={avatarLoading}
+          whatsappPhone={form.shop.whatsapp_phone}
+          publicUrl={previewUrl}
+          isPublished={form.shop.is_published}
+          deliveryZones={previewZones}
+        />
+      </aside>
       </div>
     </SellerShell>
   );
