@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.14.0...v2.15.0) (2026-11-15)
+
+
+### Features
+
+* **sellers:** upload/suppression avatar boutique + affichage public ([54b464b](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/commit/54b464bae29f28a8886cb101346eabb61c854c96))
+
 ## [2.14.0](https://github.com/Zelofane22/ANIFOWOCHE-E-commerce/compare/v2.13.2...v2.14.0) (2026-10-09)
 
 
