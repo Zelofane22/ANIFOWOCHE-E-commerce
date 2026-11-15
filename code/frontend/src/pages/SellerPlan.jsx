@@ -373,7 +373,7 @@ export default function SellerPlan() {
             </div>
           )}
 
-          {isFree && limits && (
+          {limits && (limits.max_products != null || limits.max_orders_per_month != null) && (
             <div className="mt-4 space-y-3 lg:grid lg:grid-cols-2 lg:gap-8 lg:space-y-0">
               <QuotaBar
                 label="Produits"
@@ -388,6 +388,12 @@ export default function SellerPlan() {
                 />
               )}
             </div>
+          )}
+
+          {limits && limits.max_products == null && limits.max_orders_per_month == null && (
+            <p className="mt-4 text-sm text-white/60">
+              Produits actifs : <span className="font-bold text-white">{limits.products_used || 0}</span> · produits et commandes illimités
+            </p>
           )}
 
           {isPending && subscription?.payment_url && (

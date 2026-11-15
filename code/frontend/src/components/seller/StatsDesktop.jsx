@@ -7,6 +7,7 @@ import {
   CategoriesCard,
   KpiCard,
   ProGateDesktop,
+  ProUpsellBanner,
   RevenueBars,
   TopProductsCard,
 } from "./StatsDesktopUi.jsx";
@@ -39,6 +40,9 @@ export default function StatsDesktop({
 
   return (
     <div className="space-y-6 px-8 pt-7 pb-8">
+      {locked && (
+        <ProUpsellBanner text="Taux de validation et de conversion, répartition des commandes, activité et top produits sont réservés à l'offre Pro." />
+      )}
       <div className="grid grid-cols-4 gap-5">
         <KpiCard
           label="Revenus du mois"

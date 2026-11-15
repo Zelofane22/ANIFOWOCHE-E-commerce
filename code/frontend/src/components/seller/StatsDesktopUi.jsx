@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatXof } from "../../utils/format.js";
+import { LockIcon, ZapIcon } from "../icons.jsx";
 
 // Briques d'interface partagées par les vues desktop Statistiques et Rapports.
 // Style repris de DashboardDesktop (cartes blanches, bordure fine, KPI à icône teintée).
@@ -63,12 +64,10 @@ export function ProGateDesktop({ locked, children, className = "" }) {
         {children}
       </div>
       <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/40 p-4">
-        <Link
-          to="/plan"
-          className="inline-flex items-center gap-2 rounded-[10px] bg-brand px-4 py-2.5 text-center text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
-        >
-          Débloquer les statistiques avancées avec Pro
-        </Link>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 shadow-sm">
+          <LockIcon size={13} />
+          Offre Pro
+        </span>
       </div>
     </div>
   );
@@ -236,5 +235,25 @@ export function CategoriesCard({ categories, className = "" }) {
         </ul>
       )}
     </Card>
+  );
+}
+
+// Bandeau unique d'incitation à passer en Pro (au lieu d'un bouton par bloc verrouillé).
+export function ProUpsellBanner({ text }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-brand/30 bg-brand-light px-5 py-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
+          <ZapIcon size={16} />
+        </span>
+        <p className="text-sm font-medium text-gray-800">{text}</p>
+      </div>
+      <Link
+        to="/plan"
+        className="shrink-0 rounded-[10px] bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dark"
+      >
+        Passer à Pro
+      </Link>
+    </div>
   );
 }

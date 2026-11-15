@@ -58,14 +58,15 @@ describe("StatsDesktop", () => {
     expect(screen.getByText("3 validées · 1 annulée")).toBeInTheDocument();
     expect(screen.getByText("Pagne wax")).toBeInTheDocument();
     expect(screen.getByText("Accessoires")).toBeInTheDocument();
-    expect(screen.queryByText(/Débloquer les statistiques avancées/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Passer à Pro" })).not.toBeInTheDocument();
   });
 
   it("verrouille les statistiques avancées sur l'offre gratuite", () => {
     renderStats({ hasAdvancedStats: false });
-    const gates = screen.getAllByRole("link", { name: /Débloquer les statistiques avancées avec Pro/ });
-    expect(gates.length).toBeGreaterThan(0);
-    gates.forEach((link) => expect(link).toHaveAttribute("href", "/plan"));
+    const ctas = screen.getAllByRole("link", { name: "Passer à Pro" });
+    expect(ctas).toHaveLength(1);
+    expect(ctas[0]).toHaveAttribute("href", "/plan");
+    expect(screen.getAllByText("Offre Pro").length).toBeGreaterThan(0);
   });
 });
 

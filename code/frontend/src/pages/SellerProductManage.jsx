@@ -191,9 +191,22 @@ export default function SellerProductManage() {
   }
 
   if (!product) {
+    const notFoundHeader = {
+      title: "Produit introuvable",
+      subtitle: "Ce produit n’existe plus ou n’est pas dans votre catalogue",
+      actions: (
+        <Link
+          to="/products"
+          className="inline-flex items-center gap-2 rounded-[10px] border border-black/[0.1] bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand-dark"
+        >
+          <ChevronLeftIcon size={16} />
+          Retour aux produits
+        </Link>
+      ),
+    };
     return (
-      <SellerShell seller={seller} pendingCount={0}>
-        <section className="px-4 pt-10 text-center">
+      <SellerShell seller={seller} pendingCount={0} header={notFoundHeader}>
+        <section className="px-4 pt-10 text-center lg:pt-24">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F3F4F6]">
             <ImageIcon size={28} className="text-[#9CA3AF]" />
           </div>
