@@ -28,7 +28,7 @@ const PLAN_META = {
   BUSINESS: { name: "Business", color: "text-purple-600", bg: "bg-purple-50" },
 };
 
-const PERIOD_MAP = { "7j": 7, "30j": 30, "3m": 90 };
+const PERIOD_MAP = { "7j": 7, "30j": 30, "12m": 365 };
 
 export default function SellerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -263,7 +263,7 @@ export default function SellerDashboard() {
             </div>
 
             <div className="mt-5 flex gap-1 rounded-full bg-white/5 p-1">
-              {["7j", "30j", "3m"].map((p) => (
+              {["7j", "30j", "12m"].map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
@@ -370,13 +370,14 @@ export default function SellerDashboard() {
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {low_stock.map((item) => (
-                    <span
+                    <Link
                       key={item.id}
+                      to={item.slug ? `/products/${item.slug}/edit` : "/products"}
                       className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700"
                     >
                       {item.name}
                       <span className="text-orange-400">({item.stock})</span>
-                    </span>
+                    </Link>
                   ))}
                 </div>
               </div>

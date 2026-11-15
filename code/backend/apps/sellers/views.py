@@ -9,7 +9,7 @@ from PIL import Image
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Q
-from django.db.models.functions import ExtractHour, ExtractIsoWeekDay, TruncDate
+from django.db.models.functions import ExtractHour, ExtractIsoWeekDay, TruncDate, TruncMonth
 from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework import generics, permissions, serializers, status, viewsets
@@ -44,7 +44,9 @@ from .serializers import (
 )
 
 KPI_PERIOD_DAYS = 30
-VALID_PERIODS = (7, 30, 90)
+VALID_PERIODS = (7, 30, 90, 365)
+# Au-delà, la série du graphique est agrégée par mois (365 points journaliers illisibles).
+MONTHLY_CHART_MIN_DAYS = 92
 LOW_STOCK_THRESHOLD = 10
 
 
@@ -173,18 +175,18 @@ def _seller_report_payload(seller, request):
         previous_start = period_start - timedelta(days=duration_days)
         days_used = duration_days
     else:
-        # Paramètre period : 7, 30 ou 90 jours.
+        # Paramètre period : 7, 30, 90 ou 365 jours.
         if period_raw is not None:
             try:
                 days = int(period_raw)
             except (ValueError, TypeError):
                 return None, Response(
-                    {"detail": "Le paramètre period doit être un entier parmi 7, 30 ou 90."},
+                    {"detail": "Le paramètre period doit être un entier parmi 7, 30, 90 ou 365."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if days not in VALID_PERIODS:
                 return None, Response(
-                    {"detail": "Le paramètre period doit être 7, 30 ou 90."},
+                    {"detail": "Le paramètre period doit être 7, 30, 90 ou 365."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         else:
@@ -213,10 +215,12 @@ def _seller_report_payload(seller, request):
     avg_order_value = round(revenue_period / non_cancelled_count_period) if non_cancelled_count_period else 0
     conversion_rate = round(non_cancelled_count_period / orders_count_period * 100, 1) if orders_count_period else 0
 
-    # Série des ventes par jour pour le graphique d'évolution.
+    # Série des ventes pour le graphique d'évolution : par jour, ou par mois
+    # sur les longues périodes (12 mois).
+    monthly_chart = days_used >= MONTHLY_CHART_MIN_DAYS
     sales_by_day = (
         orders_period.exclude(status=Order.Status.CANCELLED)
-        .annotate(day=TruncDate("created_at"))
+        .annotate(day=TruncMonth("created_at") if monthly_chart else TruncDate("created_at"))
         .values("day")
         .annotate(total=Sum("total_xof"))
         .order_by("day")
@@ -304,7 +308,7 @@ def _seller_report_payload(seller, request):
             "period_days": days_used,
         },
         "sales_chart": [
-            {"day": row["day"].strftime("%d/%m"), "total": row["total"]}
+            {"day": row["day"].strftime("%m/%Y" if monthly_chart else "%d/%m"), "total": row["total"]}
             for row in sales_by_day
         ],
         "activity": activity,
@@ -318,7 +322,7 @@ def _seller_report_payload(seller, request):
             for row in category_breakdown
         ],
         "low_stock": [
-            {"id": p.id, "name": p.name, "stock": p.stock}
+            {"id": p.id, "slug": p.slug, "name": p.name, "stock": p.stock}
             for p in low_stock
         ],
         "recent_orders": OrderSerializer(recent_orders, many=True).data,

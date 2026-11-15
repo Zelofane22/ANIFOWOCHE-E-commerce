@@ -19,13 +19,13 @@ import { formatOrderDate, initialsOf, itemsCount, orderCustomerName } from "../.
 const PERIODS = [
   ["7j", "7 j"],
   ["30j", "30 j"],
-  ["3m", "3 mois"],
+  ["12m", "12 mois"],
 ];
 
 const PERIOD_LABEL = {
   "7j": "7 derniers jours",
   "30j": "30 derniers jours",
-  "3m": "3 derniers mois",
+  "12m": "12 derniers mois",
 };
 
 const FILTERS = [
@@ -344,7 +344,7 @@ export default function DashboardDesktop({
           highlight={pendingCount > 0}
         />
         <KpiCard
-          label="Produits"
+          label="Produits actifs"
           value={productsCount}
           sub={maxProducts != null ? `sur ${maxProducts} · offre ${planMeta.name}` : `offre ${planMeta.name}`}
           icon={PackageIcon}
@@ -469,7 +469,16 @@ export default function DashboardDesktop({
               <ul className="mt-3 space-y-2">
                 {lowStock.map((item) => (
                   <li key={item.id} className="flex items-center gap-2 rounded-[10px] bg-white px-3 py-2.5">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{item.name}</span>
+                    {item.slug ? (
+                      <Link
+                        to={`/products/${item.slug}`}
+                        className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink hover:text-brand-dark"
+                      >
+                        {item.name}
+                      </Link>
+                    ) : (
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{item.name}</span>
+                    )}
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
                         item.stock <= 0 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
@@ -477,6 +486,15 @@ export default function DashboardDesktop({
                     >
                       {item.stock <= 0 ? "Rupture" : `${item.stock} restant${item.stock > 1 ? "s" : ""}`}
                     </span>
+                    {item.slug && (
+                      <Link
+                        to={`/products/${item.slug}/edit`}
+                        aria-label={`Modifier ${item.name}`}
+                        className="shrink-0 text-xs font-bold text-orange-800 transition hover:text-orange-900"
+                      >
+                        Modifier
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

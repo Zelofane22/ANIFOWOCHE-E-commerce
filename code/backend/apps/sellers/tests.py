@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest import mock
 
 import requests
@@ -6,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from io import BytesIO
 from PIL import Image
 from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from apps.core.factories import (
@@ -898,6 +900,50 @@ class SellerDashboardPeriodTests(APITestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["kpi"]["period_days"], 14)
+
+    def test_period_365_returns_monthly_chart(self):
+        product = ProductFactory(category=self.category, shop=self.shop, seller=self.seller, price_xof=5000)
+        now = timezone.now()
+        for days_ago in (0, 1, 40):
+            order = OrderFactory(customer=UserFactory(), total_xof=5000, status=Order.Status.DELIVERED)
+            OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=5000)
+            Order.objects.filter(pk=order.pk).update(created_at=now - timedelta(days=days_ago))
+
+        response = self.client.get("/api/seller/dashboard/", {"period": "365"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["kpi"]["period_days"], 365)
+        chart = response.data["sales_chart"]
+        self.assertTrue(all(len(point["day"]) == 7 for point in chart))  # MM/YYYY
+        self.assertEqual(sum(point["total"] for point in chart), 15000)
+        self.assertLessEqual(len(chart), 3)
+
+    def test_period_30_keeps_daily_chart(self):
+        product = ProductFactory(category=self.category, shop=self.shop, seller=self.seller, price_xof=5000)
+        order = OrderFactory(customer=UserFactory(), total_xof=5000, status=Order.Status.DELIVERED)
+        OrderItemFactory(order=order, product=product, quantity=1, unit_price_xof=5000)
+
+        response = self.client.get("/api/seller/dashboard/", {"period": "30"})
+
+        self.assertEqual(len(response.data["sales_chart"][0]["day"]), 5)  # DD/MM
+
+    def test_low_stock_includes_slug(self):
+        product = ProductFactory(
+            category=self.category, shop=self.shop, seller=self.seller, stock=1, is_active=True,
+        )
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        low = response.data["low_stock"]
+        self.assertEqual(low[0]["slug"], product.slug)
+
+    def test_products_metric_counts_active_only(self):
+        ProductFactory(category=self.category, shop=self.shop, seller=self.seller, is_active=True)
+        ProductFactory(category=self.category, shop=self.shop, seller=self.seller, is_active=False)
+
+        response = self.client.get("/api/seller/dashboard/")
+
+        self.assertEqual(response.data["metrics"]["products"], 1)
 
     def test_invalid_period_returns_400(self):
         response = self.client.get("/api/seller/dashboard/", {"period": "15"})
